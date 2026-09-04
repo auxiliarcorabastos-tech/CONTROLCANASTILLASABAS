@@ -1,637 +1,167 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Movimientos</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; }
-        .oculto { display: none !important; }
-        .fondo-login { background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%); }
-        .tarjeta { box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
-        .pestaña-btn.active { background-color: #1e40af; color: white; border-left: 4px solid #facc15; }
-        .contenido-pestaña { animation: fadeIn 0.25s ease; }
-        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
-        input, select { text-transform: uppercase; }
-        .mensaje-error { color: #dc2626; font-size: 0.9rem; min-height: 1.5rem; }
-        .mensaje-exito { color: #16a34a; font-size: 0.9rem; }
-        .etiqueta-admin { background: #b45309; color: white; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: bold; margin-left: 6px; }
-        .texto-auditoria { font-size: 0.75rem; color: #4b5563; }
-        .menu-lateral {
-            position: fixed; top: 0; left: 0; height: 100vh;
-            width: 260px; background: #1e293b; color: white;
-            z-index: 40; transition: transform 0.3s ease;
-            overflow-y: auto;
-        }
-        .menu-lateral.oculto { transform: translateX(-100%); }
-        .cortina-menu {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.5);
-            z-index: 39; display: none;
-        }
-        .cortina-menu.activa { display: block; }
-        .boton-menu {
-            position: fixed; top: 10px; left: 10px; z-index: 35;
-            background: #1e40af; color: white; border: none;
-            padding: 10px 14px; border-radius: 8px; font-size: 1.2rem;
-            cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        }
-        .contenedor-principal { margin-left: 0; transition: margin 0.3s ease; }
-        @media (min-width: 1024px) {
-            .menu-lateral { transform: translateX(0); }
-            .boton-menu { display: none; }
-            .contenedor-principal { margin-left: 260px; }
-        }
-        .fila-recogida { border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; margin: 8px 0; background: #f8fafc; }
-        .btn-quitar { background: #ef4444; color: white; border: none; border-radius: 50%; width: 28px; height: 28px; font-weight: bold; cursor: pointer; }
-        .aviso-sesion-fondo {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
-            display: flex; align-items: center; justify-content: center; z-index: 9999;
-        }
-        .aviso-sesion {
-            background: white; padding: 2rem; border-radius: 1rem; max-width: 90%; width: 380px;
-            text-align: center; box-shadow: 0 6px 24px rgba(0,0,0,0.3);
-        }
-        .aviso-sesion h3 { color: #b45309; font-size: 1.25rem; margin-bottom: 1rem; }
-        .aviso-sesion button { margin: 0.5rem; padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-weight: bold; border: none; cursor: pointer; }
-        .btn-quedarse { background: #16a34a; color: white; }
-        .btn-cerrar-ya { background: #dc2626; color: white; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Ingresos y Canastillas</title>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <!-- Estilos -->
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+    :root { --azul:#1a73e8; --verde:#0f9d58; --rojo:#d93025; --gris:#f1f3f4; --texto:#202124; }
+    body { background: #f8f9fa; color: var(--texto); padding-bottom: 60px; }
+
+    /* --- LOGIN --- */
+    #pantallaLogin {
+      position: fixed; inset:0; background: linear-gradient(135deg, #1a73e8, #4285f4);
+      display:flex; align-items:center; justify-content:center; z-index:999;
+    }
+    .caja-login {
+      background:#fff; padding:2rem; border-radius:12px; box-shadow:0 4px 20px #0003;
+      width: 90%; max-width:400px;
+    }
+    .caja-login h2 { text-align:center; margin-bottom:1.5rem; color:var(--azul); }
+    .caja-login input {
+      width:100%; padding:0.8rem; margin:0.5rem 0; border:1px solid #ddd;
+      border-radius:8px; font-size:1rem;
+    }
+    .caja-login button {
+      width:100%; padding:0.8rem; background:var(--azul); color:#fff;
+      border:none; border-radius:8px; font-size:1rem; cursor:pointer; margin-top:0.5rem;
+    }
+    .caja-login button:hover { background:#1557b0; }
+    .mensaje { margin-top:0.8rem; font-size:0.9rem; text-align:center; min-height:1.5rem; }
+    .error { color:var(--rojo); }
+    .enlace { background:none; color:var(--azul); text-decoration:underline; font-size:0.9rem; }
+
+    /* --- CABECERA Y NAV --- */
+    .cabecera {
+      background:var(--azul); color:#fff; padding:1rem; display:flex;
+      justify-content:space-between; align-items:center; position:sticky; top:0; z-index:90;
+    }
+    .navegacion {
+      display:flex; flex-wrap:wrap; background:#fff; border-bottom:1px solid #ddd;
+      position:sticky; top:60px; z-index:80;
+    }
+    .pestaña {
+      padding:0.8rem 1rem; cursor:pointer; border-bottom:3px solid transparent;
+      white-space:nowrap; font-size:0.95rem;
+    }
+    .pestaña.activa { border-bottom:3px solid var(--azul); color:var(--azul); font-weight:bold; }
+    .pestaña:hover { background:var(--gris); }
+
+    /* --- CONTENIDO --- */
+    .pagina { display:none; padding:1rem; max-width:1200px; margin:0 auto; }
+    .pagina.visible { display:block; }
+    h2 { margin:1rem 0; color:var(--azul); }
+
+    /* --- FORMULARIOS Y TABLAS --- */
+    form { background:#fff; padding:1.2rem; border-radius:10px; box-shadow:0 2px 8px #0001; margin-bottom:1.5rem; }
+    label { display:block; margin-top:0.8rem; font-weight:600; font-size:0.95rem; }
+    input, select {
+      width:100%; padding:0.6rem; margin-top:0.3rem; border:1px solid #ccc;
+      border-radius:6px; font-size:0.95rem;
+    }
+    button {
+      padding:0.6rem 1.2rem; border:none; border-radius:6px; cursor:pointer; font-size:0.95rem;
+      margin:0.3rem;
+    }
+    .btn-primario { background:var(--azul); color:#fff; }
+    .btn-exito { background:var(--verde); color:#fff; }
+    .btn-peligro { background:var(--rojo); color:#fff; }
+    .btn-primario:hover { background:#1557b0; }
+    .btn-exito:hover { background:#0b8047; }
+    .btn-peligro:hover { background:#b02018; }
+
+    .tabla-contenedor { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; margin-top:0.8rem; }
+    th, td { padding:0.6rem; text-align:left; border-bottom:1px solid #eee; font-size:0.9rem; }
+    th { background:var(--gris); }
+    tr:hover { background:#f9f9f9; }
+    .fila-vth { color:#555; font-style:italic; }
+
+    /* --- RESPONSIVE --- */
+    @media(max-width:768px) {
+      th, td { padding:0.4rem 0.3rem; font-size:0.85rem; }
+      .pestaña { padding:0.6rem 0.7rem; font-size:0.9rem; }
+    }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
-<div id="avisoCierreSesion" class="aviso-sesion-fondo oculto">
-    <div class="aviso-sesion">
-        <h3>⏰ CIERRE DE SESIÓN POR INACTIVIDAD</h3>
-        <p>Tu sesión está por cerrarse en <span id="cuentaRegresiva" class="font-bold text-red-600">00:30</span> segundos.</p>
-        <p class="text-sm text-gray-500 mt-2">¿Sigues ahí?</p>
-        <div class="mt-4">
-            <button onclick="seguirConectado()" class="btn-quedarse">✅ SEGUIR CONECTADO</button>
-            <button onclick="cerrarSesionAhora()" class="btn-cerrar-ya">🚪 CERRAR AHORA</button>
-        </div>
-    </div>
-</div>
-<div id="pantallaLogin" class="fondo-login flex items-center justify-center min-h-screen">
-    <div class="bg-white rounded-xl tarjeta p-8 w-full max-w-md">
-        <h2 class="text-2xl font-bold text-center text-gray-700 mb-6">🔐 INICIO DE SESIÓN</h2>
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm font-semibold text-gray-600 mb-1">Usuario</label>
-                <input type="text" id="correo" class="w-full px-4 py-2 border rounded-lg" placeholder="Escribe tu usuario">
-            </div>
-            <div>
-                <label class="block text-sm font-semibold text-gray-600 mb-1">Contraseña</label>
-                <input type="password" id="clave" class="w-full px-4 py-2 border rounded-lg" placeholder="Tu contraseña">
-            </div>
-            <div id="mensajeError" class="mensaje-error text-center font-medium"></div>
-            <button onclick="ingresar()" class="w-full bg-blue-700 text-white py-3 rounded-lg font-bold hover:bg-blue-800">INGRESAR</button>
-            <div class="text-center mt-3">
-                <button onclick="recuperarClave()" class="text-blue-600 text-sm font-medium hover:underline">¿Olvidaste tu contraseña?</button>
-            </div>
-            <div id="mensajeRecuperar" class="mensaje-exito text-center text-sm mt-2"></div>
-            <p class="text-xs text-gray-500 text-center mt-2">ℹ️ Sesión permanece abierta por 1 hora</p>
-        </div>
-    </div>
-</div>
-<div id="pantallaPrincipal" class="oculto">
-    <button class="boton-menu" onclick="alternarMenu()">☰</button>
-    <div id="cortinaMenu" class="cortina-menu" onclick="alternarMenu()"></div>
-    <nav id="menuLateral" class="menu-lateral oculto">
-        <div class="p-4 bg-blue-900 flex justify-between items-center">
-            <h2 class="font-bold text-lg">🚛 MENÚ</h2>
-            <button onclick="alternarMenu()" class="text-white text-xl font-bold">×</button>
-        </div>
-        <div class="p-3 space-y-1">
-            <button class="pestaña-btn active w-full text-left px-3 py-3 rounded font-medium text-sm hover:bg-blue-700" data-pestaña="movimientos" data-permiso="movimientos">📋 Movimientos</button>
-            <button class="pestaña-btn w-full text-left px-3 py-3 rounded font-medium text-sm hover:bg-blue-700" data-pestaña="combustible" data-permiso="combustible">⛽ Combustible/Km</button>
-            <button class="pestaña-btn w-full text-left px-3 py-3 rounded font-medium text-sm hover:bg-blue-700" data-pestaña="transportadora" data-permiso="transportadora">🚚 Transportadora</button>
-            <button class="pestaña-btn w-full text-left px-3 py-3 rounded font-medium text-sm hover:bg-blue-700" data-pestaña="informes" data-permiso="informes">📊 Informes</button>
-            <button class="pestaña-btn w-full text-left px-3 py-3 rounded font-medium text-sm hover:bg-blue-700" data-pestaña="colaboradores" data-permiso="colaboradores">👷 Colaboradores</button>
-            <button class="pestaña-btn w-full text-left px-3 py-3 rounded font-medium text-sm hover:bg-blue-700" data-pestaña="vehiculos" data-permiso="vehiculos">🏍️ Vehículos</button>
-            <button id="btnAdmin" class="pestaña-btn w-full text-left px-3 py-3 rounded font-medium text-sm hover:bg-orange-600 oculto" data-pestaña="administracion" data-permiso="admin">⚙️ ADMINISTRACIÓN</button>
-        </div>
-        <div class="p-3 border-t border-gray-600 mt-3">
-            <div class="flex items-center gap-2 mb-3">
-                <span id="nombreUsuario" class="text-sm font-medium"></span>
-            </div>
-            <div class="flex gap-2">
-                <button onclick="recargarDatos()" class="bg-green-600 text-white px-3 py-2 rounded text-sm font-bold flex-1">🔄 Actualizar</button>
-                <button onclick="cerrarSesion()" class="bg-red-600 text-white px-3 py-2 rounded text-sm font-bold">🚪</button>
-            </div>
-        </div>
-    </nav>
-    <div class="contenedor-principal p-4 lg:p-6">
-        <!-- ========== MOVIMIENTOS ========== -->
-        <div id="pestaña-movimientos" class="contenido-pestaña">
-            <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
-                <h2 class="text-lg font-bold text-gray-700 mb-4">📝 REGISTRAR MOVIMIENTO</h2>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                    <div><label class="text-sm font-semibold">Fecha</label><input type="date" id="fecha" class="w-full px-3 py-2 border rounded-lg"></div>
-                    <div><label class="text-sm font-semibold">Colaborador que SALE</label><select id="colaborador" class="w-full px-3 py-2 border rounded-lg"></select></div>
-                    <div><label class="text-sm font-semibold">Vehículo/Placa</label><select id="vehiculo" class="w-full px-3 py-2 border rounded-lg"></select></div>
-                    <div><label class="text-sm font-semibold">ID Editar</label><input type="text" id="idEditar" class="w-full px-3 py-2 border rounded-lg bg-gray-100" readonly></div>
-                    <div><label class="text-sm font-semibold">🕐 Hora Salida</label><input type="time" id="horaSalida" class="w-full px-3 py-2 border rounded-lg"></div>
-                    <div><label class="text-sm font-semibold">🕔 Hora Llegada</label><input type="time" id="horaLlegada" class="w-full px-3 py-2 border rounded-lg"></div>
-                    <div><label class="text-sm font-semibold">📤 Canast. Salida</label><input type="number" id="canSalida" class="w-full px-3 py-2 border rounded-lg" placeholder="0"></div>
-                    <div><label class="text-sm font-semibold">📥 Canast. Llegada</label><input type="number" id="canLlegada" class="w-full px-3 py-2 border rounded-lg" placeholder="0"></div>
-                </div>
-                <div class="border-t pt-4 mt-2">
-                    <div class="flex justify-between items-center mb-3">
-                        <h3 class="font-bold text-blue-700">👤 RECOGIDAS EN EL RECORRIDO</h3>
-                        <button onclick="agregarFilaRecogida()" class="bg-blue-600 text-white px-3 py-1.5 rounded font-bold text-sm">➕ AGREGAR OTRA RECOGIDA</button>
-                    </div>
-                    <div id="contenedorRecogidas"></div>
-                    <div class="mt-2 p-2 bg-blue-50 rounded-lg text-sm">
-                        <strong>Total Kilos Recogidos:</strong> <span id="totalKilosRecogidos">0</span> kg | 
-                        <strong>Cantidad de personas:</strong> <span id="cantidadRecogidas">0</span>
-                    </div>
-                </div>
-                <div class="mt-4 mb-4">
-                    <label class="text-sm font-semibold">Observaciones</label>
-                    <input type="text" id="obs" class="w-full px-3 py-2 border rounded-lg" placeholder="Escribe observaciones...">
-                </div>
-                <div class="flex flex-wrap gap-3 mt-2">
-                    <button onclick="guardarMovimiento()" id="btnGuardarMov" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold">✅ GUARDAR NUEVO</button>
-                    <button onclick="completarLlegada()" id="btnCompletarLlegada" class="bg-yellow-500 text-white px-6 py-2 rounded-lg font-bold">⏱️ COMPLETAR LLEGADA</button>
-                    <button onclick="actualizarMovimiento()" id="btnActualizar" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold oculto">✏️ ACTUALIZAR</button>
-                    <button onclick="eliminarMovimiento()" id="btnEliminarMov" class="bg-red-600 text-white px-6 py-2 rounded-lg font-bold oculto">🗑️ ELIMINAR</button>
-                    <button onclick="limpiarFormulario()" class="bg-gray-500 text-white px-6 py-2 rounded-lg font-bold">🔄 LIMPIAR</button>
-                </div>
-            </section>
-            <section class="bg-white rounded-xl tarjeta p-4 lg:p-6 mt-6">
-                <h3 class="font-bold text-gray-700 mb-3">📋 MOVIMIENTOS (Clic para editar)</h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm border-collapse">
-                        <thead class="bg-blue-800 text-white">
-                            <tr>
-                                <th class="px-2 py-2 border">Fecha</th>
-                                <th class="px-2 py-2 border">Colaborador Sale</th>
-                                <th class="px-2 py-2 border">Placa</th>
-                                <th class="px-2 py-2 border">Recogidas</th>
-                                <th class="px-2 py-2 border">Total Kilos</th>
-                                <th class="px-2 py-2 border">Salida</th>
-                                <th class="px-2 py-2 border">Llegada</th>
-                                <th class="px-2 py-2 border">Canast Dif</th>
-                                <th class="px-2 py-2 border">Creado por / Hora</th>
-                                <th class="px-2 py-2 border">Estado</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaMov" class="text-center"></tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
-        <!-- ========== COMBUSTIBLE ========== -->
-        <div id="pestaña-combustible" class="contenido-pestaña oculto">
-            <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
-                <h2 class="text-lg font-bold text-gray-700 mb-4">⛽ KILOMETRAJE & CONSUMO</h2>
-                <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mb-4">
-                    <div><label class="text-sm font-semibold">Fecha</label><input type="date" id="fechaKm" class="w-full px-3 py-2 border rounded-lg"></div>
-                    <div><label class="text-sm font-semibold">Placa</label><select id="placaKm" class="w-full px-3 py-2 border rounded-lg"></select></div>
-                    <div><label class="text-sm font-semibold">Km Mañana</label><input type="number" id="kmManana" class="w-full px-3 py-2 border rounded-lg"></div>
-                    <div><label class="text-sm font-semibold">Km Tarde</label><input type="number" id="kmTarde" class="w-full px-3 py-2 border rounded-lg"></div>
-                    <div><label class="text-sm font-semibold">Galones</label><input type="number" step="0.01" id="galones" class="w-full px-3 py-2 border rounded-lg"></div>
-                </div>
-                <button onclick="guardarKm()" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold mb-4">✅ GUARDAR</button>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm border-collapse">
-                        <thead class="bg-orange-600 text-white"><tr><th>Fecha</th><th>Placa</th><th>Km Mañana</th><th>Km Tarde</th><th>Recorridos</th><th>Galones</th><th>Km/Galón</th><th>Registrado por</th></tr></thead>
-                        <tbody id="tablaKm" class="text-center"></tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
-        <!-- ========== TRANSPORTADORA ========== -->
-        <div id="pestaña-transportadora" class="contenido-pestaña oculto">
-            <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
-                <div class="sticky top-0 z-20 bg-white border-b pb-3 mb-4 flex justify-between items-center">
-                    <h2 class="text-lg font-bold text-blue-700">🚚 GESTIÓN DE TRANSPORTADORA</h2>
-                    <button onclick="recargarDatos()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold shadow-md">🔄 ACTUALIZAR</button>
-                </div>
-                <div class="flex flex-wrap gap-2 mb-4 border-b">
-                    <button onclick="mostrarSubPestañaTrans('vehiculosTrans')" id="sp-veh" class="px-3 py-2 font-bold bg-blue-600 text-white rounded-t text-sm">🚛 VEHÍCULOS</button>
-                    <button onclick="mostrarSubPestañaTrans('conductoresTrans')" id="sp-con" class="px-3 py-2 font-bold bg-gray-200 rounded-t text-sm">👨‍✈️ CONDUCTORES</button>
-                    <button onclick="mostrarSubPestañaTrans('canastillasSal')" id="sp-cs" class="px-3 py-2 font-bold bg-gray-200 rounded-t text-sm">📤 SALIDA CANASTILLAS</button>
-                    <button onclick="mostrarSubPestañaTrans('canastillasEnt')" id="sp-ce" class="px-3 py-2 font-bold bg-gray-200 rounded-t text-sm">📥 ENTRADA CANASTILLAS</button>
-                </div>
-                <div id="contenidoSubTrans"></div>
-            </section>
-        </div>
-        <!-- ========== INFORMES ========== -->
-        <div id="pestaña-informes" class="contenido-pestaña oculto">
-            <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
-                <h2 class="text-lg font-bold text-gray-700 mb-4">📊 INFORMES Y CONSULTAS</h2>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                    <div><label class="text-sm font-semibold">Fecha Inicio</label><input type="date" id="fInicio" class="w-full px-3 py-2 border rounded-lg"></div>
-                    <div><label class="text-sm font-semibold">Fecha Fin</label><input type="date" id="fFin" class="w-full px-3 py-2 border rounded-lg"></div>
-                    <div><label class="text-sm font-semibold">Periodo</label>
-                        <select onchange="aplicarPeriodo(this.value)" class="w-full px-3 py-2 border rounded-lg">
-                            <option value="">Seleccione...</option>
-                            <option value="hoy">HOY</option>
-                            <option value="semana">ESTA SEMANA</option>
-                            <option value="mes">ESTE MES</option>
-                        </select>
-                    </div>
-                    <button onclick="filtrar()" class="bg-yellow-500 text-white px-4 py-2 rounded-lg font-bold">🔍 BUSCAR</button>
-                </div>
-                <div class="flex flex-wrap gap-3 mb-4">
-                    <button onclick="exportarExcel()" class="bg-green-700 text-white px-4 py-2 rounded">📥 Excel Movimientos</button>
-                    <button onclick="verTodos()" class="bg-gray-600 text-white px-4 py-2 rounded">🔄 VER TODOS</button>
-                </div>
-                <div id="contenidoInformes"></div>
-            </section>
-        </div>
-        <!-- ========== COLABORADORES ========== -->
-        <div id="pestaña-colaboradores" class="contenido-pestaña oculto">
-            <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
-                <h2 class="text-lg font-bold text-gray-700 mb-4">👷 COLABORADORES</h2>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div><label class="text-sm font-semibold">Nombre Completo</label><input type="text" id="nombreCol" class="w-full px-3 py-2 border rounded-lg"></div>
-                    <div><label class="text-sm font-semibold">Cédula / ID</label><input type="text" id="cedulaCol" class="w-full px-3 py-2 border rounded-lg"></div>
-                    <div class="flex items-end"><button onclick="agregarColaborador()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold w-full">➕ AGREGAR</button></div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm border-collapse">
-                        <thead class="bg-blue-700 text-white"><tr><th>Nombre</th><th>Cédula</th><th>Registrado por</th><th>Eliminar</th></tr></thead>
-                        <tbody id="tablaCol" class="text-center"></tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
-        <!-- ========== VEHÍCULOS ========== -->
-        <div id="pestaña-vehiculos" class="contenido-pestaña oculto">
-            <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
-                <h2 class="text-lg font-bold text-gray-700 mb-4">🏍️ VEHÍCULOS</h2>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                    <div><label class="text-sm font-semibold">Tipo</label>
-                        <select id="tipoVeh" class="w-full px-3 py-2 border rounded-lg">
-                            <option>MOTO PEQUEÑA</option>
-                            <option>MOTO GRANDE</option>
-                            <option>CAMIONETA</option>
-                            <option>VTH - VEHÍCULO DE TRACCIÓN HUMANA</option>
-                        </select>
-                    </div>
-                    <div><label class="text-sm font-semibold">Placa</label><input type="text" id="placaVeh" class="w-full px-3 py-2 border rounded-lg"></div>
-                    <div><label class="text-sm font-semibold">Detalle/Marca</label><input type="text" id="detalleVeh" class="w-full px-3 py-2 border rounded-lg"></div>
-                    <div class="flex items-end"><button onclick="agregarVehiculo()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold w-full">➕ AGREGAR</button></div>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm border-collapse">
-                        <thead class="bg-blue-700 text-white"><tr><th>Tipo</th><th>Placa</th><th>Detalle</th><th>Registrado por</th><th>Eliminar</th></tr></thead>
-                        <tbody id="tablaVeh" class="text-center"></tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
-        <!-- ========== ADMINISTRACIÓN ========== -->
-        <div id="pestaña-administracion" class="contenido-pestaña oculto">
-            <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
-                <h2 class="text-lg font-bold text-orange-700 mb-4">⚙️ ADMINISTRACIÓN DE USUARIOS</h2>
-                <p class="text-sm text-gray-600 mb-4">Crea y edita usuarios, define qué pueden ver.</p>
-                <div class="border rounded-lg p-4 mb-6 bg-orange-50">
-                    <h3 class="font-bold text-orange-700 mb-3">➕ CREAR / EDITAR USUARIO</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div><label class="text-sm font-semibold">Usuario</label><input type="text" id="nuevoUsuario" class="w-full px-3 py-2 border rounded-lg"></div>
-                        <div><label class="text-sm font-semibold">Contraseña</label><input type="text" id="nuevaClave" class="w-full px-3 py-2 border rounded-lg"></div>
-                        <div><label class="text-sm font-semibold">Rol</label>
-                            <select id="nuevoRol" class="w-full px-3 py-2 border rounded-lg">
-                                <option value="usuario">USUARIO</option>
-                                <option value="admin">ADMINISTRADOR</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button onclick="guardarUsuarioSistema()" class="bg-orange-600 text-white px-4 py-2 rounded-lg font-bold">💾 GUARDAR</button>
-                </div>
-            </section>
-        </div>
-    </div>
-</div>
-<script>
-// ===== CONFIGURACIÓN FIREBASE =====
-const firebaseConfig = {
-  apiKey: "AIzaSyBruMDqyExColkMwy7XyqDSBsF8XcvsFoY",
-  authDomain: "control-ingresos-y-canastillas.firebaseapp.com",
-  projectId: "control-ingresos-y-canastillas",
-  storageBucket: "control-ingresos-y-canastillas.firebasestorage.app",
-  messagingSenderId: "372736670308",
-  appId: "1:372736670308:web:14c2e2614c14ff3dc2bd71"
-};
-// ===== TIEMPO DE SESIÓN =====
-const TIEMPO_TOTAL_SESION = 60 * 60 * 1000;
-const TIEMPO_AVISO = 30;
-let tiempoUltimaAccion = Date.now();
-let temporizadorSesion = null;
-let cuentaRegresiva = null;
-// ===== USUARIOS INTERNOS =====
-const USUARIOS_SISTEMA = [
-  { usuario: "jgarnica", clave: "123456", rol: "usuario", permisos: { movimientos: true, combustible: true, transportadora: true, informes: true, colaboradores: true, vehiculos: true, editar: true } },
-  { usuario: "jfigueroa", clave: "3134630773", rol: "admin", permisos: { movimientos: true, combustible: true, transportadora: true, informes: true, colaboradores: true, vehiculos: true, editar: true } },
-  { usuario: "estudiante", clave: "123456", rol: "usuario", permisos: { movimientos: true, combustible: true, transportadora: true, informes: true, colaboradores: true, vehiculos: true, editar: false } }
-];
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-let usuarioConectado = null;
-let movimientos = [], colaboradores = [], vehiculos = [], kilometraje = [], conductores = [], canastillasSalida = [], canastillasEntrada = [];
-let idEdicion = null;
-let recogidasTemporales = [];
-// ===== MENÚ =====
-function alternarMenu() {
-    const menu = document.getElementById('menuLateral');
-    const cortina = document.getElementById('cortinaMenu');
-    menu.classList.toggle('oculto');
-    cortina.classList.toggle('activa');
-}
-// ===== FECHA Y HORA =====
-function obtenerFechaHoraActual() {
-    const ahora = new Date();
-    return {
-        fecha: ahora.toISOString().split('T')[0],
-        hora: ahora.toTimeString().split(' ')[0].substring(0, 8)
-    };
-}
-// ===== RECARGAR DATOS =====
-async function recargarDatos() {
-    tiempoUltimaAccion = Date.now();
-    await cargarTodo();
-    alert('✅ Datos actualizados');
-}
-// ===== CONTROL DE INACTIVIDAD =====
-function reiniciarContadorSesion() { tiempoUltimaAccion = Date.now(); ocultarAvisoCierre(); }
-function iniciarMonitorInactividad() {
-    ['click','input','keydown','scroll'].forEach(ev => document.addEventListener(ev, reiniciarContadorSesion));
-    temporizadorSesion = setInterval(() => {
-        if(!usuarioConectado) return;
-        const restante = TIEMPO_TOTAL_SESION - (Date.now() - tiempoUltimaAccion);
-        if(restante <= TIEMPO_AVISO * 1000 && restante > 0) mostrarAvisoCierre(Math.ceil(restante / 1000));
-        else if(restante <= 0) cerrarSesion();
-    }, 1000);
-}
-function mostrarAvisoCierre(segundos) {
-    document.getElementById('avisoCierreSesion').classList.remove('oculto');
-    document.getElementById('cuentaRegresiva').textContent = segundos;
-    if(!cuentaRegresiva) cuentaRegresiva = setInterval(() => {
-        const v = parseInt(document.getElementById('cuentaRegresiva').textContent) - 1;
-        document.getElementById('cuentaRegresiva').textContent = v;
-        if(v <= 0) cerrarSesion();
-    }, 1000);
-}
-function ocultarAvisoCierre() {
-    document.getElementById('avisoCierreSesion').classList.add('oculto');
-    if(cuentaRegresiva) { clearInterval(cuentaRegresiva); cuentaRegresiva = null; }
-}
-function seguirConectado() { reiniciarContadorSesion(); }
-function cerrarSesionAhora() { cerrarSesion(); }
-// ===== RECOGIDAS EN MOVIMIENTOS =====
-function agregarFilaRecogida(datos = null) {
-    const contenedor = document.getElementById('contenedorRecogidas');
-    const indice = recogidasTemporales.length;
-    const fila = document.createElement('div');
-    fila.className = 'fila-recogida';
-    fila.id = `filaRecogida-${indice}`;
-    fila.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
-            <div>
-                <label class="text-sm font-semibold">A quién recoge</label>
-                <select class="w-full px-3 py-2 border rounded-lg recogida-nombre">
-                    <option value="">Seleccione colaborador</option>
-                    ${colaboradores.map(c => `<option value="${c.nombre}" ${datos?.nombre === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
-                </select>
-            </div>
-            <div>
-                <label class="text-sm font-semibold">Kilos que lleva</label>
-                <input type="number" class="w-full px-3 py-2 border rounded-lg recogida-kilos" value="${datos?.kilos || ''}" placeholder="0">
-            </div>
-            <div class="flex items-end justify-between">
-                <span class="text-sm font-medium">Recogida #${indice+1}</span>
-                <button type="button" class="btn-quitar" onclick="quitarFilaRecogida(${indice})">×</button>
-            </div>
-        </div>
-    `;
-    contenedor.appendChild(fila);
-    recogidasTemporales.push(datos || { nombre: '', kilos: 0 });
-    fila.querySelector('.recogida-nombre').addEventListener('change', actualizarRecogidas);
-    fila.querySelector('.recogida-kilos').addEventListener('input', actualizarRecogidas);
-    actualizarRecogidas();
-}
-function quitarFilaRecogida(indice) {
-    document.getElementById(`filaRecogida-${indice}`)?.remove();
-    recogidasTemporales.splice(indice, 1);
-    actualizarRecogidas();
-}
-function actualizarRecogidas() {
-    recogidasTemporales = [];
-    document.querySelectorAll('.fila-recogida').forEach(fila => {
-        const nombre = fila.querySelector('.recogida-nombre').value;
-        const kilos = Number(fila.querySelector('.recogida-kilos').value) || 0;
-        recogidasTemporales.push({ nombre, kilos });
-    });
-    const totalKilos = recogidasTemporales.reduce((sum, r) => sum + r.kilos, 0);
-    document.getElementById('totalKilosRecogidos').textContent = totalKilos;
-    document.getElementById('cantidadRecogidas').textContent = recogidasTemporales.length;
-}
-// ===== INICIO DE SESIÓN =====
-async function ingresar() {
-    let usuario = document.getElementById('correo').value.trim();
-    const clave = document.getElementById('clave').value.trim();
-    const cajaError = document.getElementById('mensajeError');
-    cajaError.textContent = '';
-    if(!usuario || !clave) { cajaError.textContent = '⚠️ Escribe usuario y contraseña'; return; }
-    const encontrado = USUARIOS_SISTEMA.find(u => u.usuario.toLowerCase() === usuario.toLowerCase());
-    if(encontrado) {
-        if(encontrado.clave === clave) {
-            usuarioConectado = { 
-                usuario: encontrado.usuario, 
-                nombre: encontrado.usuario.toUpperCase(),
-                rol: encontrado.rol, 
-                permisos: encontrado.permisos
-            };
-            entrarApp();
-        } else { cajaError.textContent = '🔒 CONTRASEÑA ERRADA'; }
-    } else {
-        cajaError.textContent = '❌ USUARIO NO REGISTRADO';
-    }
-}
-function recuperarClave() {
-    let usuario = document.getElementById('correo').value.trim().toLowerCase();
-    const cajaMsg = document.getElementById('mensajeRecuperar');
-    const encontrado = USUARIOS_SISTEMA.find(u => u.usuario.toLowerCase() === usuario);
-    if(encontrado) {
-        cajaMsg.style.color = '#16a34a';
-        cajaMsg.textContent = `✅ Tu contraseña es: ${encontrado.clave}`;
-    } else {
-        cajaMsg.style.color = '#dc2626';
-        cajaMsg.textContent = '❌ Usuario no encontrado';
-    }
-}
-function entrarApp() {
-    document.getElementById('pantallaLogin').classList.add('oculto');
-    document.getElementById('pantallaPrincipal').classList.remove('oculto');
-    const admin = usuarioConectado.rol === 'admin' ? '<span class="etiqueta-admin">ADMIN</span>' : '';
-    document.getElementById('nombreUsuario').innerHTML = `👤 ${usuarioConectado.nombre} ${admin}`;
-    aplicarPermisos();
-    tiempoUltimaAccion = Date.now();
-    iniciarMonitorInactividad();
-    document.getElementById('fecha').valueAsDate = new Date();
-    document.getElementById('fechaKm').valueAsDate = new Date();
-    cargarTodo();
-}
-function aplicarPermisos() {
-    const p = usuarioConectado.permisos;
-    document.querySelectorAll('.pestaña-btn').forEach(btn => {
-        const perm = btn.dataset.permiso;
-        if(perm === 'admin') btn.classList.toggle('oculto', usuarioConectado.rol !== 'admin');
-        else btn.classList.toggle('oculto', !p[perm]);
-    });
-    if(usuarioConectado.rol === 'admin') document.getElementById('btnEliminarMov').classList.remove('oculto');
-}
-function cerrarSesion() {
-    if(temporizadorSesion) clearInterval(temporizadorSesion);
-    if(cuentaRegresiva) clearInterval(cuentaRegresiva);
-    location.reload();
-}
-// ===== CAMBIO DE PESTAÑAS =====
-document.querySelectorAll('.pestaña-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const pestañaId = btn.dataset.pestaña;
-        const permiso = btn.dataset.permiso;
-        if(permiso === 'admin' && usuarioConectado?.rol !== 'admin') return;
-        if(permiso !== 'admin' && usuarioConectado && !usuarioConectado.permisos[permiso]) return;
-        document.querySelectorAll('.pestaña-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        document.querySelectorAll('.contenido-pestaña').forEach(c => c.classList.add('oculto'));
-        document.getElementById(`pestaña-${pestañaId}`).classList.remove('oculto');
-        if(pestañaId === 'transportadora') mostrarSubPestañaTrans('vehiculosTrans');
-        if(window.innerWidth < 1024) alternarMenu();
-    });
-});
-// ===== CARGA DE DATOS DESDE FIREBASE =====
-async function cargarTodo() {
-    const colRef = await db.collection('colaboradores').orderBy('nombre').get();
-    colaboradores = colRef.docs.map(d => ({ id: d.id, ...d.data() }));
-    
-    const vehRef = await db.collection('vehiculos').orderBy('placa').get();
-    vehiculos = vehRef.docs.map(d => ({ id: d.id, ...d.data() }));
-    
-    const movRef = await db.collection('movimientos').orderBy('fecha','desc').get();
-    movimientos = movRef.docs.map(d => ({ id: d.id, ...d.data() }));
-    
-    const kmRef = await db.collection('kilometraje').orderBy('fecha','desc').get();
-    kilometraje = kmRef.docs.map(d => ({ id: d.id, ...d.data() }));
-    const condRef = await db.collection('conductores').orderBy('nombre').get();
-    conductores = condRef.docs.map(d => ({ id: d.id, ...d.data() }));
-    const csRef = await db.collection('canastillasSalida').orderBy('fecha','desc').get();
-    canastillasSalida = csRef.docs.map(d => ({ id: d.id, ...d.data() }));
-    const ceRef = await db.collection('canastillasEntrada').orderBy('fecha','desc').get();
-    canastillasEntrada = ceRef.docs.map(d => ({ id: d.id, ...d.data() }));
-    dibujarTodo();
-}
-function dibujarTodo() {
-    const selCol = document.getElementById('colaborador');
-    selCol.innerHTML = '<option value="">Seleccione colaborador</option>';
-    colaboradores.forEach(c => selCol.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`);
-    
-    const selVeh = document.getElementById('vehiculo');
-    selVeh.innerHTML = '<option value="">Seleccione placa</option>';
-    vehiculos.forEach(v => selVeh.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.tipo}</option>`);
-    
-    const selKmPlaca = document.getElementById('placaKm');
-    selKmPlaca.innerHTML = '<option value="">Seleccione placa</option>';
-    vehiculos.filter(v => !v.tipo.includes('TRACCIÓN HUMANA')).forEach(v => {
-        selKmPlaca.innerHTML += `<option value="${v.placa}">${v.placa}</option>`;
-    });
-    dibujarTablaMovimientos();
-    dibujarTablaKm();
-    dibujarTablaColaboradores();
-    dibujarTablaVehiculos();
-}
-// ===== TABLA MOVIMIENTOS =====
-function dibujarTablaMovimientos() {
-    const tabla = document.getElementById('tablaMov');
-    tabla.innerHTML = '';
-    movimientos.forEach(mov => {
-        const cantidad = mov.recogidas ? mov.recogidas.length : 0;
-        const kilosTotales = mov.totalKilosRecogidos || 0;
-        const diferencia = (mov.canastSalida || 0) - (mov.canastLlegada || 0);
-        const estado = mov.horaLlegada ? '✅ COMPLETADO' : '⏳ EN CURSO';
-        const fila = tabla.insertRow();
-        fila.onclick = () => cargarEnFormulario(mov.id);
-        fila.innerHTML = `
-            <td class="px-2 py-2 border text-xs">${mov.fecha}</td>
-            <td class="px-2 py-2 border text-xs">${mov.colaborador}</td>
-            <td class="px-2 py-2 border text-xs">${mov.placa}</td>
-            <td class="px-2 py-2 border text-xs">${cantidad} pers.</td>
-            <td class="px-2 py-2 border text-xs font-bold">${kilosTotales} kg</td>
-            <td class="px-2 py-2 border text-xs">${mov.horaSalida || '-'}</td>
-            <td class="px-2 py-2 border text-xs">${mov.horaLlegada || '-'}</td>
-            <td class="px-2 py-2 border text-xs">${diferencia}</td>
-            <td class="px-2 py-2 border texto-auditoria">${mov.usuarioCreacion}<br>${mov.horaCreacion||''}</td>
-            <td class="px-2 py-2 border text-xs">${estado}</td>
-        `;
-    });
-}
-// ===== GUARDAR MOVIMIENTO =====
-async function guardarMovimiento() {
-    const { fecha, hora } = obtenerFechaHoraActual();
-    const datos = {
-        fecha: document.getElementById('fecha').value,
-        colaborador: document.getElementById('colaborador').value,
-        placa: document.getElementById('vehiculo').value,
-        horaSalida: document.getElementById('horaSalida').value,
-        horaLlegada: document.getElementById('horaLlegada').value || '',
-        canastSalida: Number(document.getElementById('canSalida').value)||0,
-        canastLlegada: Number(document.getElementById('canLlegada').value)||0,
-        recogidas: [...recogidasTemporales],
-        totalKilosRecogidos: recogidasTemporales.reduce((s,r)=>s+r.kilos,0),
-        observaciones: document.getElementById('obs').value,
-        usuarioCreacion: usuarioConectado.usuario.toUpperCase(),
-        fechaCreacion: fecha,
-        horaCreacion: hora
-    };
-    if(!datos.fecha || !datos.colaborador || !datos.placa) {
-        alert('⚠️ Completa fecha, colaborador y placa');
-        return;
-    }
-    try {
-        if(idEdicion) {
-            datos.usuarioEdicion = usuarioConectado.usuario.toUpperCase();
-            datos.fechaEdicion = fecha;
-            datos.horaEdicion = hora;
-            await db.collection('movimientos').doc(idEdicion).update(datos);
-            alert('✅ Movimiento actualizado');
-        } else {
-            await db.collection('movimientos').add(datos);
-            alert('✅ Movimiento guardado');
-        }
-        limpiarFormulario();
-        await cargarTodo();
-    } catch(err) { alert('❌ Error: ' + err.message); }
-}
-// ===== CARGAR EN FORMULARIO =====
-function cargarEnFormulario(id) {
-  const mov = movimientos.find(m => m.id === id);
-  if (!mov) return;
-  idEdicion = id;
-  document.getElementById('fecha').value = mov.fecha;
-  document.getElementById('colaborador').value = mov.colaborador;
-  document.getElementById('vehiculo').value = mov.placa;
-  document.getElementById('horaSalida').value = mov.horaSalida || '';
-  document.getElementById('horaLlegada').value = mov.horaLlegada || '';
-  document.getElementById('canSalida').value = mov.canastSalida || '';
-  document.getElementById('canLlegada').value = mov.canastLlegada || '';
-  document.getElementById('obs').value = mov.observaciones || '';
-  document.getElementById('idEditar').value = id;
+<body>
 
-  // Cambiar título del formulario y botón
-  document.querySelector('#formMovimiento h3').textContent = '✏️ Editar Movimiento';
-  document.querySelector('#formMovimiento button[type="submit"]').textContent = 'Actualizar';
+<!-- ===== PANTALLA DE LOGIN ===== -->
+<div id="pantallaLogin">
+  <div class="caja-login">
+    <h2>🔐 Iniciar Sesión</h2>
+    <input type="email" id="correo" placeholder="Correo electrónico">
+    <input type="password" id="clave" placeholder="Contraseña">
+    <button onclick="iniciarSesion()">Ingresar</button>
+    <div class="mensaje" id="mensajeLogin"></div>
+    <button class="enlace" onclick="recuperarClave()">¿Olvidé mi contraseña?</button>
+  </div>
+</div>
 
-  // Desplazarse al formulario
-  document.getElementById('formMovimiento').scrollIntoView({ behavior: 'smooth' });
-}
-" maxlength="10"></label>
+<!-- ===== CABECERA ===== -->
+<header class="cabecera" id="cabecera" style="display:none;">
+  <h1>🚚 Control de Ingresos y Canastillas</h1>
+  <div>
+    <span id="nombreUsuario"></span>
+    <button onclick="cerrarSesion()" style="background:#fff3; color:#fff; padding:0.4rem 0.8rem; border-radius:6px; margin-left:0.5rem;">Salir</button>
+  </div>
+</header>
+
+<!-- ===== NAVEGACIÓN / PESTAÑAS ===== -->
+<nav class="navegacion" id="menuPestanas" style="display:none;">
+  <div class="pestaña activa" data-pagina="movimientos">Movimientos</div>
+  <div class="pestaña" data-pagina="vehiculos">Vehículos</div>
+  <div class="pestaña" data-pagina="combustible">Combustible</div>
+  <div class="pestaña" data-pagina="informes">Informes</div>
+  <div class="pestaña" data-pagina="admin" id="pestanaAdmin" style="display:none;">Administración</div>
+</nav>
+
+<!-- ===== PÁGINAS / MÓDULOS ===== -->
+<main id="contenidoPrincipal" style="display:none;">
+
+  <!-- --- MOVIMIENTOS --- -->
+  <section class="pagina visible" id="pag-movimientos">
+    <form id="formMovimiento">
+      <input type="hidden" id="idEditar">
+      <h3>Registrar Movimiento</h3>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:0.5rem;">
+        <label>Fecha <input type="date" id="fecha" required></label>
+        <label>Colaborador <select id="colaborador" required><option value="">Seleccione</option></select></label>
+        <label>Vehículo / Placa <select id="vehiculo" required><option value="">Seleccione</option></select></label>
+        <label>Hora Salida <input type="time" id="horaSalida"></label>
+        <label>Hora Llegada <input type="time" id="horaLlegada"></label>
+        <label>Canastillas Salida <input type="number" id="canSalida" min="0"></label>
+        <label>Canastillas Llegada <input type="number" id="canLlegada" min="0"></label>
+      </div>
+      <label>Observaciones <input type="text" id="obs"></label>
+      <button type="submit" class="btn-primario">Guardar</button>
+      <button type="reset" class="btn-peligro" onclick="resetFormulario()">Cancelar</button>
+    </form>
+    <h3>Lista de Movimientos</h3>
+    <div class="tabla-contenedor">
+      <table id="tablaMovimientos">
+        <thead>
+          <tr>
+            <th>Fecha</th><th>Colaborador</th><th>Placa</th><th>Salida</th><th>Llegada</th>
+            <th>Canast. Salida</th><th>Canast. Llegada</th><th>Registrado por</th><th>Hora</th><th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- --- VEHÍCULOS --- -->
+  <section class="pagina" id="pag-vehiculos">
+    <form id="formVehiculo">
+      <h3>Registrar Vehículo</h3>
+      <label>Placa <input type="text" id="placa" required style="text-transform:uppercase" maxlength="10"></label>
       <label>Marca / Modelo <input type="text" id="modelo"></label>
       <label>Tipo de Vehículo
         <select id="tipoVehiculo" required>
@@ -645,18 +175,12 @@ function cargarEnFormulario(id) {
       </label>
       <button type="submit" class="btn-primario">Guardar Vehículo</button>
     </form>
-
     <h3>Lista de Vehículos</h3>
     <div class="tabla-contenedor">
       <table id="tablaVehiculos">
         <thead>
           <tr>
-            <th>Placa</th>
-            <th>Modelo</th>
-            <th>Tipo</th>
-            <th>Registrado por</th>
-            <th>Fecha/Hora</th>
-            <th>Acciones</th>
+            <th>Placa</th><th>Modelo</th><th>Tipo</th><th>Registrado por</th><th>Fecha/Hora</th><th>Acciones</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -679,21 +203,13 @@ function cargarEnFormulario(id) {
       <label>Galones Cargados <input type="number" id="galones" min="0" step="0.01"></label>
       <button type="submit" class="btn-primario">Guardar Registro</button>
     </form>
-
     <h3>Registros de Combustible</h3>
     <div class="tabla-contenedor">
       <table id="tablaCombustible">
         <thead>
           <tr>
-            <th>Fecha</th>
-            <th>Placa</th>
-            <th>KM Mañana</th>
-            <th>KM Tarde</th>
-            <th>Recorrido</th>
-            <th>Galones</th>
-            <th>Rendimiento km/gal</th>
-            <th>Registrado por</th>
-            <th>Hora</th>
+            <th>Fecha</th><th>Placa</th><th>KM Mañana</th><th>KM Tarde</th><th>Recorrido</th>
+            <th>Galones</th><th>Rendimiento km/gal</th><th>Registrado por</th><th>Hora</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -701,7 +217,7 @@ function cargarEnFormulario(id) {
     </div>
   </section>
 
-  <!-- --- INFORMES Y CONSULTAS --- -->
+  <!-- --- INFORMES --- -->
   <section class="pagina" id="pag-informes">
     <h2>📊 Consultas y Reportes</h2>
     <div style="background:#fff; padding:1rem; border-radius:10px; margin-bottom:1rem;">
@@ -712,23 +228,17 @@ function cargarEnFormulario(id) {
         <button class="btn-primario" onclick="generarInforme()">Generar Reporte</button>
       </div>
     </div>
-
     <h3>Resumen Recorridos y Rendimiento</h3>
     <div class="tabla-contenedor">
       <table id="tablaInformes">
         <thead>
           <tr>
-            <th>Placa</th>
-            <th>Total KM</th>
-            <th>Total Galones</th>
-            <th>Rendimiento Prom. (km/gal)</th>
-            <th>Periodo</th>
+            <th>Placa</th><th>Total KM</th><th>Total Galones</th><th>Rendimiento Prom. (km/gal)</th><th>Periodo</th>
           </tr>
         </thead>
         <tbody></tbody>
       </table>
     </div>
-
     <br>
     <button class="btn-exito" onclick="exportarExcel()">📥 Exportar Todo a Excel</button>
   </section>
@@ -736,8 +246,6 @@ function cargarEnFormulario(id) {
   <!-- --- ADMINISTRACIÓN --- -->
   <section class="pagina" id="pag-admin">
     <h2>⚙️ Administración del Sistema</h2>
-
-    <!-- Gestión de Usuarios -->
     <form id="formUsuario">
       <h3>Gestión de Usuarios</h3>
       <input type="hidden" id="idUsuarioEditar">
@@ -771,18 +279,12 @@ function cargarEnFormulario(id) {
       </label>
       <button type="submit" class="btn-primario">Guardar Usuario</button>
     </form>
-
     <h3>Lista de Usuarios</h3>
     <div class="tabla-contenedor">
       <table id="tablaUsuarios">
         <thead>
           <tr>
-            <th>Nombre</th>
-            <th>Correo</th>
-            <th>Rol</th>
-            <th>Permisos</th>
-            <th>Puede Editar</th>
-            <th>Acciones</th>
+            <th>Nombre</th><th>Correo</th><th>Rol</th><th>Permisos</th><th>Puede Editar</th><th>Acciones</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -812,19 +314,18 @@ let auth = null;
 
 // ===== INICIALIZAR FIREBASE =====
 const firebaseConfig = {
-  apiKey: "AQUÍ-TU-API-KEY",
+  apiKey: "PON-AQUÍ-TU-apiKey",
   authDomain: "control-ingresos-y-canastillas.firebaseapp.com",
   projectId: "control-ingresos-y-canastillas",
   storageBucket: "control-ingresos-y-canastillas.firebasestorage.app",
-  messagingSenderId: "AQUÍ-TU-SENDER-ID",
-  appId: "AQUÍ-TU-APP-ID",
-  measurementId: "AQUÍ-TU-MEASUREMENT-ID"
+  messagingSenderId: "PON-AQUÍ-TU-messagingSenderId",
+  appId: "PON-AQUÍ-TU-appId",
+  measurementId: "PON-AQUÍ-TU-measurementId"
 };
 
 firebase.initializeApp(firebaseConfig);
 auth = firebase.auth();
 db = firebase.database();
-
 // ===== INICIAR SESIÓN =====
 async function iniciarSesion() {
   const correo = document.getElementById("correo").value.trim();
@@ -871,9 +372,7 @@ async function iniciarSesion() {
 // ===== RECUPERAR CONTRASEÑA =====
 async function recuperarClave() {
   const correo = document.getElementById("correo").value.trim();
-  if (!correo) {
-    alert("Escribe tu correo primero"); return;
-  }
+  if (!correo) { alert("Escribe tu correo primero"); return; }
   try {
     await auth.sendPasswordResetEmail(correo);
     alert("✅ Enlace de recuperación enviado a tu correo");
@@ -889,22 +388,16 @@ function ingresarApp() {
   document.getElementById("menuPestanas").style.display = "flex";
   document.getElementById("contenidoPrincipal").style.display = "block";
   document.getElementById("nombreUsuario").textContent = usuarioActivo.nombre + (usuarioActivo.rol === "admin" ? " 👑" : "");
-
-  // Mostrar pestaña Admin solo si es administrador
   if (usuarioActivo.rol === "admin") {
     document.getElementById("pestanaAdmin").style.display = "block";
   }
-
   cargarDatos();
   cargarSelects();
   configurarPestanas();
 }
 
 // ===== CERRAR SESIÓN =====
-function cerrarSesion() {
-  auth.signOut();
-  location.reload();
-}
+function cerrarSesion() { auth.signOut(); location.reload(); }
 
 // ===== NAVEGACIÓN POR PESTAÑAS =====
 function configurarPestanas() {
@@ -926,12 +419,10 @@ async function cargarDatos() {
     db.ref("combustible").once("value"),
     db.ref("usuarios").once("value")
   ]);
-
   movimientos = objToArray(movSnap);
   vehiculos = objToArray(vehSnap);
   registrosCombustible = objToArray(combSnap);
   usuariosRegistrados = objToArray(usuSnap);
-
   renderizarMovimientos();
   renderizarVehiculos();
   renderizarCombustible();
@@ -941,9 +432,7 @@ async function cargarDatos() {
 
 function objToArray(snapshot) {
   const arr = [];
-  snapshot.forEach(child => {
-    arr.push({ id: child.key, ...child.val() });
-  });
+  snapshot.forEach(child => { arr.push({ id: child.key, ...child.val() }); });
   return arr;
 }
 
@@ -974,6 +463,32 @@ function cargarSelects() {
   });
 }
 
+// ===== CARGAR EN FORMULARIO =====
+function cargarEnFormulario(id) {
+  const mov = movimientos.find(m => m.id === id);
+  if (!mov) return;
+  idEdicion = id;
+  document.getElementById("fecha").value = mov.fecha;
+  document.getElementById("colaborador").value = mov.colaborador;
+  document.getElementById("vehiculo").value = mov.placa;
+  document.getElementById("horaSalida").value = mov.horaSalida || "";
+  document.getElementById("horaLlegada").value = mov.horaLlegada || "";
+  document.getElementById("canSalida").value = mov.canastSalida || "";
+  document.getElementById("canLlegada").value = mov.canastLlegada || "";
+  document.getElementById("obs").value = mov.observaciones || "";
+  document.getElementById("idEditar").value = id;
+  document.querySelector("#formMovimiento h3").textContent = "✏️ Editar Movimiento";
+  document.querySelector("#formMovimiento button[type='submit']").textContent = "Actualizar";
+  document.getElementById("formMovimiento").scrollIntoView({ behavior: "smooth" });
+}
+
+function resetFormulario() {
+  document.querySelector("#formMovimiento h3").textContent = "Registrar Movimiento";
+  document.querySelector("#formMovimiento button[type='submit']").textContent = "Guardar";
+  document.getElementById("idEditar").value = "";
+  idEdicion = null;
+}
+
 // ===== GUARDAR MOVIMIENTO =====
 document.getElementById("formMovimiento").addEventListener("submit", async e => {
   e.preventDefault();
@@ -989,11 +504,9 @@ document.getElementById("formMovimiento").addEventListener("submit", async e => 
     usuario: usuarioActivo.nombre,
     horaRegistro: new Date().toLocaleString("es-CO")
   };
-
   const id = document.getElementById("idEditar").value;
   if (id) {
     await db.ref("movimientos/" + id).update(datos);
-    idEdicion = null;
     document.querySelector("#formMovimiento h3").textContent = "Registrar Movimiento";
     document.querySelector("#formMovimiento button[type='submit']").textContent = "Guardar";
   } else {
@@ -1003,6 +516,13 @@ document.getElementById("formMovimiento").addEventListener("submit", async e => 
   cargarDatos();
 });
 
+// ===== ELIMINAR MOVIMIENTO =====
+async function eliminarMovimiento(id) {
+  if (!confirm("¿Eliminar este movimiento?")) return;
+  await db.ref("movimientos/" + id).remove();
+  cargarDatos();
+}
+
 // ===== RENDERIZAR MOVIMIENTOS =====
 function renderizarMovimientos() {
   const tbody = document.querySelector("#tablaMovimientos tbody");
@@ -1010,55 +530,14 @@ function renderizarMovimientos() {
   movimientos.forEach(m => {
     tbody.innerHTML += `
       <tr>
-        <td>${m.fecha}</td>
-        <td>${m.colaborador}</td>
-        <td>${m.placa}</td>
-        <td>${m.horaSalida || "-"}</td>
-        <td>${m.horaLlegada || "-"}</td>
-        <td>${m.canastSalida || 0}</td>
-        <td>${m.canastLlegada || 0}</td>
-        <td>${m.usuario || "-"}</td>
-        <td>${m.horaRegistro?.split(" ")[1] || "-"}</td>
+        <td>${m.fecha}</td><td>${m.colaborador}</td><td>${m.placa}</td><td>${m.horaSalida || "-"}</td><td>${m.horaLlegada || "-"}</td>
+        <td>${m.canastSalida || 0}</td><td>${m.canastLlegada || 0}</td><td>${m.usuario || "-"}</td><td>${m.horaRegistro?.split(" ")[1] || "-"}</td>
         <td>
           <button onclick='cargarEnFormulario("${m.id}")' class="btn-primario" style="padding:0.2rem 0.4rem; font-size:0.8rem;">✏️</button>
           ${usuarioActivo.rol === "admin" ? `<button onclick='eliminarMovimiento("${m.id}")' class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.8rem;">🗑️</button>` : ""}
         </td>
       </tr>`;
   });
-}
-
-// ===== ELIMINAR MOVIMIENTO (SOLO ADMIN) =====
-async function eliminarMovimiento(id) {
-  if (!confirm("¿Eliminar este movimiento?")) return;
-  await db.ref("movimientos/" + id).remove();
-  cargarDatos();
-}
-
-// ===== CARGAR EN FORMULARIO (COMPLETADA) =====
-function cargarEnFormulario(id) {
-  const mov = movimientos.find(m => m.id === id);
-  if (!mov) return;
-  idEdicion = id;
-  document.getElementById("fecha").value = mov.fecha;
-  document.getElementById("colaborador").value = mov.colaborador;
-  document.getElementById("vehiculo").value = mov.placa;
-  document.getElementById("horaSalida").value = mov.horaSalida || "";
-  document.getElementById("horaLlegada").value = mov.horaLlegada || "";
-  document.getElementById("canSalida").value = mov.canastSalida || "";
-  document.getElementById("canLlegada").value = mov.canastLlegada || "";
-  document.getElementById("obs").value = mov.observaciones || "";
-  document.getElementById("idEditar").value = id;
-
-  document.querySelector("#formMovimiento h3").textContent = "✏️ Editar Movimiento";
-  document.querySelector("#formMovimiento button[type='submit']").textContent = "Actualizar";
-  document.getElementById("formMovimiento").scrollIntoView({ behavior: "smooth" });
-}
-
-function resetFormulario() {
-  document.querySelector("#formMovimiento h3").textContent = "Registrar Movimiento";
-  document.querySelector("#formMovimiento button[type='submit']").textContent = "Guardar";
-  document.getElementById("idEditar").value = "";
-  idEdicion = null;
 }
 
 // ===== GUARDAR VEHÍCULO =====
@@ -1076,6 +555,13 @@ document.getElementById("formVehiculo").addEventListener("submit", async e => {
   cargarDatos();
 });
 
+// ===== ELIMINAR VEHÍCULO =====
+async function eliminarVehiculo(id) {
+  if (!confirm("¿Eliminar vehículo?")) return;
+  await db.ref("vehiculos/" + id).remove();
+  cargarDatos();
+}
+
 // ===== RENDERIZAR VEHÍCULOS =====
 function renderizarVehiculos() {
   const tbody = document.querySelector("#tablaVehiculos tbody");
@@ -1084,39 +570,27 @@ function renderizarVehiculos() {
     const clase = v.tipo === "VTH" ? "fila-vth" : "";
     tbody.innerHTML += `
       <tr class="${clase}">
-        <td>${v.placa}</td>
-        <td>${v.modelo}</td>
-        <td>${v.tipo}</td>
-        <td>${v.usuario || "-"}</td>
-        <td>${v.horaRegistro || "-"}</td>
-        <td>
-          ${usuarioActivo.rol === "admin" ? `<button onclick='eliminarVehiculo("${v.id}")' class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.8rem;">🗑️</button>` : ""}
-        </td>
+        <td>${v.placa}</td><td>${v.modelo}</td><td>${v.tipo}</td><td>${v.usuario || "-"}</td><td>${v.horaRegistro || "-"}</td>
+        <td>${usuarioActivo.rol === "admin" ? `<button onclick='eliminarVehiculo("${v.id}")' class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.8rem;">🗑️</button>` : ""}</td>
       </tr>`;
   });
 }
-async function eliminarVehiculo(id) {
-  if (!confirm("¿Eliminar vehículo?")) return;
-  await db.ref("vehiculos/" + id).remove();
-  cargarDatos();
-}
 
-// ===== GUARDAR COMBUSTIBLE / KILOMETRAJE =====
+// ===== GUARDAR COMBUSTIBLE =====
 document.getElementById("formCombustible").addEventListener("submit", async e => {
   e.preventDefault();
   const kmManana = +document.getElementById("kmManana").value || 0;
   const kmTarde = +document.getElementById("kmTarde").value || 0;
+  const recorrido = kmTarde > kmManana ? kmTarde - kmManana : 0;
+  const galones = +document.getElementById("galones").value || 0;
   const datos = {
     fecha: document.getElementById("fechaComb").value,
     placa: document.getElementById("placaComb").value,
-    kmManana,
-    kmTarde,
-    recorrido: kmTarde > kmManana ? kmTarde - kmManana : 0,
-    galones: +document.getElementById("galones").value || 0,
+    kmManana, kmTarde, recorrido, galones,
+    rendimiento: galones > 0 ? (recorrido / galones).toFixed(2) : "-",
     usuario: usuarioActivo.nombre,
     horaRegistro: new Date().toLocaleString("es-CO")
   };
-  datos.rendimiento = datos.galones > 0 ? (datos.recorrido / datos.galones).toFixed(2) : "-";
   await db.ref("combustible").push(datos);
   e.target.reset();
   cargarDatos();
@@ -1129,15 +603,8 @@ function renderizarCombustible() {
   registrosCombustible.forEach(r => {
     tbody.innerHTML += `
       <tr>
-        <td>${r.fecha}</td>
-        <td>${r.placa}</td>
-        <td>${r.kmManana}</td>
-        <td>${r.kmTarde}</td>
-        <td>${r.recorrido}</td>
-        <td>${r.galones}</td>
-        <td>${r.rendimiento || "-"}</td>
-        <td>${r.usuario || "-"}</td>
-        <td>${r.horaRegistro?.split(" ")[1] || "-"}</td>
+        <td>${r.fecha}</td><td>${r.placa}</td><td>${r.kmManana}</td><td>${r.kmTarde}</td><td>${r.recorrido}</td>
+        <td>${r.galones}</td><td>${r.rendimiento || "-"}</td><td>${r.usuario || "-"}</td><td>${r.horaRegistro?.split(" ")[1] || "-"}</td>
       </tr>`;
   });
 }
@@ -1148,35 +615,28 @@ function generarInforme() {
   const hasta = document.getElementById("fechaFin").value;
   const tabla = document.querySelector("#tablaInformes tbody");
   tabla.innerHTML = "";
-
   const filtrados = registrosCombustible.filter(r => {
     if (!desde && !hasta) return true;
     return r.fecha >= desde && r.fecha <= hasta;
   });
-
   const agrupado = {};
   filtrados.forEach(r => {
     if (!agrupado[r.placa]) agrupado[r.placa] = { km: 0, gal: 0 };
     agrupado[r.placa].km += r.recorrido;
     agrupado[r.placa].gal += r.galones;
   });
-
   Object.entries(agrupado).forEach(([placa, d]) => {
     const rend = d.gal > 0 ? (d.km / d.gal).toFixed(2) : "-";
     tabla.innerHTML += `
       <tr>
-        <td>${placa}</td>
-        <td>${d.km}</td>
-        <td>${d.gal}</td>
-        <td>${rend}</td>
-        <td>${desde || "Inicio"} a ${hasta || "Hoy"}</td>
+        <td>${placa}</td><td>${d.km}</td><td>${d.gal}</td><td>${rend}</td><td>${desde || "Inicio"} a ${hasta || "Hoy"}</td>
       </tr>`;
   });
 }
 
 // ===== EXPORTAR A EXCEL =====
 function exportarExcel() {
-  let texto = "FECHA\tPLACA\tKM MAÑANA\tKM TARDE\tRECORRIDO\tGALONES\tKM/GAL\tUSUARIO\tHORA\n";
+  let texto = "FECHA\tPLACA\tKM_MAÑANA\tKM_TARDE\tRECORRIDO\tGALONES\tKM_POR_GALÓN\tUSUARIO\tHORA_REGISTRO\n";
   registrosCombustible.forEach(r => {
     texto += `${r.fecha}\t${r.placa}\t${r.kmManana}\t${r.kmTarde}\t${r.recorrido}\t${r.galones}\t${r.rendimiento}\t${r.usuario}\t${r.horaRegistro}\n`;
   });
@@ -1188,7 +648,7 @@ function exportarExcel() {
   a.click();
 }
 
-// ===== GESTIÓN DE USUARIOS (SOLO ADMIN) =====
+// ===== GESTIÓN DE USUARIOS =====
 document.getElementById("formUsuario").addEventListener("submit", async e => {
   e.preventDefault();
   const idEd = document.getElementById("idUsuarioEditar").value;
@@ -1206,7 +666,6 @@ document.getElementById("formUsuario").addEventListener("submit", async e => {
     editadoPor: usuarioActivo.nombre,
     ultimaEdicion: new Date().toLocaleString("es-CO")
   };
-
   if (idEd) {
     await db.ref("usuarios/" + idEd).update(datos);
   } else {
@@ -1219,27 +678,10 @@ document.getElementById("formUsuario").addEventListener("submit", async e => {
   cargarDatos();
 });
 
-function renderizarUsuarios() {
-  const tbody = document.querySelector("#tablaUsuarios tbody");
-  tbody.innerHTML = "";
-  usuariosRegistrados.concat(usuariosFijos.map(u => ({ ...u, id: "FIJO_" + u.nombre }))).forEach(u => {
-    const permisos = u.permisos ? Object.entries(u.permisos).filter(([,v])=>v).map(([k])=>k).join(", ") : "Todos";
-    tbody.innerHTML += `
-      <tr>
-        <td>${u.nombre}</td>
-        <td>${u.correo}</td>
-        <td>${u.rol === "admin" ? "👑 Admin" : "Usuario"}</td>
-        <td>${permisos}</td>
-        <td>${u.puedeEditar || "Sí"}</td>
-        <td>
-          <button onclick='editarUsuario("${u.id}")' class="btn-primario" style="padding:0.2rem 0.4rem; font-size:0.8rem;">✏️</button>
-        </td>
-      </tr>`;
-  });
-}
-
+// ===== EDITAR USUARIO =====
 function editarUsuario(id) {
-  const u = usuariosRegistrados.concat(usuariosFijos.map(x => ({ ...x, id: "FIJO_" + x.nombre }))).find(x => x.id === id);
+  const todos = usuariosRegistrados.concat(usuariosFijos.map(u => ({ ...u, id: "FIJO_" + u.nombre })));
+  const u = todos.find(x => x.id === id);
   if (!u) return;
   document.getElementById("idUsuarioEditar").value = id;
   document.getElementById("nombreUsuarioNuevo").value = u.nombre;
@@ -1254,7 +696,23 @@ function editarUsuario(id) {
   }
 }
 
-// ===== AJUSTE DE FECHA HOY =====
+// ===== RENDERIZAR USUARIOS =====
+function renderizarUsuarios() {
+  const tbody = document.querySelector("#tablaUsuarios tbody");
+  tbody.innerHTML = "";
+  const todos = usuariosRegistrados.concat(usuariosFijos.map(u => ({ ...u, id: "FIJO_" + u.nombre })));
+  todos.forEach(u => {
+    const permisos = u.permisos ? Object.entries(u.permisos).filter(([,v])=>v).map(([k])=>k).join(", ") : "Todos";
+    tbody.innerHTML += `
+      <tr>
+        <td>${u.nombre}</td><td>${u.correo}</td><td>${u.rol === "admin" ? "👑 Admin" : "Usuario"}</td>
+        <td>${permisos}</td><td>${u.puedeEditar || "Sí"}</td>
+        <td><button onclick='editarUsuario("${u.id}")' class="btn-primario" style="padding:0.2rem 0.4rem; font-size:0.8rem;">✏️</button></td>
+      </tr>`;
+  });
+}
+
+// ===== FECHA DE HOY POR DEFECTO =====
 document.getElementById("fecha").valueAsDate = new Date();
 document.getElementById("fechaComb").valueAsDate = new Date();
 
