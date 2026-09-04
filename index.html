@@ -493,24 +493,41 @@ function actualizarRecogidas() {
 
 // ==================== INICIO DE SESIÓN ====================
 async function ingresar() {
-    let usuario = document.getElementById('correo').value.trim().toLowerCase();
+    let usuario = document.getElementById('correo').value.trim();
     const clave = document.getElementById('clave').value.trim();
     const cajaError = document.getElementById('mensajeError');
     cajaError.textContent = '';
-    if(!usuario || !clave) { cajaError.textContent = '⚠️ Escribe usuario y contraseña'; return; }
 
-    const encontrado = USUARIOS_SISTEMA.find(u => u.usuario.toLowerCase() === usuario);
+    console.log('🔍 Intentando ingresar con:', usuario, clave); // Para ver en consola
+
+    if(!usuario || !clave) { 
+        cajaError.textContent = '⚠️ Escribe usuario y contraseña'; 
+        return; 
+    }
+
+    const encontrado = USUARIOS_SISTEMA.find(u => 
+        u.usuario.toLowerCase() === usuario.toLowerCase()
+    );
+
     if(encontrado) {
+        console.log('✅ Usuario encontrado:', encontrado.usuario);
         if(encontrado.clave === clave) {
+            console.log('🔑 Contraseña CORRECTA — entrando...');
             usuarioConectado = { 
-                usuario: encontrado.usuario, nombre: encontrado.usuario.toUpperCase(),
-                rol: encontrado.rol, permisos: encontrado.permisos
+                usuario: encontrado.usuario, 
+                nombre: encontrado.usuario.toUpperCase(),
+                rol: encontrado.rol, 
+                permisos: encontrado.permisos
             };
             entrarApp();
-            return;
-        } else { cajaError.textContent = '🔒 CONTRASEÑA ERRADA'; return; }
+        } else { 
+            cajaError.textContent = '🔒 CONTRASEÑA ERRADA'; 
+            console.log('❌ Contraseña incorrecta');
+        }
+    } else {
+        cajaError.textContent = '❌ USUARIO NO REGISTRADO';
+        console.log('❌ Usuario NO registrado');
     }
-    cajaError.textContent = '❌ USUARIO NO REGISTRADO';
 }
 
 function recuperarClave() {
