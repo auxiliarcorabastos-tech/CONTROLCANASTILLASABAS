@@ -63,7 +63,6 @@
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
-
 <div id="avisoCierreSesion" class="aviso-sesion-fondo oculto">
     <div class="aviso-sesion">
         <h3>⏰ CIERRE DE SESIÓN POR INACTIVIDAD</h3>
@@ -75,7 +74,6 @@
         </div>
     </div>
 </div>
-
 <div id="pantallaLogin" class="fondo-login flex items-center justify-center min-h-screen">
     <div class="bg-white rounded-xl tarjeta p-8 w-full max-w-md">
         <h2 class="text-2xl font-bold text-center text-gray-700 mb-6">🔐 INICIO DE SESIÓN</h2>
@@ -98,11 +96,9 @@
         </div>
     </div>
 </div>
-
 <div id="pantallaPrincipal" class="oculto">
     <button class="boton-menu" onclick="alternarMenu()">☰</button>
     <div id="cortinaMenu" class="cortina-menu" onclick="alternarMenu()"></div>
-
     <nav id="menuLateral" class="menu-lateral oculto">
         <div class="p-4 bg-blue-900 flex justify-between items-center">
             <h2 class="font-bold text-lg">🚛 MENÚ</h2>
@@ -127,7 +123,6 @@
             </div>
         </div>
     </nav>
-
     <div class="contenedor-principal p-4 lg:p-6">
         <div id="pestaña-movimientos" class="contenido-pestaña">
             <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
@@ -142,7 +137,6 @@
                     <div><label class="text-sm font-semibold">📤 Canast. Salida</label><input type="number" id="canSalida" class="w-full px-3 py-2 border rounded-lg" placeholder="0"></div>
                     <div><label class="text-sm font-semibold">📥 Canast. Llegada</label><input type="number" id="canLlegada" class="w-full px-3 py-2 border rounded-lg" placeholder="0"></div>
                 </div>
-
                 <div class="border-t pt-4 mt-2">
                     <div class="flex justify-between items-center mb-3">
                         <h3 class="font-bold text-blue-700">👤 RECOGIDAS EN EL RECORRIDO</h3>
@@ -154,12 +148,10 @@
                         <strong>Cantidad de personas:</strong> <span id="cantidadRecogidas">0</span>
                     </div>
                 </div>
-
                 <div class="mt-4 mb-4">
                     <label class="text-sm font-semibold">Observaciones</label>
                     <input type="text" id="obs" class="w-full px-3 py-2 border rounded-lg" placeholder="Escribe observaciones...">
                 </div>
-
                 <div class="flex flex-wrap gap-3 mt-2">
                     <button onclick="guardarMovimiento()" id="btnGuardarMov" class="bg-green-600 text-white px-6 py-2 rounded-lg font-bold">✅ GUARDAR NUEVO</button>
                     <button onclick="completarLlegada()" id="btnCompletarLlegada" class="bg-yellow-500 text-white px-6 py-2 rounded-lg font-bold">⏱️ COMPLETAR LLEGADA</button>
@@ -168,7 +160,6 @@
                     <button onclick="limpiarFormulario()" class="bg-gray-500 text-white px-6 py-2 rounded-lg font-bold">🔄 LIMPIAR</button>
                 </div>
             </section>
-
             <section class="bg-white rounded-xl tarjeta p-4 lg:p-6 mt-6">
                 <h3 class="font-bold text-gray-700 mb-3">📋 MOVIMIENTOS (Clic para editar)</h3>
                 <div class="overflow-x-auto">
@@ -192,7 +183,6 @@
                 </div>
             </section>
         </div>
-
         <div id="pestaña-combustible" class="contenido-pestaña oculto">
             <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
                 <h2 class="text-lg font-bold text-gray-700 mb-4">⛽ KILOMETRAJE & CONSUMO</h2>
@@ -212,20 +202,22 @@
                 </div>
             </section>
         </div>
-
         <div id="pestaña-transportadora" class="contenido-pestaña oculto">
             <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
-                <h2 class="text-lg font-bold text-blue-700 mb-4">🚚 GESTIÓN DE TRANSPORTADORA</h2>
+                <div class="sticky top-0 z-20 bg-white border-b pb-3 mb-4 flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-blue-700">🚚 GESTIÓN DE TRANSPORTADORA</h2>
+                    <button onclick="recargarDatos()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold shadow-md">🔄 ACTUALIZAR</button>
+                </div>
                 <div class="flex flex-wrap gap-2 mb-4 border-b">
-                    <button onclick="mostrarSubPestañaTrans('vehiculosTrans')" id="sp-veh" class="px-3 py-2 font-bold bg-blue-600 text-white rounded-t text-sm">🚛 Vehículos</button>
-                    <button onclick="mostrarSubPestañaTrans('conductoresTrans')" id="sp-con" class="px-3 py-2 font-bold bg-gray-200 rounded-t text-sm">👨‍✈️ Conductores</button>
-                    <button onclick="mostrarSubPestañaTrans('canastillasSal')" id="sp-cs" class="px-3 py-2 font-bold bg-gray-200 rounded-t text-sm">📤 Salientes</button>
-                    <button onclick="mostrarSubPestañaTrans('canastillasEnt')" id="sp-ce" class="px-3 py-2 font-bold bg-gray-200 rounded-t text-sm">📥 Entrantes</button>
+                    <button onclick="mostrarSubPestañaTrans('vehiculosTrans')" id="sp-veh" class="px-3 py-2 font-bold bg-blue-600 text-white rounded-t text-sm">🚛 VEHÍCULOS</button>
+                    <button onclick="mostrarSubPestañaTrans('conductoresTrans')" id="sp-con" class="px-3 py-2 font-bold bg-gray-200 rounded-t text-sm">👨‍✈️ CONDUCTORES</button>
+                    <button onclick="mostrarSubPestañaTrans('movimientosTrans')" id="sp-mov" class="px-3 py-2 font-bold bg-gray-200 rounded-t text-sm">📋 MOVIMIENTOS</button>
+                    <button onclick="mostrarSubPestañaTrans('canastillasSal')" id="sp-cs" class="px-3 py-2 font-bold bg-gray-200 rounded-t text-sm">📤 SALIENTES</button>
+                    <button onclick="mostrarSubPestañaTrans('canastillasEnt')" id="sp-ce" class="px-3 py-2 font-bold bg-gray-200 rounded-t text-sm">📥 ENTRANTES</button>
                 </div>
                 <div id="contenidoSubTrans"></div>
             </section>
         </div>
-
         <div id="pestaña-informes" class="contenido-pestaña oculto">
             <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
                 <h2 class="text-lg font-bold text-gray-700 mb-4">📊 INFORMES Y CONSULTAS</h2>
@@ -249,7 +241,6 @@
                 <div id="contenidoInformes"></div>
             </section>
         </div>
-
         <div id="pestaña-colaboradores" class="contenido-pestaña oculto">
             <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
                 <h2 class="text-lg font-bold text-gray-700 mb-4">👷 COLABORADORES</h2>
@@ -266,7 +257,6 @@
                 </div>
             </section>
         </div>
-
         <div id="pestaña-vehiculos" class="contenido-pestaña oculto">
             <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
                 <h2 class="text-lg font-bold text-gray-700 mb-4">🏍️ VEHÍCULOS</h2>
@@ -291,7 +281,6 @@
                 </div>
             </section>
         </div>
-
         <div id="pestaña-administracion" class="contenido-pestaña oculto">
             <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
                 <h2 class="text-lg font-bold text-orange-700 mb-4">⚙️ ADMINISTRACIÓN DE USUARIOS</h2>
@@ -315,7 +304,6 @@
         </div>
     </div>
 </div>
-
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyBruMDqyExColkMwy7XyqDSBsF8XcvsFoY",
@@ -325,34 +313,28 @@ const firebaseConfig = {
   messagingSenderId: "372736670308",
   appId: "1:372736670308:web:14c2e2614c14ff3dc2bd71"
 };
-
 const TIEMPO_TOTAL_SESION = 60 * 60 * 1000;
 const TIEMPO_AVISO = 30;
 let tiempoUltimaAccion = Date.now();
 let temporizadorSesion = null;
 let cuentaRegresiva = null;
-
 const USUARIOS_SISTEMA = [
   { usuario: "jgarnica", clave: "123456", rol: "usuario", permisos: { movimientos: true, combustible: true, transportadora: true, informes: true, colaboradores: true, vehiculos: true, editar: true } },
   { usuario: "jfigueroa", clave: "3134630773", rol: "admin", permisos: { movimientos: true, combustible: true, transportadora: true, informes: true, colaboradores: true, vehiculos: true, editar: true } },
   { usuario: "estudiante", clave: "123456", rol: "usuario", permisos: { movimientos: true, combustible: true, transportadora: true, informes: true, colaboradores: true, vehiculos: true, editar: false } }
 ];
-
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-
 let usuarioConectado = null;
 let movimientos = [], colaboradores = [], vehiculos = [], kilometraje = [];
 let idEdicion = null;
 let recogidasTemporales = [];
-
 function alternarMenu() {
     const menu = document.getElementById('menuLateral');
     const cortina = document.getElementById('cortinaMenu');
     menu.classList.toggle('oculto');
     cortina.classList.toggle('activa');
 }
-
 function obtenerFechaHoraActual() {
     const ahora = new Date();
     return {
@@ -360,18 +342,15 @@ function obtenerFechaHoraActual() {
         hora: ahora.toTimeString().split(' ')[0].substring(0, 8)
     };
 }
-
 async function recargarDatos() {
     tiempoUltimaAccion = Date.now();
     await cargarTodo();
     alert('✅ Datos actualizados');
 }
-
 function reiniciarContadorSesion() {
     tiempoUltimaAccion = Date.now();
     ocultarAvisoCierre();
 }
-
 function iniciarMonitorInactividad() {
     ['click','input','keydown','scroll'].forEach(ev => document.addEventListener(ev, reiniciarContadorSesion));
     temporizadorSesion = setInterval(() => {
@@ -381,7 +360,6 @@ function iniciarMonitorInactividad() {
         else if(restante <= 0) cerrarSesion();
     }, 1000);
 }
-
 function mostrarAvisoCierre(segundos) {
     document.getElementById('avisoCierreSesion').classList.remove('oculto');
     document.getElementById('cuentaRegresiva').textContent = segundos;
@@ -391,15 +369,12 @@ function mostrarAvisoCierre(segundos) {
         if(v <= 0) cerrarSesion();
     }, 1000);
 }
-
 function ocultarAvisoCierre() {
     document.getElementById('avisoCierreSesion').classList.add('oculto');
     if(cuentaRegresiva) { clearInterval(cuentaRegresiva); cuentaRegresiva = null; }
 }
-
 function seguirConectado() { reiniciarContadorSesion(); }
 function cerrarSesionAhora() { cerrarSesion(); }
-
 function agregarFilaRecogida(datos = null) {
     const contenedor = document.getElementById('contenedorRecogidas');
     const indice = recogidasTemporales.length;
@@ -432,7 +407,6 @@ function agregarFilaRecogida(datos = null) {
     fila.querySelector('.recogida-kilos').addEventListener('input', actualizarRecogidas);
     actualizarRecogidas();
 }
-
 function quitarFilaRecogida(indice) {
     const fila = document.getElementById(`filaRecogida-${indice}`);
     if(fila) fila.remove();
@@ -445,7 +419,6 @@ function quitarFilaRecogida(indice) {
     });
     actualizarRecogidas();
 }
-
 function actualizarRecogidas() {
     recogidasTemporales = [];
     document.querySelectorAll('.fila-recogida').forEach(fila => {
@@ -457,25 +430,18 @@ function actualizarRecogidas() {
     document.getElementById('totalKilosRecogidos').textContent = totalKilos;
     document.getElementById('cantidadRecogidas').textContent = recogidasTemporales.length;
 }
-
-// ======================================
-// ✅ FUNCIÓN DE INICIO DE SESIÓN
-// ======================================
 async function ingresar() {
     let usuario = document.getElementById('correo').value.trim();
     const clave = document.getElementById('clave').value.trim();
     const cajaError = document.getElementById('mensajeError');
     cajaError.textContent = '';
-
     if(!usuario || !clave) { 
         cajaError.textContent = '⚠️ Escribe usuario y contraseña'; 
         return; 
     }
-
     const encontrado = USUARIOS_SISTEMA.find(u => 
         u.usuario.toLowerCase() === usuario.toLowerCase()
     );
-
     if(encontrado) {
         if(encontrado.clave === clave) {
             usuarioConectado = { 
@@ -492,7 +458,6 @@ async function ingresar() {
         cajaError.textContent = '❌ USUARIO NO REGISTRADO';
     }
 }
-
 function recuperarClave() {
     let usuario = document.getElementById('correo').value.trim().toLowerCase();
     const cajaMsg = document.getElementById('mensajeRecuperar');
@@ -505,7 +470,6 @@ function recuperarClave() {
         cajaMsg.textContent = '❌ Usuario no encontrado';
     }
 }
-
 function entrarApp() {
     document.getElementById('pantallaLogin').classList.add('oculto');
     document.getElementById('pantallaPrincipal').classList.remove('oculto');
@@ -518,7 +482,6 @@ function entrarApp() {
     document.getElementById('fechaKm').valueAsDate = new Date();
     cargarTodo();
 }
-
 function aplicarPermisos() {
     const p = usuarioConectado.permisos;
     document.querySelectorAll('.pestaña-btn').forEach(btn => {
@@ -528,29 +491,24 @@ function aplicarPermisos() {
     });
     if(usuarioConectado.rol === 'admin') document.getElementById('btnEliminarMov').classList.remove('oculto');
 }
-
 function cerrarSesion() {
     if(temporizadorSesion) clearInterval(temporizadorSesion);
     if(cuentaRegresiva) clearInterval(cuentaRegresiva);
     location.reload();
 }
-
 document.querySelectorAll('.pestaña-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         const pestañaId = btn.dataset.pestaña;
         const permiso = btn.dataset.permiso;
         if(permiso === 'admin' && usuarioConectado?.rol !== 'admin') return;
         if(permiso !== 'admin' && usuarioConectado && !usuarioConectado.permisos[permiso]) return;
-
         document.querySelectorAll('.pestaña-btn').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         document.querySelectorAll('.contenido-pestaña').forEach(c => c.classList.add('oculto'));
         document.getElementById(`pestaña-${pestañaId}`).classList.remove('oculto');
-
         if(window.innerWidth < 1024) alternarMenu();
     });
 });
-
 async function cargarTodo() {
     const colRef = await db.collection('colaboradores').get();
     colaboradores = colRef.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -563,29 +521,23 @@ async function cargarTodo() {
     
     const kmRef = await db.collection('kilometraje').orderBy('fecha','desc').get();
     kilometraje = kmRef.docs.map(d => ({ id: d.id, ...d.data() }));
-
     dibujarTodo();
 }
-
 function dibujarTodo() {
     const selCol = document.getElementById('colaborador');
     selCol.innerHTML = '<option value="">Seleccione colaborador</option>';
     colaboradores.forEach(c => selCol.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`);
-
     const selVeh = document.getElementById('vehiculo');
     selVeh.innerHTML = '<option value="">Seleccione placa</option>';
     vehiculos.forEach(v => selVeh.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.tipo}</option>`);
-
     const selKmPlaca = document.getElementById('placaKm');
     selKmPlaca.innerHTML = '<option value="">Seleccione placa</option>';
     vehiculos.filter(v => !v.tipo.includes('TRACCIÓN HUMANA')).forEach(v => {
         selKmPlaca.innerHTML += `<option value="${v.placa}">${v.placa}</option>`;
     });
-
     dibujarTablaMovimientos();
     dibujarTablaKm();
 }
-
 function dibujarTablaMovimientos() {
     const tabla = document.getElementById('tablaMov');
     tabla.innerHTML = '';
@@ -610,7 +562,6 @@ function dibujarTablaMovimientos() {
         `;
     });
 }
-
 async function guardarMovimiento() {
     const { fecha, hora } = obtenerFechaHoraActual();
     const datos = {
@@ -628,12 +579,10 @@ async function guardarMovimiento() {
         fechaCreacion: fecha,
         horaCreacion: hora
     };
-
     if(!datos.fecha || !datos.colaborador || !datos.placa) {
         alert('⚠️ Completa fecha, colaborador y placa');
         return;
     }
-
     try {
         if(idEdicion) {
             datos.usuarioEdicion = usuarioConectado.usuario.toUpperCase();
@@ -649,7 +598,6 @@ async function guardarMovimiento() {
         await cargarTodo();
     } catch(err) { alert('❌ Error: ' + err.message); }
 }
-
 function cargarEnFormulario(id) {
     const mov = movimientos.find(m => m.id === id);
     if(!mov) return;
@@ -664,7 +612,6 @@ function cargarEnFormulario(id) {
     document.getElementById('canLlegada').value = mov.canastLlegada || '';
     document.getElementById('obs').value = mov.observaciones || '';
     document.getElementById('idEditar').value = id;
-
     document.getElementById('contenedorRecogidas').innerHTML = '';
     recogidasTemporales = [];
     if(mov.recogidas && mov.recogidas.length > 0) {
@@ -672,13 +619,11 @@ function cargarEnFormulario(id) {
     } else {
         agregarFilaRecogida();
     }
-
     document.getElementById('btnGuardarMov').classList.add('oculto');
     document.getElementById('btnActualizar').classList.remove('oculto');
     if(usuarioConectado.rol === 'admin') document.getElementById('btnEliminarMov').classList.remove('oculto');
     if(window.innerWidth < 1024 && !document.getElementById('menuLateral').classList.contains('oculto')) alternarMenu();
 }
-
 function limpiarFormulario() {
     document.getElementById('fecha').valueAsDate = new Date();
     document.getElementById('colaborador').value = '';
@@ -697,13 +642,11 @@ function limpiarFormulario() {
     document.getElementById('btnEliminarMov').classList.add('oculto');
     agregarFilaRecogida();
 }
-
 async function completarLlegada() {
     const horaActual = new Date().toTimeString().split(' ')[0].substring(0, 5);
     document.getElementById('horaLlegada').value = horaActual;
     alert(`✅ Hora de llegada asignada: ${horaActual}`);
 }
-
 async function eliminarMovimiento() {
     if (!idEdicion) {
         alert('⚠️ Primero selecciona un movimiento desde la tabla');
@@ -713,7 +656,7 @@ async function eliminarMovimiento() {
         alert('🔒 Solo el administrador puede eliminar registros');
         return;
     }
-    if (confirm('⚠️ ¿Seguro que quieres ELIMINAR este movimiento? Esta acción NO se puede deshacer.')) {
+        if (confirm('⚠️ ¿Estás SEGURO de ELIMINAR este movimiento? Esta acción NO se puede deshacer.')) {
         try {
             await db.collection('movimientos').doc(idEdicion).delete();
             alert('✅ Movimiento eliminado correctamente');
@@ -725,39 +668,36 @@ async function eliminarMovimiento() {
     }
 }
 
-// ===== KILOMETRAJE Y COMBUSTIBLE =====
+// === COMBUSTIBLE / KILOMETRAJE ===
 async function guardarKm() {
     const { fecha, hora } = obtenerFechaHoraActual();
-    const kmManana = Number(document.getElementById('kmManana').value) || 0;
-    const kmTarde = Number(document.getElementById('kmTarde').value) || 0;
-    const galones = Number(document.getElementById('galones').value) || 0;
     const placa = document.getElementById('placaKm').value;
-    const fechaReg = document.getElementById('fechaKm').value;
+    const kmManana = Number(document.getElementById('kmManana').value);
+    const kmTarde = Number(document.getElementById('kmTarde').value);
+    const galones = Number(document.getElementById('galones').value) || 0;
 
-    if (!fechaReg || !placa) {
-        alert('⚠️ Completa fecha y placa');
+    if (!placa || !kmManana || !kmTarde) {
+        alert('⚠️ Completa placa, km mañana y km tarde');
         return;
     }
 
-    const recorrido = kmTarde && kmManana ? kmTarde - kmManana : 0;
-    const kmPorGalon = galones > 0 && recorrido > 0 ? (recorrido / galones).toFixed(2) : '-';
-
     const datos = {
-        fecha: fechaReg,
+        fecha: document.getElementById('fechaKm').value,
         placa: placa,
         kmManana: kmManana,
         kmTarde: kmTarde,
-        recorrido: recorrido,
+        kmRecorridos: kmTarde - kmManana,
         galones: galones,
-        kmPorGalon: kmPorGalon,
-        usuarioCreacion: usuarioConectado.usuario.toUpperCase(),
-        fechaCreacion: fecha,
-        horaCreacion: hora
+        rendimiento: galones > 0 ? Number(((kmTarde - kmManana) / galones).toFixed(2)) : 0,
+        usuarioRegistro: usuarioConectado.usuario.toUpperCase(),
+        horaRegistro: hora
     };
 
     try {
         await db.collection('kilometraje').add(datos);
         alert('✅ Registro guardado');
+        document.getElementById('fechaKm').valueAsDate = new Date();
+        document.getElementById('placaKm').value = '';
         document.getElementById('kmManana').value = '';
         document.getElementById('kmTarde').value = '';
         document.getElementById('galones').value = '';
@@ -777,24 +717,21 @@ function dibujarTablaKm() {
             <td class="px-2 py-1 border text-xs font-bold">${k.placa}</td>
             <td class="px-2 py-1 border text-xs">${k.kmManana}</td>
             <td class="px-2 py-1 border text-xs">${k.kmTarde}</td>
-            <td class="px-2 py-1 border text-xs font-bold text-blue-700">${k.recorrido}</td>
+            <td class="px-2 py-1 border text-xs font-bold text-blue-700">${k.kmRecorridos}</td>
             <td class="px-2 py-1 border text-xs">${k.galones}</td>
-            <td class="px-2 py-1 border text-xs font-bold text-green-700">${k.kmPorGalon}</td>
-            <td class="px-2 py-1 border texto-auditoria">${k.usuarioCreacion}<br>${k.horaCreacion||''}</td>
+            <td class="px-2 py-1 border text-xs font-bold text-green-700">${k.rendimiento}</td>
+            <td class="px-2 py-1 border texto-auditoria">${k.usuarioRegistro}<br>${k.horaRegistro||''}</td>
         `;
     });
 }
 
-// ===== COLABORADORES =====
+// === COLABORADORES ===
 async function agregarColaborador() {
     const { fecha, hora } = obtenerFechaHoraActual();
     const nombre = document.getElementById('nombreCol').value.trim().toUpperCase();
     const cedula = document.getElementById('cedulaCol').value.trim();
 
-    if (!nombre || !cedula) {
-        alert('⚠️ Escribe nombre y cédula');
-        return;
-    }
+    if (!nombre || !cedula) { alert('⚠️ Escribe nombre y cédula'); return; }
 
     try {
         await db.collection('colaboradores').add({
@@ -808,33 +745,17 @@ async function agregarColaborador() {
         document.getElementById('nombreCol').value = '';
         document.getElementById('cedulaCol').value = '';
         await cargarTodo();
-    } catch (err) {
-        alert('❌ Error: ' + err.message);
-    }
+    } catch (err) { alert('❌ Error: ' + err.message); }
 }
 
-async function eliminarColaborador(id) {
-    if (!confirm('⚠️ ¿Eliminar este colaborador?')) return;
-    try {
-        await db.collection('colaboradores').doc(id).delete();
-        alert('✅ Eliminado');
-        await cargarTodo();
-    } catch (err) {
-        alert('❌ Error: ' + err.message);
-    }
-}
-
-// ===== VEHÍCULOS =====
+// === VEHÍCULOS ===
 async function agregarVehiculo() {
     const { fecha, hora } = obtenerFechaHoraActual();
-    const tipo = document.getElementById('tipoVeh').value.trim();
+    const tipo = document.getElementById('tipoVeh').value;
     const placa = document.getElementById('placaVeh').value.trim().toUpperCase();
     const detalle = document.getElementById('detalleVeh').value.trim().toUpperCase();
 
-    if (!tipo || !placa) {
-        alert('⚠️ Completa tipo y placa');
-        return;
-    }
+    if (!tipo || !placa || !detalle) { alert('⚠️ Completa todos los campos'); return; }
 
     try {
         await db.collection('vehiculos').add({
@@ -849,158 +770,105 @@ async function agregarVehiculo() {
         document.getElementById('placaVeh').value = '';
         document.getElementById('detalleVeh').value = '';
         await cargarTodo();
-    } catch (err) {
-        alert('❌ Error: ' + err.message);
-    }
+    } catch (err) { alert('❌ Error: ' + err.message); }
 }
 
-async function eliminarVehiculo(id) {
-    if (!confirm('⚠️ ¿Eliminar este vehículo?')) return;
-    try {
-        await db.collection('vehiculos').doc(id).delete();
-        alert('✅ Eliminado');
-        await cargarTodo();
-    } catch (err) {
-        alert('❌ Error: ' + err.message);
-    }
-}
-
-// ===== INFORMES / CONSULTAS =====
-function aplicarPeriodo(periodo) {
+// === INFORMES / EXPORTAR ===
+function aplicarPeriodo(valor) {
     const hoy = new Date();
-    let inicio = new Date(), fin = new Date();
-
-    if (periodo === 'hoy') {
-        inicio = fin = hoy;
-    } else if (periodo === 'semana') {
-        inicio.setDate(hoy.getDate() - hoy.getDay());
-        fin = hoy;
-    } else if (periodo === 'mes') {
-        inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-        fin = hoy;
+    let fInicio = hoy, fFin = hoy;
+    if (valor === 'hoy') {
+        fInicio = fFin = hoy;
+    } else if (valor === 'semana') {
+        fInicio = new Date(hoy);
+        fInicio.setDate(hoy.getDate() - hoy.getDay());
+    } else if (valor === 'mes') {
+        fInicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
     }
-
-    document.getElementById('fInicio').value = inicio.toISOString().split('T')[0];
-    document.getElementById('fFin').value = fin.toISOString().split('T')[0];
+    document.getElementById('fInicio').value = fInicio.toISOString().split('T')[0];
+    document.getElementById('fFin').value = fFin.toISOString().split('T')[0];
 }
 
 function filtrar() {
-    const fInicio = document.getElementById('fInicio').value;
-    const fFin = document.getElementById('fFin').value;
-    if (!fInicio || !fFin) { alert('⚠️ Selecciona fechas'); return; }
+    const fIn = document.getElementById('fInicio').value;
+    const fFn = document.getElementById('fFin').value;
+    if (!fIn || !fFn) { alert('⚠️ Selecciona fechas'); return; }
 
-    const filtrados = movimientos.filter(m => m.fecha >= fInicio && m.fecha <= fFin);
-    const tabla = document.getElementById('contenidoInformes');
-    tabla.innerHTML = `<h4 class="font-bold mb-2">📋 Desde ${fInicio} hasta ${fFin} — ${filtrados.length} movimientos</h4>`;
+    const filtrados = movimientos.filter(m => m.fecha >= fIn && m.fecha <= fFn);
+    const kmFiltrados = kilometraje.filter(k => k.fecha >= fIn && k.fecha <= fFn);
 
-    if (filtrados.length === 0) {
-        tabla.innerHTML += '<p class="text-gray-500">Sin resultados</p>';
-        return;
-    }
+    let html = `<h4 class="font-bold text-blue-700 mb-2">Período: ${fIn} al ${fFn}</h4>`;
+    html += `<p class="mb-3">Total movimientos: ${filtrados.length}</p>`;
 
-    tabla.innerHTML += `
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm border-collapse">
-                <thead class="bg-blue-700 text-white">
-                    <tr>
-                        <th>Fecha</th><th>Colaborador</th><th>Placa</th><th>Kilos</th>
-                        <th>Salida</th><th>Llegada</th><th>Canast Dif</th><th>Creado por</th>
-                    </tr>
-                </thead>
-                <tbody class="text-center">
-                    ${filtrados.map(m => `
-                        <tr>
-                            <td class="border px-2 py-1">${m.fecha}</td>
-                            <td class="border px-2 py-1">${m.colaborador}</td>
-                            <td class="border px-2 py-1">${m.placa}</td>
-                            <td class="border px-2 py-1 font-bold">${m.totalKilosRecogidos || 0}</td>
-                            <td class="border px-2 py-1">${m.horaSalida || '-'}</td>
-                            <td class="border px-2 py-1">${m.horaLlegada || '-'}</td>
-                            <td class="border px-2 py-1">${(m.canastSalida||0)-(m.canastLlegada||0)}</td>
-                            <td class="border px-2 py-1 texto-auditoria">${m.usuarioCreacion || ''} ${m.horaCreacion||''}</td>
-                        </tr>
-                    `).join('')}
-                </tbody>
-            </table>
-        </div>
-    `;
+    html += `<table class="w-full text-sm border-collapse mb-4"><thead class="bg-blue-700 text-white">
+        <tr><th>Fecha</th><th>Colaborador</th><th>Placa</th><th>Kilos</th><th>Horas</th><th>Creado por</th></tr></thead><tbody>`;
+    filtrados.forEach(m => {
+        html += `<tr class="text-center"><td>${m.fecha}</td><td>${m.colaborador}</td><td>${m.placa}</td><td>${m.totalKilosRecogidos || 0}</td><td>${m.horaSalida||'-'} / ${m.horaLlegada||'-'}</td><td class="texto-auditoria">${m.usuarioCreacion} ${m.horaCreacion||''}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+
+    html += `<h4 class="font-bold text-orange-600 mb-2">⛽ CONSUMO DE COMBUSTIBLE</h4>`;
+    html += `<table class="w-full text-sm border-collapse"><thead class="bg-orange-600 text-white">
+        <tr><th>Fecha</th><th>Placa</th><th>Km Recorridos</th><th>Galones</th><th>Km/Galón</th><th>Registrado por</th></tr></thead><tbody>`;
+    kmFiltrados.forEach(k => {
+        html += `<tr class="text-center"><td>${k.fecha}</td><td>${k.placa}</td><td>${k.kmRecorridos}</td><td>${k.galones}</td><td class="font-bold">${k.rendimiento}</td><td class="texto-auditoria">${k.usuarioRegistro} ${k.horaRegistro||''}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+
+    document.getElementById('contenidoInformes').innerHTML = html;
 }
 
 function verTodos() {
     document.getElementById('fInicio').value = '';
     document.getElementById('fFin').value = '';
-    document.getElementById('contenidoInformes').innerHTML = '<p class="text-gray-500">Pulsa "Buscar" para aplicar filtro</p>';
+    document.getElementById('contenidoInformes').innerHTML = '<p class="text-gray-500">Presiona "Buscar" con fechas para ver informe</p>';
 }
 
 function exportarExcel() {
-    const fInicio = document.getElementById('fInicio').value;
-    const fFin = document.getElementById('fFin').value;
-    let datos = movimientos;
-    let sufijo = '';
-
-    if (fInicio && fFin) {
-        datos = movimientos.filter(m => m.fecha >= fInicio && m.fecha <= fFin);
-        sufijo = `_${fInicio}_a_${fFin}`;
-    }
-
-    const filas = datos.map(m => ({
-        Fecha: m.fecha,
-        Colaborador: m.colaborador,
-        Placa: m.placa,
-        Kilos_Recogidos: m.totalKilosRecogidos || 0,
-        Hora_Salida: m.horaSalida || '',
-        Hora_Llegada: m.horaLlegada || '',
-        Canastillas_Salida: m.canastSalida || 0,
-        Canastillas_Llegada: m.canastLlegada || 0,
-        Diferencia_Canastillas: (m.canastSalida || 0) - (m.canastLlegada || 0),
-        Observaciones: m.observaciones || '',
-        Creado_Por: m.usuarioCreacion || '',
-        Fecha_Hora_Creacion: `${m.fechaCreacion || ''} ${m.horaCreacion || ''}`
-    }));
-
-    const hoja = XLSX.utils.json_to_sheet(filas);
+    const datos = [];
+    datos.push(['FECHA', 'COLABORADOR', 'PLACA', 'KILOS TOTALES', 'HORA SALIDA', 'HORA LLEGADA', 'OBSERVACIONES', 'USUARIO', 'HORA CREACIÓN']);
+    movimientos.forEach(m => {
+        datos.push([m.fecha, m.colaborador, m.placa, m.totalKilosRecogidos || 0, m.horaSalida || '', m.horaLlegada || '', m.observaciones || '', m.usuarioCreacion || '', m.horaCreacion || '']);
+    });
     const libro = XLSX.utils.book_new();
+    const hoja = XLSX.utils.aoa_to_sheet(datos);
     XLSX.utils.book_append_sheet(libro, hoja, 'Movimientos');
-    XLSX.writeFile(libro, `Reporte_Movimientos${sufijo}.xlsx`);
-    alert('✅ Excel descargado');
+    XLSX.writeFile(libro, `Movimientos_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
-// ===== ADMINISTRACIÓN DE USUARIOS =====
+// === USUARIOS DEL SISTEMA (Administración) ===
 function guardarUsuarioSistema() {
     const usuario = document.getElementById('nuevoUsuario').value.trim();
     const clave = document.getElementById('nuevaClave').value.trim();
     const rol = document.getElementById('nuevoRol').value;
 
-    if (!usuario || !clave) {
-        alert('⚠️ Escribe usuario y contraseña');
-        return;
-    }
+    if (!usuario || !clave) { alert('⚠️ Escribe usuario y contraseña'); return; }
 
-    const existe = USUARIOS_SISTEMA.find(u => u.usuario.toLowerCase() === usuario.toLowerCase());
+    const permisosPorDefecto = {
+        movimientos: true, combustible: true, transportadora: true,
+        informes: true, colaboradores: true, vehiculos: true,
+        editar: (rol === 'admin')
+    };
+
+    const existe = USUARIOS_SISTEMA.find(u => u.usuario === usuario);
     if (existe) {
         existe.clave = clave;
         existe.rol = rol;
-        alert(`✅ Usuario ${usuario} actualizado`);
+        existe.permisos = permisosPorDefecto;
     } else {
-        USUARIOS_SISTEMA.push({
-            usuario: usuario,
-            clave: clave,
-            rol: rol,
-            permisos: { movimientos: true, combustible: true, transportadora: true, informes: true, colaboradores: true, vehiculos: true, editar: true }
-        });
-        alert(`✅ Usuario ${usuario} creado`);
+        USUARIOS_SISTEMA.push({ usuario, clave, rol, permisos: permisosPorDefecto });
     }
 
+    alert('✅ Usuario guardado (recarga la página para ver cambios)');
     document.getElementById('nuevoUsuario').value = '';
     document.getElementById('nuevaClave').value = '';
 }
 
-// ===== CARGA INICIAL =====
+// === INICIO AUTOMÁTICO ===
 window.onload = function () {
     document.getElementById('fecha').valueAsDate = new Date();
     document.getElementById('fechaKm').valueAsDate = new Date();
 };
 </script>
-
 </body>
 </html>
