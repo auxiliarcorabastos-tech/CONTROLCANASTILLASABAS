@@ -706,7 +706,7 @@ async function actualizarMovimiento() {
 }
 
 // --------------------------
-// ELIMINAR MOVIMIENTO
+// ELIMINAR MOVIMIENTO (CORREGIDA)
 // --------------------------
 async function eliminarMovimiento() {
   if (!idEdicion) { 
@@ -714,11 +714,38 @@ async function eliminarMovimiento() {
     return;
   }
 
-  // Confirmación antes de borrar
   if (!confirm('¿⚠️ Estás SEGURO de eliminar este registro?\nEsta acción NO se puede deshacer.')) {
     return;
   }
 
+  try {
+    // ✅ Tu sistema usa colección "movimientos"
+    await db.collection('movimientos').doc(idEdicion).delete();
+    
+    // ✅ Registrar acción en bitácora (consistente con tu sistema)
+    const { fecha, hora } = obtenerFechaHoraActual();
+    await db.collection('bitacora').add({
+      usuario: usuarioConectado.usuario.toUpperCase(),
+      rol: usuarioConectado.rol,
+      accion: "Eliminar Movimiento",
+      modulo: "Movimientos",
+      detalles: `ID eliminado: ${idEdicion}`,
+      fecha,
+      hora
+    });
+
+    alert('✅ Registro eliminado correctamente');
+    
+    // ✅ Limpiar y recargar (tu sistema)
+    idEdicion = null;
+    limpiarFormulario();
+    await cargarTodo();
+
+  } catch (error) {
+    console.error("Error al eliminar:", error);
+    alert('❌ Error al eliminar: ' + error.message);
+  }
+}
   try {
     // Buscar en qué colección está el registro
     let nombreColeccion = "";
