@@ -63,7 +63,6 @@
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
-
 <div id="avisoCierreSesion" class="aviso-sesion-fondo oculto">
     <div class="aviso-sesion">
         <h3>⏰ CIERRE DE SESIÓN POR INACTIVIDAD</h3>
@@ -75,7 +74,6 @@
         </div>
     </div>
 </div>
-
 <div id="pantallaLogin" class="fondo-login flex items-center justify-center min-h-screen">
     <div class="bg-white rounded-xl tarjeta p-8 w-full max-w-md">
         <h2 class="text-2xl font-bold text-center text-gray-700 mb-6">🔐 INICIO DE SESIÓN</h2>
@@ -98,7 +96,6 @@
         </div>
     </div>
 </div>
-
 <div id="pantallaPrincipal" class="oculto">
     <button class="boton-menu" onclick="alternarMenu()">☰</button>
     <div id="cortinaMenu" class="cortina-menu" onclick="alternarMenu()"></div>
@@ -126,9 +123,7 @@
             </div>
         </div>
     </nav>
-
     <div class="contenedor-principal p-4 lg:p-6">
-
         <!-- ========== MOVIMIENTOS ========== -->
         <div id="pestaña-movimientos" class="contenido-pestaña">
             <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
@@ -189,7 +184,6 @@
                 </div>
             </section>
         </div>
-
         <!-- ========== COMBUSTIBLE ========== -->
         <div id="pestaña-combustible" class="contenido-pestaña oculto">
             <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
@@ -210,7 +204,6 @@
                 </div>
             </section>
         </div>
-
         <!-- ========== TRANSPORTADORA ========== -->
         <div id="pestaña-transportadora" class="contenido-pestaña oculto">
             <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
@@ -227,7 +220,6 @@
                 <div id="contenidoSubTrans"></div>
             </section>
         </div>
-
         <!-- ========== INFORMES ========== -->
         <div id="pestaña-informes" class="contenido-pestaña oculto">
             <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
@@ -252,7 +244,6 @@
                 <div id="contenidoInformes"></div>
             </section>
         </div>
-
         <!-- ========== COLABORADORES ========== -->
         <div id="pestaña-colaboradores" class="contenido-pestaña oculto">
             <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
@@ -270,7 +261,6 @@
                 </div>
             </section>
         </div>
-
         <!-- ========== VEHÍCULOS ========== -->
         <div id="pestaña-vehiculos" class="contenido-pestaña oculto">
             <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
@@ -296,7 +286,6 @@
                 </div>
             </section>
         </div>
-
         <!-- ========== ADMINISTRACIÓN ========== -->
         <div id="pestaña-administracion" class="contenido-pestaña oculto">
             <section class="bg-white rounded-xl tarjeta p-4 lg:p-6">
@@ -318,10 +307,8 @@
                 </div>
             </section>
         </div>
-
     </div>
 </div>
-
 <script>
 // ===== CONFIGURACIÓN FIREBASE =====
 const firebaseConfig = {
@@ -332,29 +319,24 @@ const firebaseConfig = {
   messagingSenderId: "372736670308",
   appId: "1:372736670308:web:14c2e2614c14ff3dc2bd71"
 };
-
 // ===== TIEMPO DE SESIÓN =====
 const TIEMPO_TOTAL_SESION = 60 * 60 * 1000;
 const TIEMPO_AVISO = 30;
 let tiempoUltimaAccion = Date.now();
 let temporizadorSesion = null;
 let cuentaRegresiva = null;
-
 // ===== USUARIOS INTERNOS =====
 const USUARIOS_SISTEMA = [
   { usuario: "jgarnica", clave: "123456", rol: "usuario", permisos: { movimientos: true, combustible: true, transportadora: true, informes: true, colaboradores: true, vehiculos: true, editar: true } },
   { usuario: "jfigueroa", clave: "3134630773", rol: "admin", permisos: { movimientos: true, combustible: true, transportadora: true, informes: true, colaboradores: true, vehiculos: true, editar: true } },
   { usuario: "estudiante", clave: "123456", rol: "usuario", permisos: { movimientos: true, combustible: true, transportadora: true, informes: true, colaboradores: true, vehiculos: true, editar: false } }
 ];
-
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-
 let usuarioConectado = null;
 let movimientos = [], colaboradores = [], vehiculos = [], kilometraje = [], conductores = [], canastillasSalida = [], canastillasEntrada = [];
 let idEdicion = null;
 let recogidasTemporales = [];
-
 // ===== MENÚ =====
 function alternarMenu() {
     const menu = document.getElementById('menuLateral');
@@ -362,7 +344,6 @@ function alternarMenu() {
     menu.classList.toggle('oculto');
     cortina.classList.toggle('activa');
 }
-
 // ===== FECHA Y HORA =====
 function obtenerFechaHoraActual() {
     const ahora = new Date();
@@ -371,14 +352,12 @@ function obtenerFechaHoraActual() {
         hora: ahora.toTimeString().split(' ')[0].substring(0, 8)
     };
 }
-
 // ===== RECARGAR DATOS =====
 async function recargarDatos() {
     tiempoUltimaAccion = Date.now();
     await cargarTodo();
     alert('✅ Datos actualizados');
 }
-
 // ===== CONTROL DE INACTIVIDAD =====
 function reiniciarContadorSesion() { tiempoUltimaAccion = Date.now(); ocultarAvisoCierre(); }
 function iniciarMonitorInactividad() {
@@ -405,7 +384,6 @@ function ocultarAvisoCierre() {
 }
 function seguirConectado() { reiniciarContadorSesion(); }
 function cerrarSesionAhora() { cerrarSesion(); }
-
 // ===== RECOGIDAS EN MOVIMIENTOS =====
 function agregarFilaRecogida(datos = null) {
     const contenedor = document.getElementById('contenedorRecogidas');
@@ -454,7 +432,6 @@ function actualizarRecogidas() {
     document.getElementById('totalKilosRecogidos').textContent = totalKilos;
     document.getElementById('cantidadRecogidas').textContent = recogidasTemporales.length;
 }
-
 // ===== INICIO DE SESIÓN =====
 async function ingresar() {
     let usuario = document.getElementById('correo').value.trim();
@@ -515,7 +492,6 @@ function cerrarSesion() {
     if(cuentaRegresiva) clearInterval(cuentaRegresiva);
     location.reload();
 }
-
 // ===== CAMBIO DE PESTAÑAS =====
 document.querySelectorAll('.pestaña-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -531,7 +507,6 @@ document.querySelectorAll('.pestaña-btn').forEach(btn => {
         if(window.innerWidth < 1024) alternarMenu();
     });
 });
-
 // ===== CARGA DE DATOS DESDE FIREBASE =====
 async function cargarTodo() {
     const colRef = await db.collection('colaboradores').orderBy('nombre').get();
@@ -545,19 +520,14 @@ async function cargarTodo() {
     
     const kmRef = await db.collection('kilometraje').orderBy('fecha','desc').get();
     kilometraje = kmRef.docs.map(d => ({ id: d.id, ...d.data() }));
-
     const condRef = await db.collection('conductores').orderBy('nombre').get();
     conductores = condRef.docs.map(d => ({ id: d.id, ...d.data() }));
-
     const csRef = await db.collection('canastillasSalida').orderBy('fecha','desc').get();
     canastillasSalida = csRef.docs.map(d => ({ id: d.id, ...d.data() }));
-
     const ceRef = await db.collection('canastillasEntrada').orderBy('fecha','desc').get();
     canastillasEntrada = ceRef.docs.map(d => ({ id: d.id, ...d.data() }));
-
     dibujarTodo();
 }
-
 function dibujarTodo() {
     const selCol = document.getElementById('colaborador');
     selCol.innerHTML = '<option value="">Seleccione colaborador</option>';
@@ -572,13 +542,11 @@ function dibujarTodo() {
     vehiculos.filter(v => !v.tipo.includes('TRACCIÓN HUMANA')).forEach(v => {
         selKmPlaca.innerHTML += `<option value="${v.placa}">${v.placa}</option>`;
     });
-
     dibujarTablaMovimientos();
     dibujarTablaKm();
     dibujarTablaColaboradores();
     dibujarTablaVehiculos();
 }
-
 // ===== TABLA MOVIMIENTOS =====
 function dibujarTablaMovimientos() {
     const tabla = document.getElementById('tablaMov');
@@ -604,7 +572,6 @@ function dibujarTablaMovimientos() {
         `;
     });
 }
-
 // ===== GUARDAR MOVIMIENTO =====
 async function guardarMovimiento() {
     const { fecha, hora } = obtenerFechaHoraActual();
@@ -642,628 +609,655 @@ async function guardarMovimiento() {
         await cargarTodo();
     } catch(err) { alert('❌ Error: ' + err.message); }
 }
-
 // ===== CARGAR EN FORMULARIO =====
 function cargarEnFormulario(id) {
-    const mov = movimientos.find(m => m.id === id);
-    if(!mov) return;
-    idEdicion = id;
-    document.getElementById('fecha').value = mov.fecha;
-    document.getElementById('colaborador').value = mov.colaborador;
-    document.getElementById('vehiculo').value = mov.placa;
-    document.getElementById('horaSalida').value = mov.horaSalida || '';
-    document.getElementById('horaLlegada').value = mov.horaLlegada || '';
-    document.getElementById('canSalida').value = mov.canastSalida || '';
-    document.getElementById('canLlegada').value = mov.canastLlegada || '';
-    document.getElementById('obs').value = mov.observaciones || '';
-    document.getElementById('idEditar').value = id;
-    document.getElementById('contenedorRecogidas').innerHTML = '';
-    recogidasTemporales = [];
-    if(mov.recogidas && mov.recogidas.length > 0) {
-        mov.recogidas.forEach(r => agregarFilaRecogida(r));
-    } else {
-        agregarFilaRecogida();
-    }
-    document.getElementById('btnGuardarMov').classList.add('oculto');
-    document.getElementById('btnActualizar').classList.remove('oculto');
-    if(usuarioConectado.rol === 'admin') document.getElementById('btnEliminarMov').classList.remove('oculto');
+  const mov = movimientos.find(m => m.id === id);
+  if (!mov) return;
+  idEdicion = id;
+  document.getElementById('fecha').value = mov.fecha;
+  document.getElementById('colaborador').value = mov.colaborador;
+  document.getElementById('vehiculo').value = mov.placa;
+  document.getElementById('horaSalida').value = mov.horaSalida || '';
+  document.getElementById('horaLlegada').value = mov.horaLlegada || '';
+  document.getElementById('canSalida').value = mov.canastSalida || '';
+  document.getElementById('canLlegada').value = mov.canastLlegada || '';
+  document.getElementById('obs').value = mov.observaciones || '';
+  document.getElementById('idEditar').value = id;
+
+  // Cambiar título del formulario y botón
+  document.querySelector('#formMovimiento h3').textContent = '✏️ Editar Movimiento';
+  document.querySelector('#formMovimiento button[type="submit"]').textContent = 'Actualizar';
+
+  // Desplazarse al formulario
+  document.getElementById('formMovimiento').scrollIntoView({ behavior: 'smooth' });
 }
+" maxlength="10"></label>
+      <label>Marca / Modelo <input type="text" id="modelo"></label>
+      <label>Tipo de Vehículo
+        <select id="tipoVehiculo" required>
+          <option value="">Seleccione</option>
+          <option value="Liviano">Liviano</option>
+          <option value="Camioneta">Camioneta</option>
+          <option value="Camión">Camión</option>
+          <option value="Moto">Moto</option>
+          <option value="VTH">Vehículo de Tracción Humana (VTH)</option>
+        </select>
+      </label>
+      <button type="submit" class="btn-primario">Guardar Vehículo</button>
+    </form>
 
-// ===== LIMPIAR FORMULARIO =====
-function limpiarFormulario() {
-    document.getElementById('fecha').valueAsDate = new Date();
-    document.getElementById('colaborador').value = '';
-    document.getElementById('vehiculo').value = '';
-    document.getElementById('horaSalida').value = '';
-    document.getElementById('horaLlegada').value = '';
-    document.getElementById('canSalida').value = '';
-    document.getElementById('canLlegada').value = '';
-    document.getElementById('obs').value = '';
-    document.getElementById('idEditar').value = '';
-    document.getElementById('contenedorRecogidas').innerHTML = '';
-    recogidasTemporales = [];
-    idEdicion = null;
-    document.getElementById('btnGuardarMov').classList.remove('oculto');
-    document.getElementById('btnActualizar').classList.add('oculto');
-    document.getElementById('btnEliminarMov').classList.add('oculto');
-    agregarFilaRecogida();
-}
-    document.getElementById('contenedorRecogidas').innerHTML = '';
-    recogidasTemporales = [];
-    idEdicion = null;
-    document.getElementById('btnGuardarMov').classList.remove('oculto');
-    document.getElementById('btnActualizar').classList.add('oculto');
-    document.getElementById('btnEliminarMov').classList.add('oculto');
-    agregarFilaRecogida();
-}
+    <h3>Lista de Vehículos</h3>
+    <div class="tabla-contenedor">
+      <table id="tablaVehiculos">
+        <thead>
+          <tr>
+            <th>Placa</th>
+            <th>Modelo</th>
+            <th>Tipo</th>
+            <th>Registrado por</th>
+            <th>Fecha/Hora</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
 
-async function completarLlegada() {
-    const ahora = new Date();
-    const horaLlegada = ahora.toTimeString().substring(0, 5);
-    document.getElementById('horaLlegada').value = horaLlegada;
-    alert(`✅ Hora de llegada asignada: ${horaLlegada}`);
-}
-async function eliminarMovimiento() {
-    if (!idEdicion) {
-        alert('⚠️ Primero selecciona un movimiento desde la tabla');
-        return;
-    }
-    if (usuarioConectado.rol !== 'admin') {
-        alert('🔒 Solo el administrador puede eliminar registros');
-        return;
-    }
-    if (confirm('⚠️ ¿Estás SEGURO de ELIMINAR este movimiento? Esta acción NO se puede deshacer.')) {
-        try {
-            await db.collection('movimientos').doc(idEdicion).delete();
-            alert('✅ Movimiento eliminado correctamente');
-            limpiarFormulario();
-            await cargarTodo();
-        } catch (err) {
-            alert('❌ Error al eliminar: ' + err.message);
-        }
-    }
-}
+  <!-- --- COMBUSTIBLE / KILOMETRAJE --- -->
+  <section class="pagina" id="pag-combustible">
+    <form id="formCombustible">
+      <h3>Registro de Combustible y Kilometraje</h3>
+      <label>Fecha <input type="date" id="fechaComb" required></label>
+      <label>Placa / Vehículo
+        <select id="placaComb" required>
+          <option value="">Seleccione vehículo</option>
+        </select>
+      </label>
+      <label>Kilometraje Mañana <input type="number" id="kmManana" min="0" step="1"></label>
+      <label>Kilometraje Tarde <input type="number" id="kmTarde" min="0" step="1"></label>
+      <label>Galones Cargados <input type="number" id="galones" min="0" step="0.01"></label>
+      <button type="submit" class="btn-primario">Guardar Registro</button>
+    </form>
 
-// ====== COMBUSTIBLE / KILOMETRAJE ======
-async function guardarKm() {
-    const { fecha, hora } = obtenerFechaHoraActual();
-    const placa = document.getElementById('placaKm').value;
-    const kmManana = Number(document.getElementById('kmManana').value);
-    const kmTarde = Number(document.getElementById('kmTarde').value);
-    const galones = Number(document.getElementById('galones').value) || 0;
+    <h3>Registros de Combustible</h3>
+    <div class="tabla-contenedor">
+      <table id="tablaCombustible">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Placa</th>
+            <th>KM Mañana</th>
+            <th>KM Tarde</th>
+            <th>Recorrido</th>
+            <th>Galones</th>
+            <th>Rendimiento km/gal</th>
+            <th>Registrado por</th>
+            <th>Hora</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
 
-    if (!placa || !kmManana || !kmTarde) {
-        alert('⚠️ Completa placa, km mañana y km tarde');
-        return;
-    }
+  <!-- --- INFORMES Y CONSULTAS --- -->
+  <section class="pagina" id="pag-informes">
+    <h2>📊 Consultas y Reportes</h2>
+    <div style="background:#fff; padding:1rem; border-radius:10px; margin-bottom:1rem;">
+      <h4>Filtrar por rango de fechas</h4>
+      <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:0.5rem; align-items:center;">
+        <label>Desde <input type="date" id="fechaIni"></label>
+        <label>Hasta <input type="date" id="fechaFin"></label>
+        <button class="btn-primario" onclick="generarInforme()">Generar Reporte</button>
+      </div>
+    </div>
 
-    const datos = {
-        fecha: document.getElementById('fechaKm').value,
-        placa: placa,
-        kmManana: kmManana,
-        kmTarde: kmTarde,
-        kmRecorridos: kmTarde - kmManana,
-        galones: galones,
-        rendimiento: galones > 0 ? Number(((kmTarde - kmManana) / galones).toFixed(2)) : 0,
-        usuarioRegistro: usuarioConectado.usuario.toUpperCase(),
-        horaRegistro: hora
-    };
+    <h3>Resumen Recorridos y Rendimiento</h3>
+    <div class="tabla-contenedor">
+      <table id="tablaInformes">
+        <thead>
+          <tr>
+            <th>Placa</th>
+            <th>Total KM</th>
+            <th>Total Galones</th>
+            <th>Rendimiento Prom. (km/gal)</th>
+            <th>Periodo</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
-    try {
-        await db.collection('kilometraje').add(datos);
-        alert('✅ Registro guardado');
-        document.getElementById('fechaKm').valueAsDate = new Date();
-        document.getElementById('placaKm').value = '';
-        document.getElementById('kmManana').value = '';
-        document.getElementById('kmTarde').value = '';
-        document.getElementById('galones').value = '';
-        await cargarTodo();
-    } catch (err) {
-        alert('❌ Error: ' + err.message);
-    }
-}
+    <br>
+    <button class="btn-exito" onclick="exportarExcel()">📥 Exportar Todo a Excel</button>
+  </section>
 
-function dibujarTablaKm() {
-    const tabla = document.getElementById('tablaKm');
-    tabla.innerHTML = '';
-    kilometraje.forEach(k => {
-        const fila = tabla.insertRow();
-        fila.innerHTML = `
-            <td class="px-2 py-1 border text-xs">${k.fecha}</td>
-            <td class="px-2 py-1 border text-xs font-bold">${k.placa}</td>
-            <td class="px-2 py-1 border text-xs">${k.kmManana}</td>
-            <td class="px-2 py-1 border text-xs">${k.kmTarde}</td>
-            <td class="px-2 py-1 border text-xs font-bold text-blue-700">${k.kmRecorridos}</td>
-            <td class="px-2 py-1 border text-xs">${k.galones}</td>
-            <td class="px-2 py-1 border text-xs font-bold text-green-700">${k.rendimiento}</td>
-            <td class="px-2 py-1 border texto-auditoria">${k.usuarioRegistro}<br>${k.horaRegistro||''}</td>
-        `;
-    });
-}
+  <!-- --- ADMINISTRACIÓN --- -->
+  <section class="pagina" id="pag-admin">
+    <h2>⚙️ Administración del Sistema</h2>
 
-// ====== COLABORADORES ======
-async function agregarColaborador() {
-    const { fecha, hora } = obtenerFechaHoraActual();
-    const nombre = document.getElementById('nombreCol').value.trim().toUpperCase();
-    const cedula = document.getElementById('cedulaCol').value.trim();
+    <!-- Gestión de Usuarios -->
+    <form id="formUsuario">
+      <h3>Gestión de Usuarios</h3>
+      <input type="hidden" id="idUsuarioEditar">
+      <label>Nombre <input type="text" id="nombreUsuarioNuevo" required></label>
+      <label>Correo <input type="email" id="correoUsuarioNuevo" required></label>
+      <label>Contraseña <input type="password" id="claveUsuarioNuevo"></label>
+      <label>Rol
+        <select id="rolUsuarioNuevo">
+          <option value="usuario">Usuario</option>
+          <option value="admin">Administrador</option>
+        </select>
+      </label>
+      <h4>Permisos por Módulo</h4>
+      <label style="display:flex; align-items:center; gap:0.3rem;">
+        <input type="checkbox" id="permMovimientos"> Movimientos
+      </label>
+      <label style="display:flex; align-items:center; gap:0.3rem;">
+        <input type="checkbox" id="permVehiculos"> Vehículos
+      </label>
+      <label style="display:flex; align-items:center; gap:0.3rem;">
+        <input type="checkbox" id="permCombustible"> Combustible
+      </label>
+      <label style="display:flex; align-items:center; gap:0.3rem;">
+        <input type="checkbox" id="permInformes"> Informes
+      </label>
+      <label>¿Puede Editar Información?
+        <select id="puedeEditar">
+          <option value="si">Sí</option>
+          <option value="no">Solo Consulta</option>
+        </select>
+      </label>
+      <button type="submit" class="btn-primario">Guardar Usuario</button>
+    </form>
 
-    if (!nombre || !cedula) { alert('⚠️ Escribe nombre y cédula'); return; }
+    <h3>Lista de Usuarios</h3>
+    <div class="tabla-contenedor">
+      <table id="tablaUsuarios">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Correo</th>
+            <th>Rol</th>
+            <th>Permisos</th>
+            <th>Puede Editar</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
 
-    try {
-        await db.collection('colaboradores').add({
-            nombre: nombre,
-            cedula: cedula,
-            usuarioCreacion: usuarioConectado.usuario.toUpperCase(),
-            fechaCreacion: fecha,
-            horaCreacion: hora
-        });
-        alert('✅ Colaborador agregado');
-        document.getElementById('nombreCol').value = '';
-        document.getElementById('cedulaCol').value = '';
-        await cargarTodo();
-    } catch (err) { alert('❌ Error: ' + err.message); }
-}
+</main>
 
-function dibujarTablaColaboradores() {
-    const tabla = document.getElementById('tablaCol');
-    tabla.innerHTML = '';
-    colaboradores.forEach(c => {
-        const fila = tabla.insertRow();
-        fila.innerHTML = `
-            <td class="px-2 py-1 border text-xs">${c.nombre}</td>
-            <td class="px-2 py-1 border text-xs">${c.cedula}</td>
-            <td class="px-2 py-1 border texto-auditoria">${c.usuarioCreacion||''} ${c.horaCreacion||''}</td>
-            <td class="px-2 py-1 border text-xs">
-                ${usuarioConectado.rol === 'admin' 
-                    ? `<button onclick="eliminarColaborador('${c.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">🗑️</button>` 
-                    : '🔒'}
-            </td>
-        `;
-    });
-}
+<script>
+// ===== DATOS DE USUARIOS LOCALES =====
+const usuariosFijos = [
+  { correo: "jgarnica@correo.com", clave: "123456", nombre: "jgarnica", rol: "usuario" },
+  { correo: "jfigueroa@correo.com", clave: "3134630773", nombre: "jfigueroa", rol: "admin" },
+  { correo: "estudiante@correo.com", clave: "123456", nombre: "estudiante", rol: "usuario" }
+];
 
-async function eliminarColaborador(id) {
-    if (!confirm('⚠️ ¿Eliminar este colaborador?')) return;
-    try {
-        await db.collection('colaboradores').doc(id).delete();
-        alert('✅ Colaborador eliminado');
-        await cargarTodo();
-    } catch (err) { alert('❌ Error: ' + err.message); }
-}
+// ===== VARIABLES GLOBALES =====
+let usuarioActivo = null;
+let movimientos = [];
+let vehiculos = [];
+let registrosCombustible = [];
+let usuariosRegistrados = [];
+let idEdicion = null;
+let db = null;
+let auth = null;
 
-// ====== VEHÍCULOS ======
-async function agregarVehiculo() {
-    const { fecha, hora } = obtenerFechaHoraActual();
-    const tipo = document.getElementById('tipoVeh').value;
-    const placa = document.getElementById('placaVeh').value.trim().toUpperCase();
-    const detalle = document.getElementById('detalleVeh').value.trim().toUpperCase();
-
-    if (!tipo || !placa || !detalle) { alert('⚠️ Completa todos los campos'); return; }
-
-    try {
-        await db.collection('vehiculos').add({
-            tipo: tipo,
-            placa: placa,
-            detalle: detalle,
-            usuarioCreacion: usuarioConectado.usuario.toUpperCase(),
-            fechaCreacion: fecha,
-            horaCreacion: hora
-        });
-        alert('✅ Vehículo agregado');
-        document.getElementById('placaVeh').value = '';
-        document.getElementById('detalleVeh').value = '';
-        await cargarTodo();
-    } catch (err) { alert('❌ Error: ' + err.message); }
-}
-
-function dibujarTablaVehiculos() {
-    const tabla = document.getElementById('tablaVeh');
-    tabla.innerHTML = '';
-    vehiculos.forEach(v => {
-        const fila = tabla.insertRow();
-        fila.innerHTML = `
-            <td class="px-2 py-1 border text-xs">${v.tipo}</td>
-            <td class="px-2 py-1 border text-xs font-bold">${v.placa}</td>
-            <td class="px-2 py-1 border text-xs">${v.detalle}</td>
-            <td class="px-2 py-1 border texto-auditoria">${v.usuarioCreacion||''} ${v.horaCreacion||''}</td>
-            <td class="px-2 py-1 border text-xs">
-                ${usuarioConectado.rol === 'admin' 
-                    ? `<button onclick="eliminarVehiculo('${v.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">🗑️</button>` 
-                    : '🔒'}
-            </td>
-        `;
-    });
-}
-
-async function eliminarVehiculo(id) {
-    if (!confirm('⚠️ ¿Eliminar este vehículo?')) return;
-    try {
-        await db.collection('vehiculos').doc(id).delete();
-        alert('✅ Vehículo eliminado');
-        await cargarTodo();
-    } catch (err) { alert('❌ Error: ' + err.message); }
-}
-
-// ====== TRANSPORTADORA - SUB PESTAÑAS ======
-function mostrarSubPestañaTrans(nombre) {
-    document.querySelectorAll('[id^="sp-"]').forEach(btn => {
-        btn.classList.remove('bg-blue-600','text-white');
-        btn.classList.add('bg-gray-200');
-    });
-    document.getElementById(`sp-${nombre.replace('Trans','')}`).classList.remove('bg-gray-200');
-    document.getElementById(`sp-${nombre.replace('Trans','')}`).classList.add('bg-blue-600','text-white');
-
-    let html = '';
-    if (nombre === 'vehiculosTrans') {
-        html = `
-            <h3 class="font-bold text-blue-700 mb-3">🚛 VEHÍCULOS REGISTRADOS</h3>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div><label class="text-sm font-semibold">Tipo de Vehículo</label>
-                    <select id="tipoVehTrans" class="w-full px-3 py-2 border rounded-lg">
-                        <option>MOTO PEQUEÑA</option>
-                        <option>MOTO GRANDE</option>
-                        <option>CAMIONETA</option>
-                        <option>VTH - VEHÍCULO DE TRACCIÓN HUMANA</option>
-                    </select>
-                </div>
-                <div><label class="text-sm font-semibold">Placa</label><input type="text" id="placaVehTrans" class="w-full px-3 py-2 border rounded-lg" placeholder="EJEMPLO-123"></div>
-                <div><label class="text-sm font-semibold">Marca / Detalle</label><input type="text" id="detalleVehTrans" class="w-full px-3 py-2 border rounded-lg"></div>
-            </div>
-            <button onclick="agregarVehiculoTrans()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold mb-4">✅ GUARDAR VEHÍCULO</button>
-            <div class="overflow-x-auto"><table class="w-full text-sm border-collapse">
-                <thead class="bg-blue-700 text-white"><tr><th>Tipo</th><th>Placa</th><th>Detalle</th><th>Registrado por</th><th>Eliminar</th></tr></thead>
-                <tbody id="tablaVehTrans" class="text-center"></tbody>
-            </table></div>
-        `;
-    } else if (nombre === 'conductoresTrans') {
-        html = `
-            <h3 class="font-bold text-blue-700 mb-3">👨‍✈️ CONDUCTORES</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div><label class="text-sm font-semibold">Nombre Completo</label><input type="text" id="nombreCond" class="w-full px-3 py-2 border rounded-lg"></div>
-                <div><label class="text-sm font-semibold">Cédula / Identificación</label><input type="text" id="cedulaCond" class="w-full px-3 py-2 border rounded-lg"></div>
-            </div>
-            <button onclick="agregarConductor()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold mb-4">✅ GUARDAR CONDUCTOR</button>
-            <div class="overflow-x-auto"><table class="w-full text-sm border-collapse">
-                <thead class="bg-blue-700 text-white"><tr><th>Nombre</th><th>Cédula</th><th>Registrado por</th><th>Eliminar</th></tr></thead>
-                <tbody id="tablaCond" class="text-center"></tbody>
-            </table></div>
-        `;
-    } else if (nombre === 'canastillasSal') {
-        html = `
-            <h3 class="font-bold text-blue-700 mb-3">📤 SALIDA DE CANASTILLAS</h3>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                <div><label class="text-sm font-semibold">Fecha</label><input type="date" id="fechaSal" class="w-full px-3 py-2 border rounded-lg"></div>
-                <div><label class="text-sm font-semibold">Placa / Vehículo</label>
-                    <select id="placaSal" class="w-full px-3 py-2 border rounded-lg">
-                        <option value="">Seleccione placa</option>
-                        ${vehiculos.map(v => `<option value="${v.placa}">${v.placa}</option>`).join('')}
-                    </select>
-                </div>
-                <div><label class="text-sm font-semibold">Cantidad de Canastillas</label><input type="number" id="cantSal" class="w-full px-3 py-2 border rounded-lg" placeholder="0"></div>
-                <div><label class="text-sm font-semibold">Hora de Salida</label><input type="time" id="horaSal" class="w-full px-3 py-2 border rounded-lg"></div>
-            </div>
-            <button onclick="registrarSalidaCanastillas()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold mb-4">✅ REGISTRAR SALIDA</button>
-            <div class="overflow-x-auto"><table class="w-full text-sm border-collapse">
-                <thead class="bg-blue-700 text-white"><tr><th>Fecha</th><th>Placa</th><th>Cantidad</th><th>Hora</th><th>Registrado por</th></tr></thead>
-                <tbody id="tablaSal" class="text-center"></tbody>
-            </table></div>
-        `;
-    } else if (nombre === 'canastillasEnt') {
-        html = `
-            <h3 class="font-bold text-green-700 mb-3">📥 ENTRADA / REGRESO DE CANASTILLAS</h3>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-                <div><label class="text-sm font-semibold">Fecha</label><input type="date" id="fechaEnt" class="w-full px-3 py-2 border rounded-lg"></div>
-                <div><label class="text-sm font-semibold">Placa / Vehículo</label>
-                    <select id="placaEnt" class="w-full px-3 py-2 border rounded-lg">
-                        <option value="">Seleccione placa</option>
-                        ${vehiculos.map(v => `<option value="${v.placa}">${v.placa}</option>`).join('')}
-                    </select>
-                </div>
-                <div><label class="text-sm font-semibold">Cantidad de Canastillas</label><input type="number" id="cantEnt" class="w-full px-3 py-2 border rounded-lg" placeholder="0"></div>
-                <div><label class="text-sm font-semibold">Hora de Llegada</label><input type="time" id="horaEnt" class="w-full px-3 py-2 border rounded-lg"></div>
-            </div>
-            <button onclick="registrarEntradaCanastillas()" class="bg-green-600 text-white px-4 py-2 rounded-lg font-bold mb-4">✅ REGISTRAR ENTRADA</button>
-            <div class="overflow-x-auto"><table class="w-full text-sm border-collapse">
-                <thead class="bg-green-700 text-white"><tr><th>Fecha</th><th>Placa</th><th>Cantidad</th><th>Hora</th><th>Registrado por</th></tr></thead>
-                <tbody id="tablaEnt" class="text-center"></tbody>
-            </table></div>
-        `;
-    }
-
-    document.getElementById('contenidoSubTrans').innerHTML = html;
-
-    if (nombre === 'vehiculosTrans') dibujarTablaVehiculosTrans();
-    else if (nombre === 'conductoresTrans') dibujarTablaConductores();
-    else if (nombre === 'canastillasSal') {
-        document.getElementById('fechaSal').valueAsDate = new Date();
-        dibujarTablaSalida();
-    }
-    else if (nombre === 'canastillasEnt') {
-        document.getElementById('fechaEnt').valueAsDate = new Date();
-        dibujarTablaEntrada();
-    }
-}
-
-// ====== VEHÍCULOS EN TRANSPORTADORA ======
-async function agregarVehiculoTrans() {
-    const { fecha, hora } = obtenerFechaHoraActual();
-    const tipo = document.getElementById('tipoVehTrans').value;
-    const placa = document.getElementById('placaVehTrans').value.trim().toUpperCase();
-    const detalle = document.getElementById('detalleVehTrans').value.trim().toUpperCase();
-
-    if (!tipo || !placa || !detalle) { alert('⚠️ Completa todos los campos'); return; }
-
-    try {
-        await db.collection('vehiculos').add({
-            tipo, placa, detalle,
-            usuarioCreacion: usuarioConectado.usuario.toUpperCase(),
-            fechaCreacion: fecha, horaCreacion: hora
-        });
-        alert('✅ Vehículo guardado');
-        document.getElementById('placaVehTrans').value = '';
-        document.getElementById('detalleVehTrans').value = '';
-        await cargarTodo();
-        mostrarSubPestañaTrans('vehiculosTrans');
-    } catch (err) { alert('❌ Error: ' + err.message); }
-}
-
-function dibujarTablaVehiculosTrans() {
-    const tabla = document.getElementById('tablaVehTrans');
-    if (!tabla) return;
-    tabla.innerHTML = '';
-    vehiculos.forEach(v => {
-        const fila = tabla.insertRow();
-        fila.innerHTML = `
-            <td class="px-2 py-1 border text-xs">${v.tipo}</td>
-            <td class="px-2 py-1 border text-xs font-bold">${v.placa}</td>
-            <td class="px-2 py-1 border text-xs">${v.detalle}</td>
-            <td class="px-2 py-1 border texto-auditoria">${v.usuarioCreacion||''}</td>
-            <td class="px-2 py-1 border text-xs">
-                ${usuarioConectado.rol === 'admin' 
-                    ? `<button onclick="eliminarVehiculoTrans('${v.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">🗑️</button>` 
-                    : '🔒'}
-            </td>
-        `;
-    });
-}
-
-async function eliminarVehiculoTrans(id) {
-    if (!confirm('⚠️ ¿Eliminar este vehículo?')) return;
-    try {
-        await db.collection('vehiculos').doc(id).delete();
-        alert('✅ Vehículo eliminado');
-        await cargarTodo();
-        mostrarSubPestañaTrans('vehiculosTrans');
-    } catch (err) { alert('❌ Error: ' + err.message); }
-}
-
-// ====== CONDUCTORES ======
-async function agregarConductor() {
-    const { fecha, hora } = obtenerFechaHoraActual();
-    const nombre = document.getElementById('nombreCond').value.trim().toUpperCase();
-    const cedula = document.getElementById('cedulaCond').value.trim();
-
-    if (!nombre || !cedula) { alert('⚠️ Escribe nombre y cédula'); return; }
-
-    try {
-        await db.collection('conductores').add({
-            nombre, cedula,
-            usuarioCreacion: usuarioConectado.usuario.toUpperCase(),
-            fechaCreacion: fecha, horaCreacion: hora
-        });
-        alert('✅ Conductor guardado');
-        document.getElementById('nombreCond').value = '';
-        document.getElementById('cedulaCond').value = '';
-        await cargarTodo();
-        mostrarSubPestañaTrans('conductoresTrans');
-    } catch (err) { alert('❌ Error: ' + err.message); }
-}
-
-function dibujarTablaConductores() {
-    const tabla = document.getElementById('tablaCond');
-    if (!tabla) return;
-    tabla.innerHTML = '';
-    conductores.forEach(c => {
-        const fila = tabla.insertRow();
-        fila.innerHTML = `
-            <td class="px-2 py-1 border text-xs">${c.nombre}</td>
-            <td class="px-2 py-1 border text-xs">${c.cedula}</td>
-            <td class="px-2 py-1 border texto-auditoria">${c.usuarioCreacion||''}</td>
-            <td class="px-2 py-1 border text-xs">
-                ${usuarioConectado.rol === 'admin' 
-                    ? `<button onclick="eliminarConductor('${c.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">🗑️</button>` 
-                    : '🔒'}
-            </td>
-        `;
-    });
-}
-
-async function eliminarConductor(id) {
-    if (!confirm('⚠️ ¿Eliminar este conductor?')) return;
-    try {
-        await db.collection('conductores').doc(id).delete();
-        alert('✅ Conductor eliminado');
-        await cargarTodo();
-        mostrarSubPestañaTrans('conductoresTrans');
-    } catch (err) { alert('❌ Error: ' + err.message); }
-}
-
-// ====== SALIDA CANASTILLAS ======
-async function registrarSalidaCanastillas() {
-    const { fecha, hora } = obtenerFechaHoraActual();
-    const datos = {
-        fecha: document.getElementById('fechaSal').value,
-        placa: document.getElementById('placaSal').value,
-        cantidad: Number(document.getElementById('cantSal').value) || 0,
-        horaSalida: document.getElementById('horaSal').value,
-        usuarioRegistro: usuarioConectado.usuario.toUpperCase(),
-        fechaCreacion: fecha, horaCreacion: hora
-    };
-    if (!datos.fecha || !datos.placa || !datos.cantidad || !datos.horaSalida) {
-        alert('⚠️ Completa todos los campos'); return;
-    }
-    try {
-        await db.collection('canastillasSalida').add(datos);
-        alert('✅ Salida registrada');
-        document.getElementById('cantSal').value = '';
-        document.getElementById('horaSal').value = '';
-        await cargarTodo();
-        mostrarSubPestañaTrans('canastillasSal');
-    } catch (err) { alert('❌ Error: ' + err.message); }
-}
-
-function dibujarTablaSalida() {
-    const tabla = document.getElementById('tablaSal');
-    if (!tabla) return;
-    tabla.innerHTML = '';
-    canastillasSalida.forEach(s => {
-        const fila = tabla.insertRow();
-        fila.innerHTML = `
-            <td class="px-2 py-1 border text-xs">${s.fecha}</td>
-            <td class="px-2 py-1 border text-xs font-bold">${s.placa}</td>
-            <td class="px-2 py-1 border text-xs font-bold text-blue-700">${s.cantidad}</td>
-            <td class="px-2 py-1 border text-xs">${s.horaSalida}</td>
-            <td class="px-2 py-1 border texto-auditoria">${s.usuarioRegistro||''}</td>
-        `;
-    });
-}
-
-// ====== ENTRADA CANASTILLAS ======
-async function registrarEntradaCanastillas() {
-    const { fecha, hora } = obtenerFechaHoraActual();
-    const datos = {
-        fecha: document.getElementById('fechaEnt').value,
-        placa: document.getElementById('placaEnt').value,
-        cantidad: Number(document.getElementById('cantEnt').value) || 0,
-        horaLlegada: document.getElementById('horaEnt').value,
-        usuarioRegistro: usuarioConectado.usuario.toUpperCase(),
-        fechaCreacion: fecha, horaCreacion: hora
-    };
-    if (!datos.fecha || !datos.placa || !datos.cantidad || !datos.horaLlegada) {
-        alert('⚠️ Completa todos los campos'); return;
-    }
-    try {
-        await db.collection('canastillasEntrada').add(datos);
-        alert('✅ Entrada registrada');
-        document.getElementById('cantEnt').value = '';
-        document.getElementById('horaEnt').value = '';
-        await cargarTodo();
-        mostrarSubPestañaTrans('canastillasEnt');
-    } catch (err) { alert('❌ Error: ' + err.message); }
-}
-
-function dibujarTablaEntrada() {
-    const tabla = document.getElementById('tablaEnt');
-    if (!tabla) return;
-    tabla.innerHTML = '';
-    canastillasEntrada.forEach(e => {
-        const fila = tabla.insertRow();
-        fila.innerHTML = `
-            <td class="px-2 py-1 border text-xs">${e.fecha}</td>
-            <td class="px-2 py-1 border text-xs font-bold">${e.placa}</td>
-            <td class="px-2 py-1 border text-xs font-bold text-green-700">${e.cantidad}</td>
-            <td class="px-2 py-1 border text-xs">${e.horaLlegada}</td>
-            <td class="px-2 py-1 border texto-auditoria">${e.usuarioRegistro||''}</td>
-        `;
-    });
-}
-
-// ====== INFORMES / EXPORTAR ======
-function aplicarPeriodo(valor) {
-    const hoy = new Date();
-    let fInicio = hoy, fFin = hoy;
-    if (valor === 'hoy') {
-        fInicio = fFin = hoy;
-    } else if (valor === 'semana') {
-        fInicio = new Date(hoy);
-        fInicio.setDate(hoy.getDate() - hoy.getDay());
-    } else if (valor === 'mes') {
-        fInicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    }
-    document.getElementById('fInicio').value = fInicio.toISOString().split('T')[0];
-    document.getElementById('fFin').value = fFin.toISOString().split('T')[0];
-}
-
-function filtrar() {
-    const fIn = document.getElementById('fInicio').value;
-    const fFn = document.getElementById('fFin').value;
-    if (!fIn || !fFn) { alert('⚠️ Selecciona fechas'); return; }
-
-    const filtrados = movimientos.filter(m => m.fecha >= fIn && m.fecha <= fFn);
-    const kmFiltrados = kilometraje.filter(k => k.fecha >= fIn && k.fecha <= fFn);
-
-    let html = `<h4 class="font-bold text-blue-700 mb-2">Período: ${fIn} al ${fFn}</h4>`;
-    html += `<p class="mb-3">Total movimientos: ${filtrados.length}</p>`;
-
-    html += `<table class="w-full text-sm border-collapse mb-4"><thead class="bg-blue-700 text-white">
-        <tr><th>Fecha</th><th>Colaborador</th><th>Placa</th><th>Kilos</th><th>Horas</th><th>Creado por</th></tr></thead><tbody>`;
-    filtrados.forEach(m => {
-        html += `<tr class="text-center"><td>${m.fecha}</td><td>${m.colaborador}</td><td>${m.placa}</td><td>${m.totalKilosRecogidos || 0}</td><td>${m.horaSalida||'-'} / ${m.horaLlegada||'-'}</td><td class="texto-auditoria">${m.usuarioCreacion} ${m.horaCreacion||''}</td></tr>`;
-    });
-    html += `</tbody></table>`;
-
-    html += `<h4 class="font-bold text-orange-600 mb-2">⛽ CONSUMO DE COMBUSTIBLE</h4>`;
-    html += `<table class="w-full text-sm border-collapse"><thead class="bg-orange-600 text-white">
-        <tr><th>Fecha</th><th>Placa</th><th>Km Recorridos</th><th>Galones</th><th>Km/Galón</th><th>Registrado por</th></tr></thead><tbody>`;
-    kmFiltrados.forEach(k => {
-        html += `<tr class="text-center"><td>${k.fecha}</td><td>${k.placa}</td><td>${k.kmRecorridos}</td><td>${k.galones}</td><td class="font-bold">${k.rendimiento}</td><td class="texto-auditoria">${k.usuarioRegistro} ${k.horaRegistro||''}</td></tr>`;
-    });
-    html += `</tbody></table>`;
-
-    document.getElementById('contenidoInformes').innerHTML = html;
-}
-
-function verTodos() {
-    document.getElementById('fInicio').value = '';
-    document.getElementById('fFin').value = '';
-    document.getElementById('contenidoInformes').innerHTML = '<p class="text-gray-500">Presiona "Buscar" con fechas para ver informe</p>';
-}
-
-function exportarExcel() {
-    const datos = [];
-    datos.push(['FECHA', 'COLABORADOR', 'PLACA', 'KILOS TOTALES', 'HORA SALIDA', 'HORA LLEGADA', 'OBSERVACIONES', 'USUARIO', 'HORA CREACIÓN']);
-    movimientos.forEach(m => {
-        datos.push([m.fecha, m.colaborador, m.placa, m.totalKilosRecogidos || 0, m.horaSalida || '', m.horaLlegada || '', m.observaciones || '', m.usuarioCreacion || '', m.horaCreacion || '']);
-    });
-    const libro = XLSX.utils.book_new();
-    const hoja = XLSX.utils.aoa_to_sheet(datos);
-    XLSX.utils.book_append_sheet(libro, hoja, 'Movimientos');
-    XLSX.writeFile(libro, `Movimientos_${new Date().toISOString().split('T')[0]}.xlsx`);
-}
-
-// ====== ADMINISTRACIÓN - USUARIOS ======
-function guardarUsuarioSistema() {
-    const usuario = document.getElementById('nuevoUsuario').value.trim();
-    const clave = document.getElementById('nuevaClave').value.trim();
-    const rol = document.getElementById('nuevoRol').value;
-
-    if (!usuario || !clave) { alert('⚠️ Escribe usuario y contraseña'); return; }
-
-    const permisosPorDefecto = {
-        movimientos: true, combustible: true, transportadora: true,
-        informes: true, colaboradores: true, vehiculos: true,
-        editar: (rol === 'admin')
-    };
-
-    const existe = USUARIOS_SISTEMA.find(u => u.usuario === usuario);
-    if (existe) {
-        existe.clave = clave;
-        existe.rol = rol;
-        existe.permisos = permisosPorDefecto;
-    } else {
-        USUARIOS_SISTEMA.push({ usuario, clave, rol, permisos: permisosPorDefecto });
-    }
-
-    alert('✅ Usuario guardado (recarga la página para ver cambios)');
-    document.getElementById('nuevoUsuario').value = '';
-    document.getElementById('nuevaClave').value = '';
-}
-
-// ====== INICIO AUTOMÁTICO ======
-window.onload = function () {
-    document.getElementById('fecha').valueAsDate = new Date();
-    document.getElementById('fechaKm').valueAsDate = new Date();
+// ===== INICIALIZAR FIREBASE =====
+const firebaseConfig = {
+  apiKey: "AQUÍ-TU-API-KEY",
+  authDomain: "control-ingresos-y-canastillas.firebaseapp.com",
+  projectId: "control-ingresos-y-canastillas",
+  storageBucket: "control-ingresos-y-canastillas.firebasestorage.app",
+  messagingSenderId: "AQUÍ-TU-SENDER-ID",
+  appId: "AQUÍ-TU-APP-ID",
+  measurementId: "AQUÍ-TU-MEASUREMENT-ID"
 };
+
+firebase.initializeApp(firebaseConfig);
+auth = firebase.auth();
+db = firebase.database();
+
+// ===== INICIAR SESIÓN =====
+async function iniciarSesion() {
+  const correo = document.getElementById("correo").value.trim();
+  const clave = document.getElementById("clave").value;
+  const msj = document.getElementById("mensajeLogin");
+
+  // Verificar usuarios fijos primero
+  const fijo = usuariosFijos.find(u => u.correo === correo && u.clave === clave);
+  if (fijo) {
+    usuarioActivo = { ...fijo, uid: "FIJO_" + fijo.nombre };
+    ingresarApp();
+    return;
+  }
+
+  try {
+    await auth.signInWithEmailAndPassword(correo, clave);
+    const usuario = auth.currentUser;
+    if (usuario) {
+      const snap = await db.ref("usuarios/" + usuario.uid).once("value");
+      const datos = snap.val() || {};
+      usuarioActivo = {
+        uid: usuario.uid,
+        correo: usuario.email,
+        nombre: datos.nombre || usuario.email.split("@")[0],
+        rol: datos.rol || "usuario",
+        permisos: datos.permisos || {},
+        puedeEditar: datos.puedeEditar || "si"
+      };
+      ingresarApp();
+    }
+  } catch (err) {
+    switch (err.code) {
+      case "auth/user-not-found":
+        msj.textContent = "❌ Usuario no registrado"; msj.className = "mensaje error"; break;
+      case "auth/wrong-password":
+      case "auth/invalid-credential":
+        msj.textContent = "❌ Contraseña errada"; msj.className = "mensaje error"; break;
+      default:
+        msj.textContent = "❌ " + err.message; msj.className = "mensaje error";
+    }
+  }
+}
+
+// ===== RECUPERAR CONTRASEÑA =====
+async function recuperarClave() {
+  const correo = document.getElementById("correo").value.trim();
+  if (!correo) {
+    alert("Escribe tu correo primero"); return;
+  }
+  try {
+    await auth.sendPasswordResetEmail(correo);
+    alert("✅ Enlace de recuperación enviado a tu correo");
+  } catch {
+    alert("No se pudo enviar. Verifica el correo.");
+  }
+}
+
+// ===== ENTRAR A LA APLICACIÓN =====
+function ingresarApp() {
+  document.getElementById("pantallaLogin").style.display = "none";
+  document.getElementById("cabecera").style.display = "flex";
+  document.getElementById("menuPestanas").style.display = "flex";
+  document.getElementById("contenidoPrincipal").style.display = "block";
+  document.getElementById("nombreUsuario").textContent = usuarioActivo.nombre + (usuarioActivo.rol === "admin" ? " 👑" : "");
+
+  // Mostrar pestaña Admin solo si es administrador
+  if (usuarioActivo.rol === "admin") {
+    document.getElementById("pestanaAdmin").style.display = "block";
+  }
+
+  cargarDatos();
+  cargarSelects();
+  configurarPestanas();
+}
+
+// ===== CERRAR SESIÓN =====
+function cerrarSesion() {
+  auth.signOut();
+  location.reload();
+}
+
+// ===== NAVEGACIÓN POR PESTAÑAS =====
+function configurarPestanas() {
+  document.querySelectorAll(".pestaña").forEach(tab => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".pestaña").forEach(t => t.classList.remove("activa"));
+      document.querySelectorAll(".pagina").forEach(p => p.classList.remove("visible"));
+      tab.classList.add("activa");
+      document.getElementById("pag-" + tab.dataset.pagina).classList.add("visible");
+    });
+  });
+}
+
+// ===== CARGAR DATOS DESDE FIREBASE =====
+async function cargarDatos() {
+  const [movSnap, vehSnap, combSnap, usuSnap] = await Promise.all([
+    db.ref("movimientos").once("value"),
+    db.ref("vehiculos").once("value"),
+    db.ref("combustible").once("value"),
+    db.ref("usuarios").once("value")
+  ]);
+
+  movimientos = objToArray(movSnap);
+  vehiculos = objToArray(vehSnap);
+  registrosCombustible = objToArray(combSnap);
+  usuariosRegistrados = objToArray(usuSnap);
+
+  renderizarMovimientos();
+  renderizarVehiculos();
+  renderizarCombustible();
+  renderizarUsuarios();
+  cargarSelects();
+}
+
+function objToArray(snapshot) {
+  const arr = [];
+  snapshot.forEach(child => {
+    arr.push({ id: child.key, ...child.val() });
+  });
+  return arr;
+}
+
+// ===== CARGAR LISTAS DESPLEGABLES =====
+function cargarSelects() {
+  const selCol = document.getElementById("colaborador");
+  const selVeh = document.getElementById("vehiculo");
+  const selPlacaComb = document.getElementById("placaComb");
+
+  selCol.innerHTML = "<option value=''>Seleccione</option>";
+  [...new Set(movimientos.map(m => m.colaborador).filter(c => c))].sort().forEach(c => {
+    selCol.innerHTML += `<option value="${c}">${c}</option>`;
+  });
+  usuariosRegistrados.concat(usuariosFijos).forEach(u => {
+    if (!selCol.querySelector(`option[value="${u.nombre}"]`)) {
+      selCol.innerHTML += `<option value="${u.nombre}">${u.nombre}</option>`;
+    }
+  });
+
+  selVeh.innerHTML = "<option value=''>Seleccione</option>";
+  selPlacaComb.innerHTML = "<option value=''>Seleccione vehículo</option>";
+  vehiculos.forEach(v => {
+    const etiqueta = v.placa + " - " + v.modelo + (v.tipo === "VTH" ? " (VTH)" : "");
+    selVeh.innerHTML += `<option value="${v.placa}" data-tipo="${v.tipo}">${etiqueta}</option>`;
+    if (v.tipo !== "VTH") {
+      selPlacaComb.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.modelo}</option>`;
+    }
+  });
+}
+
+// ===== GUARDAR MOVIMIENTO =====
+document.getElementById("formMovimiento").addEventListener("submit", async e => {
+  e.preventDefault();
+  const datos = {
+    fecha: document.getElementById("fecha").value,
+    colaborador: document.getElementById("colaborador").value,
+    placa: document.getElementById("vehiculo").value,
+    horaSalida: document.getElementById("horaSalida").value,
+    horaLlegada: document.getElementById("horaLlegada").value,
+    canastSalida: +document.getElementById("canSalida").value || 0,
+    canastLlegada: +document.getElementById("canLlegada").value || 0,
+    observaciones: document.getElementById("obs").value,
+    usuario: usuarioActivo.nombre,
+    horaRegistro: new Date().toLocaleString("es-CO")
+  };
+
+  const id = document.getElementById("idEditar").value;
+  if (id) {
+    await db.ref("movimientos/" + id).update(datos);
+    idEdicion = null;
+    document.querySelector("#formMovimiento h3").textContent = "Registrar Movimiento";
+    document.querySelector("#formMovimiento button[type='submit']").textContent = "Guardar";
+  } else {
+    await db.ref("movimientos").push(datos);
+  }
+  e.target.reset();
+  cargarDatos();
+});
+
+// ===== RENDERIZAR MOVIMIENTOS =====
+function renderizarMovimientos() {
+  const tbody = document.querySelector("#tablaMovimientos tbody");
+  tbody.innerHTML = "";
+  movimientos.forEach(m => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${m.fecha}</td>
+        <td>${m.colaborador}</td>
+        <td>${m.placa}</td>
+        <td>${m.horaSalida || "-"}</td>
+        <td>${m.horaLlegada || "-"}</td>
+        <td>${m.canastSalida || 0}</td>
+        <td>${m.canastLlegada || 0}</td>
+        <td>${m.usuario || "-"}</td>
+        <td>${m.horaRegistro?.split(" ")[1] || "-"}</td>
+        <td>
+          <button onclick='cargarEnFormulario("${m.id}")' class="btn-primario" style="padding:0.2rem 0.4rem; font-size:0.8rem;">✏️</button>
+          ${usuarioActivo.rol === "admin" ? `<button onclick='eliminarMovimiento("${m.id}")' class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.8rem;">🗑️</button>` : ""}
+        </td>
+      </tr>`;
+  });
+}
+
+// ===== ELIMINAR MOVIMIENTO (SOLO ADMIN) =====
+async function eliminarMovimiento(id) {
+  if (!confirm("¿Eliminar este movimiento?")) return;
+  await db.ref("movimientos/" + id).remove();
+  cargarDatos();
+}
+
+// ===== CARGAR EN FORMULARIO (COMPLETADA) =====
+function cargarEnFormulario(id) {
+  const mov = movimientos.find(m => m.id === id);
+  if (!mov) return;
+  idEdicion = id;
+  document.getElementById("fecha").value = mov.fecha;
+  document.getElementById("colaborador").value = mov.colaborador;
+  document.getElementById("vehiculo").value = mov.placa;
+  document.getElementById("horaSalida").value = mov.horaSalida || "";
+  document.getElementById("horaLlegada").value = mov.horaLlegada || "";
+  document.getElementById("canSalida").value = mov.canastSalida || "";
+  document.getElementById("canLlegada").value = mov.canastLlegada || "";
+  document.getElementById("obs").value = mov.observaciones || "";
+  document.getElementById("idEditar").value = id;
+
+  document.querySelector("#formMovimiento h3").textContent = "✏️ Editar Movimiento";
+  document.querySelector("#formMovimiento button[type='submit']").textContent = "Actualizar";
+  document.getElementById("formMovimiento").scrollIntoView({ behavior: "smooth" });
+}
+
+function resetFormulario() {
+  document.querySelector("#formMovimiento h3").textContent = "Registrar Movimiento";
+  document.querySelector("#formMovimiento button[type='submit']").textContent = "Guardar";
+  document.getElementById("idEditar").value = "";
+  idEdicion = null;
+}
+
+// ===== GUARDAR VEHÍCULO =====
+document.getElementById("formVehiculo").addEventListener("submit", async e => {
+  e.preventDefault();
+  const datos = {
+    placa: document.getElementById("placa").value.toUpperCase(),
+    modelo: document.getElementById("modelo").value,
+    tipo: document.getElementById("tipoVehiculo").value,
+    usuario: usuarioActivo.nombre,
+    horaRegistro: new Date().toLocaleString("es-CO")
+  };
+  await db.ref("vehiculos").push(datos);
+  e.target.reset();
+  cargarDatos();
+});
+
+// ===== RENDERIZAR VEHÍCULOS =====
+function renderizarVehiculos() {
+  const tbody = document.querySelector("#tablaVehiculos tbody");
+  tbody.innerHTML = "";
+  vehiculos.forEach(v => {
+    const clase = v.tipo === "VTH" ? "fila-vth" : "";
+    tbody.innerHTML += `
+      <tr class="${clase}">
+        <td>${v.placa}</td>
+        <td>${v.modelo}</td>
+        <td>${v.tipo}</td>
+        <td>${v.usuario || "-"}</td>
+        <td>${v.horaRegistro || "-"}</td>
+        <td>
+          ${usuarioActivo.rol === "admin" ? `<button onclick='eliminarVehiculo("${v.id}")' class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.8rem;">🗑️</button>` : ""}
+        </td>
+      </tr>`;
+  });
+}
+async function eliminarVehiculo(id) {
+  if (!confirm("¿Eliminar vehículo?")) return;
+  await db.ref("vehiculos/" + id).remove();
+  cargarDatos();
+}
+
+// ===== GUARDAR COMBUSTIBLE / KILOMETRAJE =====
+document.getElementById("formCombustible").addEventListener("submit", async e => {
+  e.preventDefault();
+  const kmManana = +document.getElementById("kmManana").value || 0;
+  const kmTarde = +document.getElementById("kmTarde").value || 0;
+  const datos = {
+    fecha: document.getElementById("fechaComb").value,
+    placa: document.getElementById("placaComb").value,
+    kmManana,
+    kmTarde,
+    recorrido: kmTarde > kmManana ? kmTarde - kmManana : 0,
+    galones: +document.getElementById("galones").value || 0,
+    usuario: usuarioActivo.nombre,
+    horaRegistro: new Date().toLocaleString("es-CO")
+  };
+  datos.rendimiento = datos.galones > 0 ? (datos.recorrido / datos.galones).toFixed(2) : "-";
+  await db.ref("combustible").push(datos);
+  e.target.reset();
+  cargarDatos();
+});
+
+// ===== RENDERIZAR COMBUSTIBLE =====
+function renderizarCombustible() {
+  const tbody = document.querySelector("#tablaCombustible tbody");
+  tbody.innerHTML = "";
+  registrosCombustible.forEach(r => {
+    tbody.innerHTML += `
+      <tr>
+        <td>${r.fecha}</td>
+        <td>${r.placa}</td>
+        <td>${r.kmManana}</td>
+        <td>${r.kmTarde}</td>
+        <td>${r.recorrido}</td>
+        <td>${r.galones}</td>
+        <td>${r.rendimiento || "-"}</td>
+        <td>${r.usuario || "-"}</td>
+        <td>${r.horaRegistro?.split(" ")[1] || "-"}</td>
+      </tr>`;
+  });
+}
+
+// ===== GENERAR INFORME =====
+function generarInforme() {
+  const desde = document.getElementById("fechaIni").value;
+  const hasta = document.getElementById("fechaFin").value;
+  const tabla = document.querySelector("#tablaInformes tbody");
+  tabla.innerHTML = "";
+
+  const filtrados = registrosCombustible.filter(r => {
+    if (!desde && !hasta) return true;
+    return r.fecha >= desde && r.fecha <= hasta;
+  });
+
+  const agrupado = {};
+  filtrados.forEach(r => {
+    if (!agrupado[r.placa]) agrupado[r.placa] = { km: 0, gal: 0 };
+    agrupado[r.placa].km += r.recorrido;
+    agrupado[r.placa].gal += r.galones;
+  });
+
+  Object.entries(agrupado).forEach(([placa, d]) => {
+    const rend = d.gal > 0 ? (d.km / d.gal).toFixed(2) : "-";
+    tabla.innerHTML += `
+      <tr>
+        <td>${placa}</td>
+        <td>${d.km}</td>
+        <td>${d.gal}</td>
+        <td>${rend}</td>
+        <td>${desde || "Inicio"} a ${hasta || "Hoy"}</td>
+      </tr>`;
+  });
+}
+
+// ===== EXPORTAR A EXCEL =====
+function exportarExcel() {
+  let texto = "FECHA\tPLACA\tKM MAÑANA\tKM TARDE\tRECORRIDO\tGALONES\tKM/GAL\tUSUARIO\tHORA\n";
+  registrosCombustible.forEach(r => {
+    texto += `${r.fecha}\t${r.placa}\t${r.kmManana}\t${r.kmTarde}\t${r.recorrido}\t${r.galones}\t${r.rendimiento}\t${r.usuario}\t${r.horaRegistro}\n`;
+  });
+  const blob = new Blob([texto], { type: "text/tab-separated-values;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "Informe_Combustible_" + new Date().toLocaleDateString("es-CO") + ".xls";
+  a.click();
+}
+
+// ===== GESTIÓN DE USUARIOS (SOLO ADMIN) =====
+document.getElementById("formUsuario").addEventListener("submit", async e => {
+  e.preventDefault();
+  const idEd = document.getElementById("idUsuarioEditar").value;
+  const datos = {
+    nombre: document.getElementById("nombreUsuarioNuevo").value,
+    correo: document.getElementById("correoUsuarioNuevo").value,
+    rol: document.getElementById("rolUsuarioNuevo").value,
+    puedeEditar: document.getElementById("puedeEditar").value,
+    permisos: {
+      movimientos: document.getElementById("permMovimientos").checked,
+      vehiculos: document.getElementById("permVehiculos").checked,
+      combustible: document.getElementById("permCombustible").checked,
+      informes: document.getElementById("permInformes").checked
+    },
+    editadoPor: usuarioActivo.nombre,
+    ultimaEdicion: new Date().toLocaleString("es-CO")
+  };
+
+  if (idEd) {
+    await db.ref("usuarios/" + idEd).update(datos);
+  } else {
+    const clave = document.getElementById("claveUsuarioNuevo").value;
+    if (!clave) { alert("Escribe una contraseña"); return; }
+    await db.ref("usuarios").push(datos);
+  }
+  e.target.reset();
+  document.getElementById("idUsuarioEditar").value = "";
+  cargarDatos();
+});
+
+function renderizarUsuarios() {
+  const tbody = document.querySelector("#tablaUsuarios tbody");
+  tbody.innerHTML = "";
+  usuariosRegistrados.concat(usuariosFijos.map(u => ({ ...u, id: "FIJO_" + u.nombre }))).forEach(u => {
+    const permisos = u.permisos ? Object.entries(u.permisos).filter(([,v])=>v).map(([k])=>k).join(", ") : "Todos";
+    tbody.innerHTML += `
+      <tr>
+        <td>${u.nombre}</td>
+        <td>${u.correo}</td>
+        <td>${u.rol === "admin" ? "👑 Admin" : "Usuario"}</td>
+        <td>${permisos}</td>
+        <td>${u.puedeEditar || "Sí"}</td>
+        <td>
+          <button onclick='editarUsuario("${u.id}")' class="btn-primario" style="padding:0.2rem 0.4rem; font-size:0.8rem;">✏️</button>
+        </td>
+      </tr>`;
+  });
+}
+
+function editarUsuario(id) {
+  const u = usuariosRegistrados.concat(usuariosFijos.map(x => ({ ...x, id: "FIJO_" + x.nombre }))).find(x => x.id === id);
+  if (!u) return;
+  document.getElementById("idUsuarioEditar").value = id;
+  document.getElementById("nombreUsuarioNuevo").value = u.nombre;
+  document.getElementById("correoUsuarioNuevo").value = u.correo;
+  document.getElementById("rolUsuarioNuevo").value = u.rol || "usuario";
+  document.getElementById("puedeEditar").value = u.puedeEditar || "si";
+  if (u.permisos) {
+    document.getElementById("permMovimientos").checked = u.permisos.movimientos;
+    document.getElementById("permVehiculos").checked = u.permisos.vehiculos;
+    document.getElementById("permCombustible").checked = u.permisos.combustible;
+    document.getElementById("permInformes").checked = u.permisos.informes;
+  }
+}
+
+// ===== AJUSTE DE FECHA HOY =====
+document.getElementById("fecha").valueAsDate = new Date();
+document.getElementById("fechaComb").valueAsDate = new Date();
+
 </script>
 </body>
 </html>
