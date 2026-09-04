@@ -458,6 +458,9 @@ function actualizarRecogidas() {
     document.getElementById('cantidadRecogidas').textContent = recogidasTemporales.length;
 }
 
+// ======================================
+// ✅ FUNCIÓN DE INICIO DE SESIÓN
+// ======================================
 async function ingresar() {
     let usuario = document.getElementById('correo').value.trim();
     const clave = document.getElementById('clave').value.trim();
@@ -698,550 +701,306 @@ function limpiarFormulario() {
 async function completarLlegada() {
     const horaActual = new Date().toTimeString().split(' ')[0].substring(0, 5);
     document.getElementById('horaLlegada').value = horaActual;
-    alert(`✅ Hora de llegada cargada: ${horaActual}`);
+    alert(`✅ Hora de llegada asignada: ${horaActual}`);
 }
 
-async function actualizarMovimiento() {
-    await guardarMovimiento();
-}
-
-// --------------------------
-// ELIMINAR MOVIMIENTO (CORREGIDA)
-// --------------------------
 async function eliminarMovimiento() {
-  if (!idEdicion) { 
-    alert('⚠️ Primero selecciona un registro para eliminar');
-    return;
-  }
+    if (!idEdicion) {
+        alert('⚠️ Primero selecciona un movimiento desde la tabla');
+        return;
+    }
+    if (usuarioConectado.rol !== 'admin') {
+        alert('🔒 Solo el administrador puede eliminar registros');
+        return;
+    }
+    if (confirm('⚠️ ¿Seguro que quieres ELIMINAR este movimiento? Esta acción NO se puede deshacer.')) {
+        try {
+            await db.collection('movimientos').doc(idEdicion).delete();
+            alert('✅ Movimiento eliminado correctamente');
+            limpiarFormulario();
+            await cargarTodo();
+        } catch (err) {
+            alert('❌ Error al eliminar: ' + err.message);
+        }
+    }
+}
 
-  if (!confirm('¿⚠️ Estás SEGURO de eliminar este registro?\nEsta acción NO se puede deshacer.')) {
-    return;
-  }
-
-  try {
-    // ✅ Tu sistema usa colección "movimientos"
-    await db.collection('movimientos').doc(idEdicion).delete();
-    
-    // ✅ Registrar acción en bitácora (consistente con tu sistema)
+// ===== KILOMETRAJE Y COMBUSTIBLE =====
+async function guardarKm() {
     const { fecha, hora } = obtenerFechaHoraActual();
-    await db.collection('bitacora').add({
-      usuario: usuarioConectado.usuario.toUpperCase(),
-      rol: usuarioConectado.rol,
-      accion: "Eliminar Movimiento",
-      modulo: "Movimientos",
-      detalles: `ID eliminado: ${idEdicion}`,
-      fecha,
-      hora
+    const kmManana = Number(document.getElementById('kmManana').value) || 0;
+    const kmTarde = Number(document.getElementById('kmTarde').value) || 0;
+    const galones = Number(document.getElementById('galones').value) || 0;
+    const placa = document.getElementById('placaKm').value;
+    const fechaReg = document.getElementById('fechaKm').value;
+
+    if (!fechaReg || !placa) {
+        alert('⚠️ Completa fecha y placa');
+        return;
+    }
+
+    const recorrido = kmTarde && kmManana ? kmTarde - kmManana : 0;
+    const kmPorGalon = galones > 0 && recorrido > 0 ? (recorrido / galones).toFixed(2) : '-';
+
+    const datos = {
+        fecha: fechaReg,
+        placa: placa,
+        kmManana: kmManana,
+        kmTarde: kmTarde,
+        recorrido: recorrido,
+        galones: galones,
+        kmPorGalon: kmPorGalon,
+        usuarioCreacion: usuarioConectado.usuario.toUpperCase(),
+        fechaCreacion: fecha,
+        horaCreacion: hora
+    };
+
+    try {
+        await db.collection('kilometraje').add(datos);
+        alert('✅ Registro guardado');
+        document.getElementById('kmManana').value = '';
+        document.getElementById('kmTarde').value = '';
+        document.getElementById('galones').value = '';
+        await cargarTodo();
+    } catch (err) {
+        alert('❌ Error: ' + err.message);
+    }
+}
+
+function dibujarTablaKm() {
+    const tabla = document.getElementById('tablaKm');
+    tabla.innerHTML = '';
+    kilometraje.forEach(k => {
+        const fila = tabla.insertRow();
+        fila.innerHTML = `
+            <td class="px-2 py-1 border text-xs">${k.fecha}</td>
+            <td class="px-2 py-1 border text-xs font-bold">${k.placa}</td>
+            <td class="px-2 py-1 border text-xs">${k.kmManana}</td>
+            <td class="px-2 py-1 border text-xs">${k.kmTarde}</td>
+            <td class="px-2 py-1 border text-xs font-bold text-blue-700">${k.recorrido}</td>
+            <td class="px-2 py-1 border text-xs">${k.galones}</td>
+            <td class="px-2 py-1 border text-xs font-bold text-green-700">${k.kmPorGalon}</td>
+            <td class="px-2 py-1 border texto-auditoria">${k.usuarioCreacion}<br>${k.horaCreacion||''}</td>
+        `;
     });
-
-    alert('✅ Registro eliminado correctamente');
-    
-    // ✅ Limpiar y recargar (tu sistema)
-    idEdicion = null;
-    limpiarFormulario();
-    await cargarTodo();
-
-  } catch (error) {
-    console.error("Error al eliminar:", error);
-    alert('❌ Error al eliminar: ' + error.message);
-  }
 }
-  try {
-    // Buscar en qué colección está el registro
-    let nombreColeccion = "";
-    let datosRegistro = null;
 
-    // Buscar en combustible
-    const registroComb = registrosCombustible.find(r => r.id === idEdicion);
-    if (registroComb) {
-      nombreColeccion = "combustible";
-      datosRegistro = registroComb;
+// ===== COLABORADORES =====
+async function agregarColaborador() {
+    const { fecha, hora } = obtenerFechaHoraActual();
+    const nombre = document.getElementById('nombreCol').value.trim().toUpperCase();
+    const cedula = document.getElementById('cedulaCol').value.trim();
+
+    if (!nombre || !cedula) {
+        alert('⚠️ Escribe nombre y cédula');
+        return;
     }
 
-    // Buscar en vehículos
-    const registroVeh = vehiculos.find(v => v.id === idEdicion);
-    if (registroVeh) {
-      nombreColeccion = "vehiculos";
-      datosRegistro = registroVeh;
+    try {
+        await db.collection('colaboradores').add({
+            nombre: nombre,
+            cedula: cedula,
+            usuarioCreacion: usuarioConectado.usuario.toUpperCase(),
+            fechaCreacion: fecha,
+            horaCreacion: hora
+        });
+        alert('✅ Colaborador agregado');
+        document.getElementById('nombreCol').value = '';
+        document.getElementById('cedulaCol').value = '';
+        await cargarTodo();
+    } catch (err) {
+        alert('❌ Error: ' + err.message);
+    }
+}
+
+async function eliminarColaborador(id) {
+    if (!confirm('⚠️ ¿Eliminar este colaborador?')) return;
+    try {
+        await db.collection('colaboradores').doc(id).delete();
+        alert('✅ Eliminado');
+        await cargarTodo();
+    } catch (err) {
+        alert('❌ Error: ' + err.message);
+    }
+}
+
+// ===== VEHÍCULOS =====
+async function agregarVehiculo() {
+    const { fecha, hora } = obtenerFechaHoraActual();
+    const tipo = document.getElementById('tipoVeh').value.trim();
+    const placa = document.getElementById('placaVeh').value.trim().toUpperCase();
+    const detalle = document.getElementById('detalleVeh').value.trim().toUpperCase();
+
+    if (!tipo || !placa) {
+        alert('⚠️ Completa tipo y placa');
+        return;
     }
 
-    if (!nombreColeccion || !datosRegistro) {
-      alert('❌ No se encontró el registro a eliminar');
-      idEdicion = null;
-      return;
+    try {
+        await db.collection('vehiculos').add({
+            tipo: tipo,
+            placa: placa,
+            detalle: detalle,
+            usuarioCreacion: usuarioConectado.usuario.toUpperCase(),
+            fechaCreacion: fecha,
+            horaCreacion: hora
+        });
+        alert('✅ Vehículo agregado');
+        document.getElementById('placaVeh').value = '';
+        document.getElementById('detalleVeh').value = '';
+        await cargarTodo();
+    } catch (err) {
+        alert('❌ Error: ' + err.message);
     }
-
-    // ✅ Eliminar de Firebase
-    await deleteDoc(doc(db, nombreColeccion, idEdicion));
-
-    // ✅ Registrar la acción en bitácora
-    await registrarAccion(
-      "Eliminar Registro",
-      nombreColeccion === "combustible" ? "Combustible" : "Vehículos",
-      `Placa/Identificación: ${datosRegistro.placa || datosRegistro.id}`
-    );
-
-    alert('✅ Registro eliminado correctamente');
-
-    // ✅ Limpiar selección y recargar datos
-    idEdicion = null;
-    limpiarFormularioCombustible(); // o limpiarFormularioVehiculo según corresponda
-    cargarDatosVehiculos();
-    cargarDatosCombustible();
-
-  } catch (error) {
-    console.error("Error al eliminar:", error);
-    alert('❌ Error al eliminar: ' + error.message);
-  }
-}
-<!-- ==============================================
-PARTE 2: AUTENTICACIÓN, USUARIOS Y CONTROL DE ACCESO
-============================================== -->
-
-<script>
-// --------------------------
-// USUARIOS PREDETERMINADOS
-// --------------------------
-const usuariosPredeterminados = [
-  { usuario: "jgarnica", contrasena: "123456", rol: "admin", permisos: { moduloVehiculos: true, moduloCombustible: true, moduloInformes: true, puedeEditar: true } },
-  { usuario: "jfigueroa", contrasena: "3134630773", rol: "admin", permisos: { moduloVehiculos: true, moduloCombustible: true, moduloInformes: true, moduloAdministracion: true, puedeEditar: true, puedeEliminar: true, puedeGestionarUsuarios: true } },
-  { usuario: "estudiante", contrasena: "123456", rol: "usuario", permisos: { moduloVehiculos: false, moduloCombustible: true, moduloInformes: true, puedeEditar: false } }
-];
-
-// Usuario actual
-let usuarioActual = null;
-
-// --------------------------
-// INICIO DE SESIÓN
-// --------------------------
-async function iniciarSesion() {
-  const correo = document.getElementById('correo').value.trim();
-  const contrasena = document.getElementById('contrasena').value;
-
-  if (!correo || !contrasena) {
-    alert('Por favor completa todos los campos');
-    return;
-  }
-
-  // Primero buscar en usuarios predeterminados
-  const usuarioEncontrado = usuariosPredeterminados.find(u => 
-    u.usuario.toLowerCase() === correo.toLowerCase() && u.contrasena === contrasena
-  );
-
-  if (usuarioEncontrado) {
-    usuarioActual = usuarioEncontrado;
-    sesionIniciada();
-    return;
-  }
-
-  // Luego buscar en Firebase
-  try {
-    const credenciales = await signInWithEmailAndPassword(auth, correo, contrasena);
-    const uid = credenciales.user.uid;
-    
-    const docUsuario = await getDoc(doc(db, "usuarios", uid));
-    if (docUsuario.exists()) {
-      usuarioActual = { id: uid, correo: credenciales.user.email, ...docUsuario.data() };
-      sesionIniciada();
-    } else {
-      alert("Usuario no registrado en el sistema");
-    }
-  } catch (error) {
-    console.error("Error de inicio:", error);
-    if (error.code === "auth/user-not-found") {
-      alert("❌ Usuario no registrado");
-    } else if (error.code === "auth/wrong-password" || error.code === "auth/invalid-credential") {
-      alert("❌ Contraseña errada");
-    } else {
-      alert("Error: " + error.message);
-    }
-  }
-}
-
-// --------------------------
-// ACCIONES TRAS INICIO EXITOSO
-// --------------------------
-function sesionIniciada() {
-  document.getElementById('pantalla-login').style.display = 'none';
-  document.getElementById('panel-principal').style.display = 'block';
-  document.getElementById('nombre-usuario').textContent = `${usuarioActual.usuario || usuarioActual.correo} (${usuarioActual.rol === 'admin' ? 'Administrador' : 'Usuario'})`;
-  
-  aplicarPermisos();
-  cargarDatosVehiculos();
-  cargarDatosCombustible();
-  if (usuarioActual.rol === 'admin') cargarUsuariosSistema();
-}
-
-// --------------------------
-// APLICAR PERMISOS POR USUARIO
-// --------------------------
-function aplicarPermisos() {
-  const pestañas = document.querySelectorAll('.pestaña-btn');
-  pestañas.forEach(btn => {
-    const modulo = btn.dataset.modulo;
-    if (usuarioActual.rol === 'admin') {
-      btn.style.display = 'inline-block';
-    } else {
-      const permitido = usuarioActual.permisos && usuarioActual.permisos[modulo];
-      btn.style.display = permitido ? 'inline-block' : 'none';
-    }
-  });
-
-  // Ocultar botones de eliminación si no tiene permiso
-  if (!usuarioActual.permisos?.puedeEliminar) {
-    document.querySelectorAll('.btn-eliminar').forEach(boton => boton.style.display = 'none');
-  }
-}
-
-// --------------------------
-// RECUPERAR CONTRASEÑA
-// --------------------------
-async function recuperarContrasena() {
-  const correo = prompt("Ingresa tu correo electrónico registrado:");
-  if (!correo) return;
-  try {
-    await sendPasswordResetEmail(auth, correo);
-    alert("✅ Se envió un enlace de recuperación a tu correo");
-  } catch (error) {
-    alert("❌ No se encontró ese correo registrado");
-  }
-}
-
-// --------------------------
-// CERRAR SESIÓN
-// --------------------------
-function cerrarSesion() {
-  signOut(auth).catch(() => {});
-  usuarioActual = null;
-  document.getElementById('pantalla-login').style.display = 'flex';
-  document.getElementById('panel-principal').style.display = 'none';
-  document.getElementById('correo').value = '';
-  document.getElementById('contrasena').value = '';
-}
-
-// --------------------------
-// REGISTRAR ACCIONES EN BITÁCORA
-// --------------------------
-async function registrarAccion(accion, modulo, detalles) {
-  if (!usuarioActual) return;
-  const bitacora = {
-    usuario: usuarioActual.usuario || usuarioActual.correo,
-    rol: usuarioActual.rol,
-    accion,
-    modulo,
-    detalles,
-    fecha: new Date().toLocaleDateString('es-CO'),
-    hora: new Date().toLocaleTimeString('es-CO'),
-    fechaHora: serverTimestamp()
-  };
-  await addDoc(collection(db, "bitacora"), bitacora);
-}
-</script>
-<!-- ==============================================
-PARTE 3: MÓDULOS Y FUNCIONALIDADES COMPLETAS
-============================================== -->
-
-<script>
-// ======================================
-// MÓDULO: VEHÍCULOS
-// ======================================
-let vehiculos = [];
-
-async function guardarVehiculo() {
-  const placa = document.getElementById('placa').value.trim().toUpperCase();
-  const tipo = document.getElementById('tipoVehiculo').value;
-  const marca = document.getElementById('marca').value.trim();
-  const modelo = document.getElementById('modelo').value.trim();
-
-  if (!placa || !tipo || !marca || !modelo) {
-    alert('Completa todos los campos');
-    return;
-  }
-
-  const datos = { placa, tipo, marca, modelo };
-  const existe = vehiculos.find(v => v.placa === placa);
-
-  if (existe) {
-    await updateDoc(doc(db, "vehiculos", existe.id), { ...datos, editadoPor: usuarioActual?.usuario, horaEdicion: new Date().toLocaleTimeString('es-CO') });
-    await registrarAccion("Editar Vehículo", "Vehículos", `Placa: ${placa}`);
-  } else {
-    await addDoc(collection(db, "vehiculos"), { ...datos, creadoPor: usuarioActual?.usuario, horaCreacion: new Date().toLocaleTimeString('es-CO') });
-    await registrarAccion("Crear Vehículo", "Vehículos", `Placa: ${placa}`);
-  }
-
-  alert('✅ Vehículo guardado');
-  limpiarFormularioVehiculo();
-  cargarDatosVehiculos();
-}
-
-async function cargarDatosVehiculos() {
-  const tabla = document.getElementById('tabla-vehiculos').querySelector('tbody');
-  tabla.innerHTML = '';
-  vehiculos = [];
-
-  const consulta = await getDocs(collection(db, "vehiculos"));
-  consulta.forEach(doc => {
-    const v = { id: doc.id, ...doc.data() };
-    vehiculos.push(v);
-    const fila = tabla.insertRow();
-    fila.innerHTML = `
-      <td>${v.placa}</td>
-      <td>${v.tipo}</td>
-      <td>${v.marca}</td>
-      <td>${v.modelo}</td>
-      <td>${v.creadoPor || '-'}</td>
-      <td>${v.horaCreacion || '-'}</td>
-      <td>
-        <button onclick="editarVehiculo('${v.id}')">Editar</button>
-        ${usuarioActual?.permisos?.puedeEliminar ? `<button class="btn-eliminar" onclick="eliminarVehiculo('${v.id}')">Eliminar</button>` : ''}
-      </td>`;
-  });
-
-  // Actualizar select de placas en combustible
-  const selectPlaca = document.getElementById('selPlaca');
-  selectPlaca.innerHTML = '<option value="">Seleccione placa</option>';
-  vehiculos.forEach(v => {
-    selectPlaca.innerHTML += `<option value="${v.placa}" data-tipo="${v.tipo}">${v.placa} - ${v.tipo}</option>`;
-  });
-}
-
-function editarVehiculo(id) {
-  const v = vehiculos.find(x => x.id === id);
-  document.getElementById('placa').value = v.placa;
-  document.getElementById('tipoVehiculo').value = v.tipo;
-  document.getElementById('marca').value = v.marca;
-  document.getElementById('modelo').value = v.modelo;
 }
 
 async function eliminarVehiculo(id) {
-  if (!confirm('¿Eliminar este vehículo?')) return;
-  await deleteDoc(doc(db, "vehiculos", id));
-  await registrarAccion("Eliminar Vehículo", "Vehículos", `ID: ${id}`);
-  alert('Eliminado');
-  cargarDatosVehiculos();
+    if (!confirm('⚠️ ¿Eliminar este vehículo?')) return;
+    try {
+        await db.collection('vehiculos').doc(id).delete();
+        alert('✅ Eliminado');
+        await cargarTodo();
+    } catch (err) {
+        alert('❌ Error: ' + err.message);
+    }
 }
 
-function limpiarFormularioVehiculo() {
-  document.getElementById('placa').value = '';
-  document.getElementById('tipoVehiculo').value = '';
-  document.getElementById('marca').value = '';
-  document.getElementById('modelo').value = '';
+// ===== INFORMES / CONSULTAS =====
+function aplicarPeriodo(periodo) {
+    const hoy = new Date();
+    let inicio = new Date(), fin = new Date();
+
+    if (periodo === 'hoy') {
+        inicio = fin = hoy;
+    } else if (periodo === 'semana') {
+        inicio.setDate(hoy.getDate() - hoy.getDay());
+        fin = hoy;
+    } else if (periodo === 'mes') {
+        inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+        fin = hoy;
+    }
+
+    document.getElementById('fInicio').value = inicio.toISOString().split('T')[0];
+    document.getElementById('fFin').value = fin.toISOString().split('T')[0];
 }
 
-// ======================================
-// MÓDULO: COMBUSTIBLE / KILOMETRAJE
-// ======================================
-let registrosCombustible = [];
+function filtrar() {
+    const fInicio = document.getElementById('fInicio').value;
+    const fFin = document.getElementById('fFin').value;
+    if (!fInicio || !fFin) { alert('⚠️ Selecciona fechas'); return; }
 
-async function guardarRegistroCombustible() {
-  const placa = document.getElementById('selPlaca').value;
-  const fecha = document.getElementById('fechaRegistro').value;
-  const kmManana = parseFloat(document.getElementById('kmManana').value) || 0;
-  const kmTarde = parseFloat(document.getElementById('kmTarde').value) || 0;
-  const galones = parseFloat(document.getElementById('galones').value) || 0;
-  const canastillasSalida = parseInt(document.getElementById('canastillasSalida').value) || 0;
-  const canastillasLlegada = parseInt(document.getElementById('canastillasLlegada').value) || 0;
-  const horaSalida = document.getElementById('horaSalida').value;
-  const horaLlegada = document.getElementById('horaLlegada').value;
+    const filtrados = movimientos.filter(m => m.fecha >= fInicio && m.fecha <= fFin);
+    const tabla = document.getElementById('contenidoInformes');
+    tabla.innerHTML = `<h4 class="font-bold mb-2">📋 Desde ${fInicio} hasta ${fFin} — ${filtrados.length} movimientos</h4>`;
 
-  if (!placa || !fecha) {
-    alert('Selecciona placa y fecha');
-    return;
-  }
+    if (filtrados.length === 0) {
+        tabla.innerHTML += '<p class="text-gray-500">Sin resultados</p>';
+        return;
+    }
 
-  const kmTotal = kmManana + kmTarde;
-  const rendimiento = galones > 0 ? (kmTotal / galones).toFixed(2) : '0';
-  const canastillasDiferencia = canastillasSalida - canastillasLlegada;
-
-  const registro = {
-    placa, fecha, kmManana, kmTarde, kmTotal,
-    galones, rendimiento,
-    canastillasSalida, canastillasLlegada, canastillasDiferencia,
-    horaSalida, horaLlegada,
-    registradoPor: usuarioActual?.usuario || usuarioActual?.correo,
-    horaRegistro: new Date().toLocaleTimeString('es-CO')
-  };
-
-  await addDoc(collection(db, "combustible"), registro);
-  await registrarAccion("Registro Combustible", "Combustible", `Placa: ${placa}, Fecha: ${fecha}`);
-  alert('✅ Registro guardado');
-  limpiarFormularioCombustible();
-  cargarDatosCombustible();
+    tabla.innerHTML += `
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm border-collapse">
+                <thead class="bg-blue-700 text-white">
+                    <tr>
+                        <th>Fecha</th><th>Colaborador</th><th>Placa</th><th>Kilos</th>
+                        <th>Salida</th><th>Llegada</th><th>Canast Dif</th><th>Creado por</th>
+                    </tr>
+                </thead>
+                <tbody class="text-center">
+                    ${filtrados.map(m => `
+                        <tr>
+                            <td class="border px-2 py-1">${m.fecha}</td>
+                            <td class="border px-2 py-1">${m.colaborador}</td>
+                            <td class="border px-2 py-1">${m.placa}</td>
+                            <td class="border px-2 py-1 font-bold">${m.totalKilosRecogidos || 0}</td>
+                            <td class="border px-2 py-1">${m.horaSalida || '-'}</td>
+                            <td class="border px-2 py-1">${m.horaLlegada || '-'}</td>
+                            <td class="border px-2 py-1">${(m.canastSalida||0)-(m.canastLlegada||0)}</td>
+                            <td class="border px-2 py-1 texto-auditoria">${m.usuarioCreacion || ''} ${m.horaCreacion||''}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
 }
 
-async function cargarDatosCombustible() {
-  const tabla = document.getElementById('tabla-combustible').querySelector('tbody');
-  tabla.innerHTML = '';
-  registrosCombustible = [];
-
-  const consulta = await getDocs(collection(db, "combustible"));
-  consulta.forEach(doc => {
-    const r = { id: doc.id, ...doc.data() };
-    registrosCombustible.push(r);
-    const fila = tabla.insertRow();
-    fila.innerHTML = `
-      <td>${r.fecha}</td>
-      <td>${r.placa}</td>
-      <td>${r.kmManana}</td>
-      <td>${r.kmTarde}</td>
-      <td>${r.kmTotal}</td>
-      <td>${r.galones}</td>
-      <td>${r.rendimiento}</td>
-      <td>${r.canastillasSalida}</td>
-      <td>${r.canastillasLlegada}</td>
-      <td>${r.canastillasDiferencia}</td>
-      <td>${r.horaSalida || '-'}</td>
-      <td>${r.horaLlegada || '-'}</td>
-      <td>${r.registradoPor || '-'}</td>
-      <td>${r.horaRegistro || '-'}</td>
-      <td>
-        ${usuarioActual?.permisos?.puedeEliminar ? `<button class="btn-eliminar" onclick="eliminarRegistroCombustible('${r.id}')">Eliminar</button>` : ''}
-      </td>`;
-  });
-}
-
-async function eliminarRegistroCombustible(id) {
-  if (!confirm('¿Eliminar este registro?')) return;
-  await deleteDoc(doc(db, "combustible", id));
-  await registrarAccion("Eliminar Registro", "Combustible", `ID: ${id}`);
-  alert('Eliminado');
-  cargarDatosCombustible();
-}
-
-function limpiarFormularioCombustible() {
-  document.getElementById('selPlaca').value = '';
-  document.getElementById('fechaRegistro').value = '';
-  document.getElementById('kmManana').value = '';
-  document.getElementById('kmTarde').value = '';
-  document.getElementById('galones').value = '';
-  document.getElementById('canastillasSalida').value = '';
-  document.getElementById('canastillasLlegada').value = '';
-  document.getElementById('horaSalida').value = '';
-  document.getElementById('horaLlegada').value = '';
-}
-
-// ======================================
-// MÓDULO: INFORMES Y CONSULTAS
-// ======================================
-function consultarDatos() {
-  const fechaInicio = document.getElementById('fechaInicio').value;
-  const fechaFin = document.getElementById('fechaFin').value;
-  const placaConsulta = document.getElementById('placaConsulta').value;
-
-  let resultados = registrosCombustible;
-
-  if (fechaInicio) resultados = resultados.filter(r => r.fecha >= fechaInicio);
-  if (fechaFin) resultados = resultados.filter(r => r.fecha <= fechaFin);
-  if (placaConsulta) resultados = resultados.filter(r => r.placa === placaConsulta);
-
-  mostrarResultadosConsulta(resultados);
-}
-
-function mostrarResultadosConsulta(datos) {
-  const cuerpo = document.getElementById('resultado-consulta').querySelector('tbody');
-  cuerpo.innerHTML = '';
-
-  let totalKm = 0, totalGalones = 0;
-  datos.forEach(r => {
-    totalKm += Number(r.kmTotal);
-    totalGalones += Number(r.galones);
-    cuerpo.innerHTML += `
-      <tr>
-        <td>${r.fecha}</td>
-        <td>${r.placa}</td>
-        <td>${r.kmTotal}</td>
-        <td>${r.galones}</td>
-        <td>${r.rendimiento}</td>
-        <td>${r.canastillasSalida}</td>
-        <td>${r.canastillasLlegada}</td>
-        <td>${r.registradoPor || '-'}</td>
-        <td>${r.horaRegistro || '-'}</td>
-      </tr>`;
-  });
-
-  const rendimientoGeneral = totalGalones > 0 ? (totalKm / totalGalones).toFixed(2) : '0';
-  cuerpo.innerHTML += `
-    <tr style="background:#e3f2fd; font-weight:bold">
-      <td colspan="2">📊 TOTALES / PROMEDIO</td>
-      <td>${totalKm}</td>
-      <td>${totalGalones}</td>
-      <td>${rendimientoGeneral}</td>
-      <td colspan="4">Km/Gl general: ${rendimientoGeneral}</td>
-    </tr>`;
+function verTodos() {
+    document.getElementById('fInicio').value = '';
+    document.getElementById('fFin').value = '';
+    document.getElementById('contenidoInformes').innerHTML = '<p class="text-gray-500">Pulsa "Buscar" para aplicar filtro</p>';
 }
 
 function exportarExcel() {
-  const tabla = document.getElementById('resultado-consulta');
-  if (!tabla) { alert('Realiza una consulta primero'); return; }
-  let csv = '';
-  for (let fila of tabla.rows) {
-    csv += Array.from(fila.cells).map(c => c.textContent).join(',') + '\n';
-  }
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `informe_${new Date().toLocaleDateString('es-CO')}.csv`;
-  a.click();
+    const fInicio = document.getElementById('fInicio').value;
+    const fFin = document.getElementById('fFin').value;
+    let datos = movimientos;
+    let sufijo = '';
+
+    if (fInicio && fFin) {
+        datos = movimientos.filter(m => m.fecha >= fInicio && m.fecha <= fFin);
+        sufijo = `_${fInicio}_a_${fFin}`;
+    }
+
+    const filas = datos.map(m => ({
+        Fecha: m.fecha,
+        Colaborador: m.colaborador,
+        Placa: m.placa,
+        Kilos_Recogidos: m.totalKilosRecogidos || 0,
+        Hora_Salida: m.horaSalida || '',
+        Hora_Llegada: m.horaLlegada || '',
+        Canastillas_Salida: m.canastSalida || 0,
+        Canastillas_Llegada: m.canastLlegada || 0,
+        Diferencia_Canastillas: (m.canastSalida || 0) - (m.canastLlegada || 0),
+        Observaciones: m.observaciones || '',
+        Creado_Por: m.usuarioCreacion || '',
+        Fecha_Hora_Creacion: `${m.fechaCreacion || ''} ${m.horaCreacion || ''}`
+    }));
+
+    const hoja = XLSX.utils.json_to_sheet(filas);
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, 'Movimientos');
+    XLSX.writeFile(libro, `Reporte_Movimientos${sufijo}.xlsx`);
+    alert('✅ Excel descargado');
 }
 
-// ======================================
-// MÓDULO: ADMINISTRACIÓN DE USUARIOS
-// ======================================
-async function crearUsuarioSistema() {
-  if (usuarioActual?.rol !== 'admin') { alert('Solo administradores'); return; }
+// ===== ADMINISTRACIÓN DE USUARIOS =====
+function guardarUsuarioSistema() {
+    const usuario = document.getElementById('nuevoUsuario').value.trim();
+    const clave = document.getElementById('nuevaClave').value.trim();
+    const rol = document.getElementById('nuevoRol').value;
 
-  const usuario = document.getElementById('nuevoUsuario').value.trim();
-  const correo = document.getElementById('nuevoCorreo').value.trim();
-  const contrasena = document.getElementById('nuevaContrasena').value;
-  const rol = document.getElementById('nuevoRol').value;
+    if (!usuario || !clave) {
+        alert('⚠️ Escribe usuario y contraseña');
+        return;
+    }
 
-  const permisos = {
-    moduloVehiculos: document.getElementById('permisoVehiculos').checked,
-    moduloCombustible: document.getElementById('permisoCombustible').checked,
-    moduloInformes: document.getElementById('permisoInformes').checked,
-    puedeEditar: document.getElementById('permisoEditar').checked,
-    puedeEliminar: document.getElementById('permisoEliminar').checked
-  };
+    const existe = USUARIOS_SISTEMA.find(u => u.usuario.toLowerCase() === usuario.toLowerCase());
+    if (existe) {
+        existe.clave = clave;
+        existe.rol = rol;
+        alert(`✅ Usuario ${usuario} actualizado`);
+    } else {
+        USUARIOS_SISTEMA.push({
+            usuario: usuario,
+            clave: clave,
+            rol: rol,
+            permisos: { movimientos: true, combustible: true, transportadora: true, informes: true, colaboradores: true, vehiculos: true, editar: true }
+        });
+        alert(`✅ Usuario ${usuario} creado`);
+    }
 
-  if (!correo || !contrasena) { alert('Completa todos los datos'); return; }
-
-  try {
-    const cred = await createUserWithEmailAndPassword(auth, correo, contrasena);
-    await setDoc(doc(db, "usuarios", cred.user.uid), { usuario, correo, rol, permisos });
-    await registrarAccion("Crear Usuario", "Administración", `Usuario: ${usuario}, Rol: ${rol}`);
-    alert('✅ Usuario creado');
-    cargarUsuariosSistema();
-  } catch (e) {
-    alert('Error: ' + e.message);
-  }
+    document.getElementById('nuevoUsuario').value = '';
+    document.getElementById('nuevaClave').value = '';
 }
 
-async function cargarUsuariosSistema() {
-  const tabla = document.getElementById('tabla-usuarios').querySelector('tbody');
-  tabla.innerHTML = '';
-  const snap = await getDocs(collection(db, "usuarios"));
-  snap.forEach(doc => {
-    const u = { id: doc.id, ...doc.data() };
-    tabla.innerHTML += `
-      <tr>
-        <td>${u.usuario || '-'}</td>
-        <td>${u.correo}</td>
-        <td>${u.rol}</td>
-        <td>${u.permisos?.moduloVehiculos?'✅':'❌'} ${u.permisos?.moduloCombustible?'✅':'❌'} ${u.permisos?.moduloInformes?'✅':'❌'}</td>
-        <td>
-          <button onclick="editarUsuario('${doc.id}')">Editar</button>
-          <button class="btn-eliminar" onclick="eliminarUsuario('${doc.id}')">Eliminar</button>
-        </td>
-      </tr>`;
-  });
-}
-
-async function eliminarUsuario(uid) {
-  if (!confirm('¿Eliminar usuario?')) return;
-  await deleteDoc(doc(db, "usuarios", uid));
-  await registrarAccion("Eliminar Usuario", "Administración", `UID: ${uid}`);
-  alert('Eliminado');
-  cargarUsuariosSistema();
-}
+// ===== CARGA INICIAL =====
+window.onload = function () {
+    document.getElementById('fecha').valueAsDate = new Date();
+    document.getElementById('fechaKm').valueAsDate = new Date();
+};
 </script>
+
+</body>
+</html>
