@@ -38,20 +38,41 @@
 <!-- Contenido Principal -->
 <main class="contenido">
 
+    <!-- Pestaña MOVIMIENTOS -->
     <section id="pest-movimientos" class="pestaña activa">
         <h2>📝 Movimientos de Canastillas</h2>
         <div class="tarjeta">
             <h3>Registrar Salida / Llegada</h3>
             <input type="date" id="fecha">
-            <select id="vehiculo"><option value="">Seleccione vehículo</option></select>
-            <select id="quienRecoge"><option value="">Seleccione colaborador</option></select>
+            <select id="vehiculoMov"><option value="">Seleccione vehículo</option></select>
+            <select id="colaboradorConductor"><option value="">Seleccione colaborador (quien conduce)</option></select>
             <input type="time" id="horaSalida" placeholder="Hora de Salida">
             <input type="time" id="horaLlegada" placeholder="Hora de Llegada">
-            <input type="number" id="canSalida" placeholder="Canastillas que Salen">
-            <input type="number" id="canLlegada" placeholder="Canastillas que Llegan">
+
+            <!-- SECCIÓN DE RECOGIDAS -->
+            <div style="background:#f0f7ff; padding:1rem; border-radius:0.75rem; margin:1rem 0;">
+                <h4 style="margin-bottom:0.75rem; color:#1e40af;">🧺 Recogidas</h4>
+                <div id="listaRecogidas"></div>
+                <button type="button" class="btn-exito" onclick="agregarFilaRecogida()" style="padding:0.5rem 1rem; font-size:0.9rem; margin-top:0.5rem;">➕ Agregar otra recogida</button>
+            </div>
+
+            <input type="number" id="canSalidaTotal" placeholder="Total Canastillas que Salen" readonly style="background:#e8f5e9; font-weight:bold;">
+            <input type="number" id="canLlegadaTotal" placeholder="Total Canastillas que Llegan" readonly style="background:#e8f5e9; font-weight:bold;">
             <input type="text" id="observaciones" placeholder="Observaciones">
             <input type="hidden" id="idEditar">
             <button class="btn-exito" onclick="guardarMovimiento()">✅ Guardar Movimiento</button>
+        </div>
+        <div class="tarjeta">
+            <h3>🚗 Agregar Vehículo (Movimientos)</h3>
+            <input type="text" id="placaVehiculoMov" placeholder="Placa del vehículo">
+            <select id="tipoVehiculoMov">
+                <option value="">Seleccione tipo</option>
+                <option value="Moto">Moto</option>
+                <option value="Camioneta">Camioneta</option>
+                <option value="Camión">Camión</option>
+                <option value="VTH">Vehículo de Tracción Humana (VTH)</option>
+            </select>
+            <button class="btn-exito" onclick="agregarVehiculoMov()">Guardar Vehículo</button>
         </div>
         <div class="tarjeta">
             <h3>Historial de Movimientos</h3>
@@ -60,6 +81,7 @@
         </div>
     </section>
 
+    <!-- Pestaña TRANSPORTADORA -->
     <section id="pest-transportadora" class="pestaña">
         <h2>🚛 Transportadora</h2>
         <div class="tarjeta">
@@ -68,19 +90,19 @@
             <button class="btn-exito" onclick="agregarConductor()">Guardar Conductor</button>
         </div>
         <div class="tarjeta">
-            <h3>🚗 Agregar Vehículo</h3>
-            <input type="text" id="placaVehiculo" placeholder="Placa del vehículo">
-            <select id="tipoVehiculo">
+            <h3>🚛 Agregar Vehículo (Transportadora)</h3>
+            <input type="text" id="placaVehiculoTransp" placeholder="Placa del vehículo">
+            <select id="tipoVehiculoTransp">
                 <option value="">Seleccione tipo</option>
                 <option value="Moto">Moto</option>
                 <option value="Camioneta">Camioneta</option>
                 <option value="Camión">Camión</option>
                 <option value="VTH">Vehículo de Tracción Humana (VTH)</option>
             </select>
-            <button class="btn-exito" onclick="agregarVehiculo()">Guardar Vehículo</button>
+            <button class="btn-exito" onclick="agregarVehiculoTransp()">Guardar Vehículo</button>
         </div>
         <div class="tarjeta">
-            <h3>📦 Registrar Movimiento</h3>
+            <h3>📦 Registrar Movimiento de Transportadora</h3>
             <input type="date" id="fechaTransp">
             <select id="vehiculoTransp"><option value="">Seleccione vehículo</option></select>
             <select id="conductorTransp"><option value="">Seleccione conductor</option></select>
@@ -92,6 +114,7 @@
         </div>
     </section>
 
+    <!-- Pestaña COMBUSTIBLE -->
     <section id="pest-combustible" class="pestaña">
         <h2>⛽ Control de Combustible</h2>
         <div class="tarjeta">
@@ -103,6 +126,7 @@
         </div>
     </section>
 
+    <!-- Pestaña INFORMES -->
     <section id="pest-informes" class="pestaña">
         <h2>📊 Informes y Consultas</h2>
         <div class="tarjeta">
@@ -114,6 +138,7 @@
         <div id="resultadoInforme" class="tarjeta"></div>
     </section>
 
+    <!-- Pestaña ADMINISTRACIÓN -->
     <section id="pest-admin" class="pestaña">
         <h2>⚙️ Administración</h2>
         <div class="tarjeta">
