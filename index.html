@@ -41,14 +41,14 @@
       position:fixed; top:0; left:0; right:0; height:56px; z-index:90;
       box-shadow:0 2px 6px #0002;
     }
-    .cabecera h1 { font-size:1.1rem; }
+    .cabecera h1 { font-size:1rem; }
     .btn-menu {
       background:#fff3; border:none; color:#fff; font-size:1.4rem;
       padding:0.3rem 0.6rem; border-radius:6px; cursor:pointer; margin-right:0.5rem;
     }
     .btn-actualizar {
-      background:var(--verde); border:none; color:#fff; padding:0.4rem 0.8rem;
-      border-radius:6px; cursor:pointer; font-size:0.9rem; margin-right:0.5rem;
+      background:var(--verde); border:none; color:#fff; padding:0.4rem 0.6rem;
+      border-radius:6px; cursor:pointer; font-size:0.85rem; margin-right:0.5rem;
     }
     .btn-actualizar:hover { background:#0b8047; }
 
@@ -70,21 +70,23 @@
 
     .contenido-paginas {
       flex:1; margin-left:240px; padding:1rem; transition: margin-left 0.3s ease;
+      width:100%;
     }
-    .pagina { display:none; max-width:1200px; margin:0 auto; }
+    .pagina { display:none; max-width:1200px; margin:0 auto; width:100%; }
     .pagina.visible { display:block; }
-    h2 { margin:0.5rem 0 1rem; color:var(--azul); font-size:1.3rem; }
+    h2 { margin:0.5rem 0 1rem; color:var(--azul); font-size:1.2rem; }
     h3 { margin:0.8rem 0; color:#444; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:0.3rem; }
 
-    form { background:#fff; padding:1.2rem; border-radius:10px; box-shadow:0 2px 8px #0001; margin-bottom:1.5rem; }
+    form { background:#fff; padding:1rem; border-radius:10px; box-shadow:0 2px 8px #0001; margin-bottom:1.5rem; width:100%; max-width:100%; }
     label { display:block; margin-top:0.6rem; font-weight:600; font-size:0.9rem; }
     input, select {
-      width:100%; padding:0.5rem; margin-top:0.2rem; border:1px solid #ccc;
-      border-radius:5px; font-size:0.9rem;
+      width:100%; padding:0.6rem; margin-top:0.2rem; border:1px solid #ccc;
+      border-radius:5px; font-size:0.95rem;
+      max-width:100%;
     }
     button {
-      padding:0.5rem 1rem; border:none; border-radius:5px; cursor:pointer; font-size:0.9rem;
-      margin:0.2rem 0.2rem 0.2rem 0;
+      padding:0.6rem 1rem; border:none; border-radius:5px; cursor:pointer; font-size:0.9rem;
+      margin:0.3rem 0.3rem 0.3rem 0;
     }
     .btn-primario { background:var(--azul); color:#fff; }
     .btn-exito { background:var(--verde); color:#fff; }
@@ -96,10 +98,10 @@
     .btn-peligro:hover { background:#b02018; }
     .btn-naranja:hover { background:#d66a0f; }
 
-    .tabla-contenedor { overflow-x:auto; }
+    .tabla-contenedor { overflow-x:auto; width:100%; }
     table { width:100%; border-collapse:collapse; margin-top:0.8rem; }
-    th, td { padding:0.5rem; text-align:left; border-bottom:1px solid #eee; font-size:0.85rem; }
-    th { background:var(--gris); }
+    th, td { padding:0.5rem 0.4rem; text-align:left; border-bottom:1px solid #eee; font-size:0.8rem; }
+    th { background:var(--gris); white-space:nowrap; }
     tr:hover { background:#f9f9f9; }
     .recogida { border:1px solid #e0e0e0; padding:0.8rem; border-radius:8px; margin-top:0.8rem; background:#fafafa; }
     .total-acum { background:#e8f0fe; padding:0.8rem; border-radius:8px; margin-top:1rem; font-weight:bold; }
@@ -109,13 +111,15 @@
     .buscador { margin-bottom:1rem; }
 
     @media(max-width:768px) {
-      .menu-lateral { transform: translateX(-100%); }
-      .contenido-paginas { margin-left:0; }
-      .menu-lateral.mostrar { transform: translateX(0); }
-      th, td { padding:0.3rem 0.2rem; font-size:0.75rem; }
       .cabecera h1 { font-size:0.9rem; }
+      .menu-lateral { transform: translateX(-100%); }
+      .contenido-paginas { margin-left:0; padding:0.6rem; }
+      .menu-lateral.mostrar { transform: translateX(0); }
       form { padding:0.8rem; }
-      .contenido-paginas { padding:0.5rem; }
+      th, td { padding:0.4rem 0.2rem; font-size:0.75rem; white-space:nowrap; }
+      input, select { font-size:16px; padding:0.5rem; }
+      button { padding:0.5rem 0.8rem; font-size:0.85rem; }
+      .btn-actualizar { padding:0.3rem 0.5rem; font-size:0.75rem; }
     }
   </style>
 </head>
@@ -157,13 +161,10 @@
 
 <section class="pagina visible" id="pag-movimientos">
   <h2>📋 Movimientos de Canastillas</h2>
-
-  <!-- BUSCADOR DE MOVIMIENTO -->
   <div class="buscador">
     <label>🔍 Buscar Movimiento: <input type="text" id="buscarMovimiento" placeholder="Escriba placa o fecha..." oninput="filtrarMovimientos()"></label>
   </div>
 
-  <!-- FORMULARIO SALIDA -->
   <form id="formSalida">
     <h3>📤 Registrar SALIDA</h3>
     <label>Fecha <input type="date" id="fechaSalida" required></label>
@@ -174,7 +175,6 @@
     <button type="submit" class="btn-exito">✅ Registrar Salida</button>
   </form>
 
-  <!-- FORMULARIO LLEGADA (OCULTO HASTA SELECCIONAR MOVIMIENTO) -->
   <form id="formLlegada" style="display:none; border:2px solid var(--naranja);">
     <h3>📥 Registrar RETORNO / Llegada</h3>
     <input type="hidden" id="idMovCerrar">
@@ -256,7 +256,7 @@
   <form id="formCombustible">
     <h3>Registrar Consumo</h3>
     <label>Fecha <input type="date" id="fechaComb" required></label>
-    <label>Vehículo <select id="placaComb" required><option value="">Seleccione</option></select></label>
+    <label>Vehículo <select id="placaComb" required><option value="">Seleccione vehículo</option></select></label>
     <label>KM Mañana <input type="number" id="kmManana" min="0" step="1"></label>
     <label>KM Tarde <input type="number" id="kmTarde" min="0" step="1"></label>
     <label>Galones <input type="number" id="galones" min="0" step="0.01"></label>
@@ -383,13 +383,13 @@ let contRecog = 1;
 // ===== 🔴 PEGA TUS DATOS DE FIREBASE ABAJO =====
 // ==================================================
 const firebaseConfig = {
-  apiKey: "AIzaSyBruMDqyExColkMwy7XyqDSBsF8XcvsFoY",
+  apiKey: "AQUÍ-TU-apiKey",
   authDomain: "control-ingresos-y-canastillas.firebaseapp.com",
   projectId: "control-ingresos-y-canastillas",
   storageBucket: "control-ingresos-y-canastillas.firebasestorage.app",
-  messagingSenderId: "372736670308",
-  appId: "1:372736670308:web:14c2e2614c14ff3dc2bd71",
-  measurementId: "G-N3YMQ2JKZM"
+  messagingSenderId: "AQUÍ-TU-messagingSenderId",
+  appId: "AQUÍ-TU-appId",
+  measurementId: "AQUÍ-TU-measurementId"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -645,7 +645,7 @@ function renderizarMovimientos() {
 }
 
 // ==================================================
-// ===== VEHÍCULOS Y COLABORADORES (en Admin) =====
+// ===== VEHÍCULOS Y COLABORADORES =====
 // ==================================================
 document.getElementById("formVehiculoCanastilla").addEventListener("submit", async e => {
   e.preventDefault();
@@ -658,11 +658,12 @@ document.getElementById("formVehiculoCanastilla").addEventListener("submit", asy
     tipo, usuario: usuarioActivo.nombre
   });
   e.target.reset(); cargarDatos();
+  alert("✅ Vehículo guardado");
 });
 function renderizarVehCanast() {
   const tb = document.querySelector("#tablaVehCanast tbody"); tb.innerHTML = "";
   vehiculosCanast.forEach(v => {
-    tb.innerHTML += `<tr><td>${v.placa}</td><td>${v.marca}</td><td>${v.modelo||"-"}</td><td>${v.tipo}</td><td>${usuarioActivo.rol==="admin"?`<button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick="db.ref('vehiculosCanastillas/${v.id}').remove();cargarDatos();">🗑️</button>`:""}</td></tr>`;
+    tb.innerHTML += `<tr><td>${v.placa}</td><td>${v.marca}</td><td>${v.modelo||"-"}</td><td>${v.tipo}</td><td>${usuarioActivo?.rol==="admin"?`<button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick="if(confirm('¿Eliminar?')){db.ref('vehiculosCanastillas/${v.id}').remove();cargarDatos();}">🗑️</button>`:""}</td></tr>`;
   });
 }
 
@@ -679,11 +680,34 @@ document.getElementById("formColaborador").addEventListener("submit", async e =>
   limpiarFormColaborador(); cargarDatos(); alert("✅ Colaborador guardado");
 });
 function limpiarFormColaborador() { document.getElementById("formColaborador").reset(); document.getElementById("idColaboradorEditar").value = ""; }
-function editarColaborador(id) { const c = colaboradores.find(x => x.id === id); if (!c) return; document.getElementById("idColaboradorEditar").value = c.id; document.getElementById("nombreColaborador").value = c.nombre; document.getElementById("estadoColaborador").value = c.estado || "activo"; }
+function editarColaborador(id) {
+  const c = colaboradores.find(x => x.id === id);
+  if (!c) { alert("⚠️ Colaborador no encontrado"); return; }
+  document.getElementById("idColaboradorEditar").value = c.id;
+  document.getElementById("nombreColaborador").value = c.nombre;
+  document.getElementById("estadoColaborador").value = c.estado || "activo";
+  document.getElementById("formColaborador").scrollIntoView({ behavior: "smooth" });
+}
 function renderizarColaboradores() {
-  const tb = document.querySelector("#tablaColaboradores tbody"); tb.innerHTML = "";
+  const tb = document.querySelector("#tablaColaboradores tbody");
+  if (!tb) return;
+  tb.innerHTML = "";
+  
+  if (colaboradores.length === 0) {
+    tb.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:1rem; color:#888;">No hay colaboradores registrados</td></tr>`;
+    return;
+  }
+  
   colaboradores.forEach(c => {
-    tb.innerHTML += `<tr><td>${c.nombre}</td><td>${(c.estado||"activo")==="activo"?"✅ Activo":"❌ Inactivo"}</td><td>${c.usuario||"-"}</td><td><button class="btn-primario" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick='editarColaborador("${c.id}")'>✏️ Editar</button></td></tr>`;
+    tb.innerHTML += `<tr>
+      <td>${c.nombre}</td>
+      <td>${(c.estado || "activo") === "activo" ? "✅ Activo" : "❌ Inactivo"}</td>
+      <td>${c.usuario || "-"}</td>
+      <td>
+        <button class="btn-primario" style="padding:0.3rem 0.5rem; font-size:0.75rem;" onclick='editarColaborador("${c.id}")'>✏️ Editar</button>
+      ${usuarioActivo?.rol === "admin" ? `<button class="btn-peligro" style="padding:0.3rem 0.5rem; font-size:0.75rem;" onclick="if(confirm('¿Eliminar colaborador?')){ db.ref('colaboradores/${c.id}').remove(); cargarDatos(); }">🗑️ Eliminar</button>` : ""}
+      </td>
+    </tr>`;
   });
 }
 
@@ -801,11 +825,11 @@ document.getElementById("formCombustible").addEventListener("submit", async e =>
   await db.ref("combustible").push({
     fecha: document.getElementById("fechaComb").value,
     placa: document.getElementById("placaComb").value,
-    kmManana,
-    kmTarde,
-    recorrido,
-    galones,
-    rendimiento,
+    kmManana: kmMañana,
+    kmTarde: kmTarde,
+    recorrido: recorrido,
+    galones: galones,
+    rendimiento: rendimiento,
     usuario: usuarioActivo.nombre,
     horaRegistro: new Date().toLocaleString("es-CO")
   });
@@ -962,6 +986,29 @@ function renderizarUsuarios() {
     </tr>`;
   });
 }
+
+// ==================================================
+// ===== CIERRE AUTOMÁTICO POR INACTIVIDAD =====
+// ==================================================
+let temporizadorSesion;
+const TIEMPO_INACTIVIDAD = 60 * 60 * 1000; // 1 hora
+
+function reiniciarTemporizador() {
+  clearTimeout(temporizadorSesion);
+  temporizadorSesion = setTimeout(() => {
+    if (confirm("⏰ Tu sesión está por cerrarse por inactividad. ¿Deseas continuar?")) {
+      reiniciarTemporizador();
+    } else {
+      cerrarSesion();
+    }
+  }, TIEMPO_INACTIVIDAD);
+}
+
+// Detectar actividad del usuario
+["mousemove", "keydown", "click", "touchstart"].forEach(evt => {
+  document.addEventListener(evt, reiniciarTemporizador, false);
+});
+
 </script>
 </body>
 </html>
