@@ -53,7 +53,17 @@
             border-bottom: 1px solid #f1f5f9;
         }
         .btn-pestaña.activa { background: #dbeafe; color: var(--primario); font-weight: bold; }
-        .btn-subpestaña { padding-left: 2.5rem; font-size: 0.9rem; }
+
+        /* ===== SUBPESTAÑAS INFORMES ===== */
+        .contenedor-subinformes {
+            display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem;
+        }
+        .btn-subinforme {
+            padding: 0.6rem 1rem; border: none; background: #e5e7eb; border-radius: 0.4rem; cursor: pointer; font-weight: 500;
+        }
+        .btn-subinforme.activa { background: var(--primario); color: white; }
+        .subinforme { display: none; animation: aparecer 0.2s ease; }
+        .subinforme.activa { display: block; }
 
         /* ===== CONTENIDO ===== */
         .contenido { padding: 1rem; max-width: 900px; margin: 0 auto; }
@@ -94,6 +104,7 @@
             padding: 0.75rem; border-bottom: 1px solid #e5e7eb;
             display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;
         }
+        .caja-resultados { background: #f1f5f9; padding: 1rem; border-radius: 0.5rem; margin-top: 1rem; }
 
         /* ===== RECOGIDAS ===== */
         .fila-recogida {
@@ -148,7 +159,7 @@
     <button class="btn-pestaña activa" onclick="cambiarPestaña('movimientos')">📋 Movimientos</button>
     <button class="btn-pestaña" onclick="cambiarPestaña('transportadora')">🚛 Transportadora</button>
     <button class="btn-pestaña" onclick="cambiarPestaña('combustible')">⛽ Combustible</button>
-    <button class="btn-pestaña" onclick="cambiarPestaña('informes')">📊 Informes</button>
+    <button class="btn-pestaña" onclick="cambiarPestaña('informes')">📊 Informes y Consultas</button>
     <button id="btnAdmin" class="btn-pestaña oculto" onclick="cambiarPestaña('admin')">⚙️ Administración</button>
 </div>
 
@@ -191,13 +202,11 @@
             </div>
         </div>
 
-        <!-- 📤 CANASTILLAS DE SALIDA → SE QUEDA FIJA -->
         <div class="form-group">
             <label>📤 Canastillas al SALIR:</label>
             <input type="number" id="canSalidaTotal" class="form-control" placeholder="Se registra al salir y queda fija">
         </div>
 
-        <!-- 📥 CANASTILLAS DE LLEGADA → SE SUMA SOLA -->
         <div class="form-row">
             <div class="form-group">
                 <label>📥 Canastillas al LLEGAR:</label>
@@ -209,7 +218,6 @@
             </div>
         </div>
 
-        <!-- 👥 RECOGIDAS → SE AGREGAN Y SE SUMAN SOLAS -->
         <div class="form-group">
             <label>👥 Personas recogidas:</label>
             <button type="button" onclick="agregarFilaRecogida()" class="btn btn-sm btn-success mb-2">+ Agregar recogida</button>
@@ -224,7 +232,6 @@
         <input type="hidden" id="idEditar">
         <button onclick="guardarMovimiento()" class="btn btn-primary w-full mb-4">💾 Guardar Movimiento</button>
 
-        <!-- 🔍 BUSCADOR Y LISTA -->
         <div class="form-group">
             <label>Buscar movimiento:</label>
             <input type="text" id="buscarMov" class="form-control" placeholder="Buscar por placa o conductor..." oninput="filtrarMovimientos()">
@@ -307,7 +314,10 @@
             <label>Nombre del Conductor:</label>
             <input type="text" id="nombreConductor" class="form-control" placeholder="Nombre completo">
         </div>
-        <button onclick="agregarConductor()" class="btn btn-success w-full">Agregar Conductor</button>
+        <button onclick="agregarConductor()" class="btn btn-success w-full mb-4">Agregar Conductor</button>
+
+        <h3 class="font-bold mt-4 mb-3">📋 Conductores Registrados</h3>
+        <div id="listaConductoresTransp"></div>
     </div>
 
     <!-- ================================== -->
@@ -339,23 +349,70 @@
     </div>
 
     <!-- ================================== -->
-    <!-- PESTAÑA: INFORMES -->
+    <!-- PESTAÑA: INFORMES (DIVIDIDA) -->
     <!-- ================================== -->
     <div id="pest-informes" class="pestaña">
         <h2 class="text-xl font-bold mb-4">📊 Informes y Consultas</h2>
-        <div class="form-row">
-            <div class="form-group">
-                <label>Fecha Inicio:</label>
-                <input type="date" id="fechaInicio" class="form-control">
-            </div>
-            <div class="form-group">
-                <label>Fecha Fin:</label>
-                <input type="date" id="fechaFin" class="form-control">
-            </div>
+
+        <div class="contenedor-subinformes">
+            <button class="btn-subinforme activa" onclick="cambiarSubinforme('movimientos')">📋 Movimientos</button>
+            <button class="btn-subinforme" onclick="cambiarSubinforme('transportadora')">🚛 Transportadora</button>
+            <button class="btn-subinforme" onclick="cambiarSubinforme('combustible')">⛽ Combustible</button>
         </div>
-        <button onclick="generarInforme()" class="btn btn-primary w-full mb-2">🔍 Generar Consulta</button>
-        <button onclick="exportarExcel()" class="btn btn-success w-full mb-4">📥 Exportar a Excel</button>
-        <div id="resultadoInforme"></div>
+
+        <!-- SUBINFORME: MOVIMIENTOS -->
+        <div id="subinf-movimientos" class="subinforme activa">
+            <h3 class="font-bold mb-3">Consulta de Movimientos</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Fecha Inicio:</label>
+                    <input type="date" id="fechaInicioMov" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Fecha Fin:</label>
+                    <input type="date" id="fechaFinMov" class="form-control">
+                </div>
+            </div>
+            <button onclick="consultarMovimientos()" class="btn btn-primary w-full mb-2">🔍 Buscar</button>
+            <button onclick="exportarMovimientosExcel()" class="btn btn-success w-full mb-4">📥 Exportar a Excel</button>
+            <div id="resultadoMov" class="caja-resultados">Seleccione fechas y presione Buscar</div>
+        </div>
+
+        <!-- SUBINFORME: TRANSPORTADORA -->
+        <div id="subinf-transportadora" class="subinforme">
+            <h3 class="font-bold mb-3">Consulta de Transportadora</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Fecha Inicio:</label>
+                    <input type="date" id="fechaInicioTransp" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Fecha Fin:</label>
+                    <input type="date" id="fechaFinTransp" class="form-control">
+                </div>
+            </div>
+            <button onclick="consultarTransporte()" class="btn btn-primary w-full mb-2">🔍 Buscar</button>
+            <button onclick="exportarTransporteExcel()" class="btn btn-success w-full mb-4">📥 Exportar a Excel</button>
+            <div id="resultadoTransp" class="caja-resultados">Seleccione fechas y presione Buscar</div>
+        </div>
+
+        <!-- SUBINFORME: COMBUSTIBLE -->
+        <div id="subinf-combustible" class="subinforme">
+            <h3 class="font-bold mb-3">Consulta de Combustible</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Fecha Inicio:</label>
+                    <input type="date" id="fechaInicioComb" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label>Fecha Fin:</label>
+                    <input type="date" id="fechaFinComb" class="form-control">
+                </div>
+            </div>
+            <button onclick="consultarCombustible()" class="btn btn-primary w-full mb-2">🔍 Buscar</button>
+            <button onclick="exportarCombustibleExcel()" class="btn btn-success w-full mb-4">📥 Exportar a Excel</button>
+            <div id="resultadoComb" class="caja-resultados">Seleccione fechas y presione Buscar</div>
+        </div>
     </div>
 
     <!-- ================================== -->
@@ -371,7 +428,6 @@
             <button class="btn btn-sm btn-pestaña btn-subpestaña" onclick="cambiarSubpestañaAdmin('usuarios')">🔑 Usuarios</button>
         </div>
 
-        <!-- COLABORADORES -->
         <div id="sub-admin-colaboradores" class="subpestaña-admin">
             <h3 class="font-bold mb-2">Gestión de Colaboradores</h3>
             <div class="form-group">
@@ -382,7 +438,6 @@
             <div id="listaColaboradoresAdmin"></div>
         </div>
 
-        <!-- CONDUCTORES -->
         <div id="sub-admin-conductores" class="subpestaña-admin oculto">
             <h3 class="font-bold mb-2">Gestión de Conductores</h3>
             <div class="form-group">
@@ -393,7 +448,6 @@
             <div id="listaConductoresAdmin"></div>
         </div>
 
-        <!-- VEHÍCULOS -->
         <div id="sub-admin-vehiculos" class="subpestaña-admin oculto">
             <h3 class="font-bold mb-2">Gestión de Vehículos</h3>
             <div class="form-row">
@@ -419,7 +473,6 @@
             <div id="listaVehiculosTranspAdmin"></div>
         </div>
 
-        <!-- USUARIOS -->
         <div id="sub-admin-usuarios" class="subpestaña-admin oculto">
             <h3 class="font-bold mb-2">Crear Usuario del Sistema</h3>
             <div class="form-group">
