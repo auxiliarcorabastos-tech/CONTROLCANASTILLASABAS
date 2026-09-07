@@ -1,1078 +1,672 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Control de Ingresos y Canastillas</title>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
-    :root { --azul:#1a73e8; --verde:#0f9d58; --rojo:#d93025; --gris:#f1f3f4; --texto:#202124; --naranja:#fa7b17; --amarillo:#fbbc05; }
-    body { background: #f8f9fa; color: var(--texto); }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Movimientos y Canastillas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f0f4f8; }
 
-    #pantallaLogin {
-      position: fixed; inset:0; background: linear-gradient(135deg, #1a73e8, #4285f4);
-      display:flex; align-items:center; justify-content:center; z-index:999;
-    }
-    .caja-login {
-      background:#fff; padding:2rem; border-radius:12px; box-shadow:0 4px 20px #0003;
-      width: 90%; max-width:400px;
-    }
-    .caja-login h2 { text-align:center; margin-bottom:1.5rem; color:var(--azul); }
-    .caja-login input {
-      width:100%; padding:0.8rem; margin:0.5rem 0; border:1px solid #ddd;
-      border-radius:8px; font-size:1rem;
-    }
-    .caja-login button {
-      width:100%; padding:0.8rem; background:var(--azul); color:#fff;
-      border:none; border-radius:8px; font-size:1rem; cursor:pointer; margin-top:0.5rem;
-    }
-    .caja-login button:hover { background:#1557b0; }
-    .mensaje { margin-top:0.8rem; font-size:0.9rem; text-align:center; min-height:1.5rem; }
-    .error { color:var(--rojo); }
-    .enlace { background:none; color:var(--azul); text-decoration:underline; font-size:0.9rem; }
+        /* === MENÚ LATERAL RESPONSIVE === */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: #1e40af;
+            color: white;
+            padding-top: 1rem;
+            z-index: 999;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            overflow-y: auto;
+        }
+        .sidebar.visible { transform: translateX(0); }
 
-    .cabecera {
-      background:var(--azul); color:#fff; padding:0.7rem 1rem;
-      display:flex; justify-content:space-between; align-items:center;
-      position:fixed; top:0; left:0; right:0; height:56px; z-index:90;
-      box-shadow:0 2px 6px #0002;
-    }
-    .cabecera h1 { font-size:1rem; }
-    .btn-menu {
-      background:#fff3; border:none; color:#fff; font-size:1.4rem;
-      padding:0.3rem 0.6rem; border-radius:6px; cursor:pointer; margin-right:0.5rem;
-    }
-    .btn-actualizar {
-      background:var(--verde); border:none; color:#fff; padding:0.4rem 0.6rem;
-      border-radius:6px; cursor:pointer; font-size:0.85rem; margin-right:0.5rem;
-    }
-    .btn-actualizar:hover { background:#0b8047; }
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 998;
+            display: none;
+        }
+        .overlay.activo { display: block; }
 
-    .contenedor-app { display:flex; margin-top:56px; min-height:calc(100vh - 56px); }
-    .menu-lateral {
-      width:240px; background:#fff; border-right:1px solid #e0e0e0;
-      position:fixed; top:56px; left:0; bottom:0; z-index:80;
-      transition: transform 0.3s ease; overflow-y:auto;
-    }
-    .menu-lateral.oculto { transform: translateX(-100%); }
-    .menu-lateral.oculto + .contenido-paginas { margin-left:0; }
-    .pestaña {
-      padding:0.9rem 1.2rem; cursor:pointer; border-left:3px solid transparent;
-      font-size:0.95rem; display:flex; align-items:center; gap:0.6rem;
-      border-bottom:1px solid #f5f5f5;
-    }
-    .pestaña.activa { border-left:3px solid var(--azul); background:#e8f0fe; color:var(--azul); font-weight:bold; }
-    .pestaña:hover { background:var(--gris); }
+        .btn-menu {
+            position: fixed;
+            top: 0.5rem;
+            left: 0.5rem;
+            z-index: 997;
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 1.25rem;
+            cursor: pointer;
+        }
 
-    .contenido-paginas {
-      flex:1; margin-left:240px; padding:1rem; transition: margin-left 0.3s ease;
-      width:100%;
-    }
-    .pagina { display:none; max-width:1200px; margin:0 auto; width:100%; }
-    .pagina.visible { display:block; }
-    h2 { margin:0.5rem 0 1rem; color:var(--azul); font-size:1.2rem; }
-    h3 { margin:0.8rem 0; color:#444; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:0.3rem; }
+        .contenido {
+            margin-left: 0;
+            padding: 1rem;
+            padding-top: 3rem;
+            min-height: 100vh;
+        }
 
-    form { background:#fff; padding:1rem; border-radius:10px; box-shadow:0 2px 8px #0001; margin-bottom:1.5rem; width:100%; max-width:100%; }
-    label { display:block; margin-top:0.6rem; font-weight:600; font-size:0.9rem; }
-    input, select {
-      width:100%; padding:0.6rem; margin-top:0.2rem; border:1px solid #ccc;
-      border-radius:5px; font-size:0.95rem;
-      max-width:100%;
-    }
-    button {
-      padding:0.6rem 1rem; border:none; border-radius:5px; cursor:pointer; font-size:0.9rem;
-      margin:0.3rem 0.3rem 0.3rem 0;
-    }
-    .btn-primario { background:var(--azul); color:#fff; }
-    .btn-exito { background:var(--verde); color:#fff; }
-    .btn-peligro { background:var(--rojo); color:#fff; }
-    .btn-naranja { background:var(--naranja); color:#fff; }
-    .btn-amarillo { background:var(--amarillo); color:#000; }
-    .btn-primario:hover { background:#1557b0; }
-    .btn-exito:hover { background:#0b8047; }
-    .btn-peligro:hover { background:#b02018; }
-    .btn-naranja:hover { background:#d66a0f; }
+        .btn-pestaña {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 0.85rem 1.25rem;
+            background: transparent;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 0.95rem;
+        }
+        .btn-pestaña:hover, .btn-pestaña.activa {
+            background: #3b82f6;
+        }
 
-    .tabla-contenedor { overflow-x:auto; width:100%; }
-    table { width:100%; border-collapse:collapse; margin-top:0.8rem; }
-    th, td { padding:0.5rem 0.4rem; text-align:left; border-bottom:1px solid #eee; font-size:0.8rem; }
-    th { background:var(--gris); white-space:nowrap; }
-    tr:hover { background:#f9f9f9; }
-    .recogida { border:1px solid #e0e0e0; padding:0.8rem; border-radius:8px; margin-top:0.8rem; background:#fafafa; }
-    .total-acum { background:#e8f0fe; padding:0.8rem; border-radius:8px; margin-top:1rem; font-weight:bold; }
-    .sub-seccion { margin-bottom:1.5rem; border-left:3px solid var(--azul); padding-left:1rem; }
-    .estado-abierto { color:var(--naranja); font-weight:bold; }
-    .estado-cerrado { color:var(--verde); font-weight:bold; }
-    .buscador { margin-bottom:1rem; }
+        .pestaña { display: none; }
+        .pestaña.activa { display: block; }
 
-    @media(max-width:768px) {
-      .cabecera h1 { font-size:0.9rem; }
-      .menu-lateral { transform: translateX(-100%); }
-      .contenido-paginas { margin-left:0; padding:0.6rem; }
-      .menu-lateral.mostrar { transform: translateX(0); }
-      form { padding:0.8rem; }
-      th, td { padding:0.4rem 0.2rem; font-size:0.75rem; white-space:nowrap; }
-      input, select { font-size:16px; padding:0.5rem; }
-      button { padding:0.5rem 0.8rem; font-size:0.85rem; }
-      .btn-actualizar { padding:0.3rem 0.5rem; font-size:0.75rem; }
-    }
-  </style>
+        .tarjeta {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        input, select, button {
+            padding: 0.5rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.375rem;
+            margin: 0.25rem 0;
+            width: 100%;
+        }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        button:hover { opacity: 0.9; }
+        button.exito { background: #16a34a; }
+        button.peligro { background: #dc2626; }
+
+        .barra-superior {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 0;
+            height: 3rem;
+            background: white;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 0 1rem;
+            gap: 0.75rem;
+            z-index: 996;
+        }
+
+        /* En pantallas grandes el menú siempre visible */
+        @media (min-width: 768px) {
+            .sidebar { transform: translateX(0); }
+            .overlay { display: none !important; }
+            .btn-menu { display: none; }
+            .contenido { margin-left: 260px; }
+        }
+    </style>
 </head>
 <body>
 
-<div id="pantallaLogin">
-  <div class="caja-login">
-    <h2>🔐 Iniciar Sesión</h2>
-    <input type="text" id="usuario" placeholder="Nombre de usuario">
-    <input type="password" id="clave" placeholder="Contraseña">
-    <button onclick="iniciarSesion()">Ingresar</button>
-    <div class="mensaje" id="mensajeLogin"></div>
-    <button class="enlace" onclick="recuperarClave()">¿Olvidé mi contraseña?</button>
-  </div>
+<!-- Botón abrir menú -->
+<button class="btn-menu" onclick="alternarMenu()">☰</button>
+
+<!-- Capa oscura al abrir menú en celular -->
+<div class="overlay" onclick="alternarMenu()"></div>
+
+<!-- Menú Lateral -->
+<nav class="sidebar">
+    <div style="padding: 0.75rem 1.25rem; font-weight: bold; font-size: 1.05rem; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 0.5rem;">
+        📋 Control Canastillas
+    </div>
+    <button class="btn-pestaña activa" onclick="cambiarPestaña('movimientos')">📝 Movimientos</button>
+    <button class="btn-pestaña" onclick="cambiarPestaña('transportadora')">🚛 Transportadora</button>
+    <button class="btn-pestaña" onclick="cambiarPestaña('combustible')">⛽ Combustible</button>
+    <button class="btn-pestaña" onclick="cambiarPestaña('informes')">📊 Informes</button>
+    <button class="btn-pestaña" onclick="cambiarPestaña('admin')" id="btnAdmin" style="display:none;">⚙️ Administración</button>
+</nav>
+
+<!-- Barra Superior -->
+<div class="barra-superior">
+    <button onclick="location.reload()" style="background:#16a34a; padding:0.35rem 0.75rem; border-radius:0.375rem; font-size:0.85rem;">🔄 Actualizar</button>
+    <span id="usuarioActual" style="font-size:0.9rem;"></span>
+    <button onclick="cerrarSesion()" style="background:#dc2626; padding:0.35rem 0.75rem; border-radius:0.375rem; font-size:0.85rem;">Salir</button>
 </div>
 
-<header class="cabecera" id="cabecera" style="display:none;">
-  <div style="display:flex; align-items:center;">
-    <button class="btn-menu" onclick="alternarMenu()">☰</button>
-    <h1>🚚 Control de Canastillas</h1>
-  </div>
-  <div style="display:flex; align-items:center; gap:0.3rem;">
-    <button class="btn-actualizar" onclick="actualizarApp()">🔄 Actualizar</button>
-    <span id="nombreUsuario" style="font-size:0.9rem;"></span>
-    <button onclick="cerrarSesion()" style="background:#fff3; color:#fff; padding:0.4rem 0.6rem; border-radius:6px; border:none; margin-left:0.3rem;">Salir</button>
-  </div>
-</header>
+<!-- Contenido Principal -->
+<main class="contenido">
 
-<div class="contenedor-app" id="contenedorApp" style="display:none;">
-  <nav class="menu-lateral oculto" id="menuLateral">
-    <div class="pestaña activa" data-pagina="movimientos">📋 Canastillas</div>
-    <div class="pestaña" data-pagina="transportadora">🚛 Transportadora</div>
-    <div class="pestaña" data-pagina="combustible">⛽ Combustible</div>
-    <div class="pestaña" data-pagina="informes">📊 Informes</div>
-    <div class="pestaña" data-pagina="admin" id="pestanaAdmin" style="display:none;">⚙️ Administración</div>
-  </nav>
-
-  <main class="contenido-paginas" id="contenidoPrincipal">
-
-<section class="pagina visible" id="pag-movimientos">
-  <h2>📋 Movimientos de Canastillas</h2>
-  <div class="buscador">
-    <label>🔍 Buscar Movimiento: <input type="text" id="buscarMovimiento" placeholder="Escriba placa o fecha..." oninput="filtrarMovimientos()"></label>
-  </div>
-
-  <form id="formSalida">
-    <h3>📤 Registrar SALIDA</h3>
-    <label>Fecha <input type="date" id="fechaSalida" required></label>
-    <label>Vehículo <select id="vehiculoSalida" required><option value="">Seleccione vehículo</option></select></label>
-    <label>Quien Recoge / Entrega <select id="quienEntrega" required><option value="">Seleccione colaborador</option></select></label>
-    <label>Hora de Salida <input type="time" id="horaSalida"></label>
-    <label>Canastillas que SALEN <input type="number" id="canastillasSalen" min="0" required></label>
-    <button type="submit" class="btn-exito">✅ Registrar Salida</button>
-  </form>
-
-  <form id="formLlegada" style="display:none; border:2px solid var(--naranja);">
-    <h3>📥 Registrar RETORNO / Llegada</h3>
-    <input type="hidden" id="idMovCerrar">
-    <p style="margin:0.5rem 0; padding:0.5rem; background:#fff8e1; border-radius:5px;">
-      📄 Movimiento: <span id="resumenMov"></span>
-    </p>
-    <label>Hora de Llegada <input type="time" id="horaLlegada"></label>
-    <div id="listaRecogidas">
-      <div class="recogida"><h4>Recogida #1</h4>
-        <label>Recoge a: <select class="colaboradorRecogido" required><option value="">Seleccione colaborador</option></select></label>
-        <label>Kilos recogidos <input type="number" class="kilosRecogidos" min="0" step="0.01" oninput="actualizarTotal()"></label>
-        <label>Canastillas recogidas <input type="number" class="canastRecogidas" min="0" oninput="actualizarTotal()"></label>
-      </div>
+<!-- Pestaña MOVIMIENTOS -->
+<div id="pest-movimientos" class="pestaña activa">
+    <h2 class="text-xl font-bold mb-4">Movimientos de Canastillas</h2>
+    <div class="tarjeta">
+        <h3 class="font-bold mb-3">Registrar Salida / Llegada</h3>
+        <input type="date" id="fecha">
+        <select id="vehiculo"><option value="">Seleccione vehículo</option></select>
+        <select id="quienRecoge"><option value="">Seleccione colaborador</option></select>
+        <input type="time" id="horaSalida" placeholder="Hora de Salida">
+        <input type="time" id="horaLlegada" placeholder="Hora de Llegada">
+        <input type="number" id="canSalida" placeholder="Canastillas que Salen">
+        <input type="number" id="canLlegada" placeholder="Canastillas que Llegan">
+        <input type="text" id="observaciones" placeholder="Observaciones">
+        <input type="hidden" id="idEditar">
+        <button class="exito mt-2" onclick="guardarMovimiento()">✅ Guardar Movimiento</button>
     </div>
-    <button type="button" class="btn-naranja" onclick="agregarRecogida()">➕ Otra recogida</button>
-    <div class="total-acum">🔢 Total Kilos: <span id="totalKilos">0</span> kg &nbsp;|&nbsp; 📦 Total Canastillas: <span id="totalCanastillas">0</span></div>
-    <label>Canastillas que LLEGAN <input type="number" id="canastillasLlegan" min="0" required></label>
-    <label>Observaciones <input type="text" id="obsLlegada"></label>
-    <button type="submit" class="btn-exito">✅ Cerrar Movimiento</button>
-    <button type="button" class="btn-peligro" onclick="cancelarLlegada()">❌ Cancelar</button>
-  </form>
-
-  <h3>📋 Historial de Movimientos</h3>
-  <div class="tabla-contenedor">
-    <table id="tablaMovimientos">
-      <thead>
-        <tr>
-          <th>Fecha</th><th>Vehículo</th><th>Quien Entrega</th><th>Canast. Salen</th>
-          <th>Estado</th><th>Canast. Llegan</th><th>Kilos Total</th><th>Registrado por</th><th>Acción</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</section>
-
-<section class="pagina" id="pag-transportadora">
-  <h2>🚛 Transportadora</h2>
-  <form id="formConductorTrans">
-    <h3>👤 Registrar Conductor</h3>
-    <label>Nombre <input type="text" id="nombreConductorTrans" required></label>
-    <label>Cédula <input type="text" id="cedulaConductorTrans"></label>
-    <button type="submit" class="btn-primario">Guardar</button>
-  </form>
-  <h4>Lista de Conductores</h4>
-  <div class="tabla-contenedor"><table id="tablaConductoresTrans"><thead><tr><th>Nombre</th><th>Identificación</th><th>Registrado por</th></tr></thead><tbody></tbody></table></div>
-
-  <form id="formVehiculoTrans">
-    <h3>🚗 Registrar Vehículo</h3>
-    <label>Placa <input type="text" id="placaTrans" required style="text-transform:uppercase" maxlength="10"></label>
-    <label>Marca <input type="text" id="marcaTrans" required></label>
-    <label>Modelo <input type="text" id="modeloTrans"></label>
-    <label>Tipo <select id="tipoVehTrans" required><option value="">Seleccione</option><option value="Camioneta">Camioneta</option><option value="Camión">Camión</option><option value="Furgón">Furgón</option><option value="Otro">Otro</option></select></label>
-    <button type="submit" class="btn-primario">Guardar</button>
-  </form>
-  <h4>Lista de Vehículos</h4>
-  <div class="tabla-contenedor"><table id="tablaVehTrans"><thead><tr><th>Placa</th><th>Marca</th><th>Modelo</th><th>Tipo</th><th>Registrado por</th></tr></thead><tbody></tbody></table></div>
-
-  <form id="formMovTrans">
-    <h3>📤 Salida y 📥 Llegada</h3>
-    <label>Fecha <input type="date" id="fechaMovTrans" required></label>
-    <label>Conductor <select id="selConductorTrans" required><option value="">Seleccione</option></select></label>
-    <label>Vehículo <select id="selVehTrans" required><option value="">Seleccione</option></select></label>
-    <h4>Salida</h4>
-    <label>Hora de Salida <input type="time" id="horaSalidaTrans"></label>
-    <label>Canastillas que salen <input type="number" id="canSalidaTrans" min="0"></label>
-    <h4>Regreso</h4>
-    <label>Hora de Llegada <input type="time" id="horaLlegadaTrans"></label>
-    <label>Canastillas que llegan <input type="number" id="canLlegadaTrans" min="0"></label>
-    <label>Observaciones <input type="text" id="obsTrans"></label>
-    <button type="submit" class="btn-exito">Guardar</button>
-  </form>
-  <h4>Historial</h4>
-  <div class="tabla-contenedor"><table id="tablaMovTrans"><thead><tr><th>Fecha</th><th>Conductor</th><th>Vehículo</th><th>Hora Salida</th><th>Canast. Salen</th><th>Hora Llegada</th><th>Canast. Llegan</th><th>Registrado por</th></tr></thead><tbody></tbody></table></div>
-</section>
-
-<section class="pagina" id="pag-combustible">
-  <h2>⛽ Combustible y Kilometraje</h2>
-  <form id="formCombustible">
-    <h3>Registrar Consumo</h3>
-    <label>Fecha <input type="date" id="fechaComb" required></label>
-    <label>Vehículo <select id="placaComb" required><option value="">Seleccione vehículo</option></select></label>
-    <label>KM Mañana <input type="number" id="kmManana" min="0" step="1"></label>
-    <label>KM Tarde <input type="number" id="kmTarde" min="0" step="1"></label>
-    <label>Galones <input type="number" id="galones" min="0" step="0.01"></label>
-    <button type="submit" class="btn-primario">Guardar</button>
-  </form>
-  <h3>Registros</h3>
-  <div class="tabla-contenedor"><table id="tablaCombustible"><thead><tr><th>Fecha</th><th>Placa</th><th>KM Mañana</th><th>KM Tarde</th><th>Recorrido</th><th>Galones</th><th>Rendimiento km/gal</th><th>Registrado por</th></tr></thead><tbody></tbody></table></div>
-</section>
-
-<section class="pagina" id="pag-informes">
-  <h2>📊 Informes</h2>
-  <div style="background:#fff; padding:1rem; border-radius:10px; margin-bottom:1rem;">
-    <h4>Filtrar por fechas</h4>
-    <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:0.5rem;">
-      <label>Desde <input type="date" id="fechaIni"></label>
-      <label>Hasta <input type="date" id="fechaFin"></label>
-      <button class="btn-primario" onclick="generarInforme()">Generar</button>
+    <div class="tarjeta">
+        <h3 class="font-bold mb-3">Historial de Movimientos</h3>
+        <input type="text" id="buscarMov" placeholder="Buscar por placa o nombre..." oninput="filtrarMovimientos()">
+        <div id="listaMovimientos"></div>
     </div>
-  </div>
-  <h3>Resumen</h3>
-  <div class="tabla-contenedor"><table id="tablaInformes"><thead><tr><th>Fecha</th><th>Placa</th><th>Quien Entrega</th><th>Colaboradores Recogidos</th><th>Kilos</th><th>Canastillas Salen/Llegan</th></tr></thead><tbody></tbody></table></div>
-  <br><button class="btn-exito" onclick="exportarExcel()">📥 Exportar Excel</button>
-</section>
+</div>
 
-<section class="pagina" id="pag-admin">
-  <h2>⚙️ Administración</h2>
-  <form id="formVehiculoCanastilla">
-    <h3>🚗 Registrar Vehículo</h3>
-    <label>Placa <input type="text" id="placaCanast" required style="text-transform:uppercase" maxlength="10"></label>
-    <label>Marca <input type="text" id="marcaCanast" required></label>
-    <label>Modelo <input type="text" id="modeloCanast"></label>
-    <label>Tipo de Vehículo
-      <select id="tipoVehCanast" required>
-        <option value="">Seleccione</option>
-        <option value="Liviano">Liviano</option>
-        <option value="Camioneta">Camioneta</option>
-        <option value="Camión">Camión</option>
-        <option value="Moto">Moto</option>
-        <option value="VTH">Vehículo de Tracción Humana (VTH)</option>
-        <option value="Otro">Otro (especificar)</option>
-      </select>
-    </label>
-    <label>Tipo Personalizado <input type="text" id="tipoPersonalizado" placeholder="Si eligió Otro"></label>
-    <button type="submit" class="btn-primario">Guardar Vehículo</button>
-  </form>
-  <h4>Lista de Vehículos</h4>
-  <div class="tabla-contenedor">
-    <table id="tablaVehCanast">
-      <thead><tr><th>Placa</th><th>Marca</th><th>Modelo</th><th>Tipo</th><th>Acciones</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
+<!-- Pestaña TRANSPORTADORA -->
+<div id="pest-transportadora" class="pestaña">
+    <h2 class="text-xl font-bold mb-4">🚛 Transportadora</h2>
 
-  <form id="formColaborador">
-    <input type="hidden" id="idColaboradorEditar">
-    <h3>👤 Registrar / Editar Colaborador</h3>
-    <label>Nombre <input type="text" id="nombreColaborador" required style="text-transform:capitalize;"></label>
-    <label>Estado
-      <select id="estadoColaborador">
-        <option value="activo">✅ Activo</option>
-        <option value="inactivo">❌ Inactivo</option>
-      </select>
-    </label>
-    <button type="submit" class="btn-primario">💾 Guardar</button>
-    <button type="button" class="btn-naranja" onclick="limpiarFormColaborador()">🆕 Nuevo</button>
-  </form>
-  <h4>Lista de Colaboradores</h4>
-  <div class="tabla-contenedor">
-    <table id="tablaColaboradores">
-      <thead><tr><th>Nombre</th><th>Estado</th><th>Registrado por</th><th>Acciones</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
+    <div class="tarjeta">
+        <h3 class="font-bold mb-2">➕ Agregar Conductor</h3>
+        <input type="text" id="nombreConductor" placeholder="Nombre del conductor">
+        <button class="exito" onclick="agregarConductor()">Guardar Conductor</button>
+        <div id="listaConductores" class="mt-2"></div>
+    </div>
 
-  <form id="formUsuario">
-    <h3>Gestión de Usuarios</h3>
-    <input type="hidden" id="idUsuarioEditar">
-    <label>Usuario <input type="text" id="nombreUsuarioNuevo" required></label>
-    <label>Contraseña <input type="text" id="claveUsuarioNuevo" placeholder="Vacío = no cambia"></label>
-    <label>Rol <select id="rolUsuarioNuevo"><option value="usuario">Usuario</option><option value="admin">Administrador</option></select></label>
-    <h4>Permisos</h4>
-    <label><input type="checkbox" id="permCanastillas" checked> 📋 Canastillas</label>
-    <label><input type="checkbox" id="permTransportadora" checked> 🚛 Transportadora</label>
-    <label><input type="checkbox" id="permCombustible" checked> ⛽ Combustible</label>
-    <label><input type="checkbox" id="permInformes" checked> 📊 Informes</label>
-    <label>¿Puede Editar? <select id="puedeEditar"><option value="si">✅ Sí</option><option value="no">❌ Solo Consulta</option></select></label>
-    <button type="submit" class="btn-primario">💾 Guardar</button>
-  </form>
-  <h3>Lista de Usuarios</h3>
-  <div class="tabla-contenedor"><table id="tablaUsuarios"><thead><tr><th>Usuario</th><th>Clave</th><th>Rol</th><th>Puede Ver</th><th>Puede Editar</th><th>Acciones</th></tr></thead><tbody></tbody></table></div>
-</section>
+    <div class="tarjeta">
+        <h3 class="font-bold mb-2">🚗 Agregar Vehículo</h3>
+        <input type="text" id="placaVehiculo" placeholder="Placa del vehículo">
+        <select id="tipoVehiculo">
+            <option value="">Seleccione tipo</option>
+            <option value="Moto">Moto</option>
+            <option value="Camioneta">Camioneta</option>
+            <option value="Camión">Camión</option>
+            <option value="VTH">Vehículo de Tracción Humana (VTH)</option>
+        </select>
+        <button class="exito mt-2" onclick="agregarVehiculo()">Guardar Vehículo</button>
+        <div id="listaVehiculos" class="mt-2"></div>
+    </div>
 
-  </main>
+    <div class="tarjeta">
+        <h3 class="font-bold mb-2">📦 Movimientos de Canastillas</h3>
+        <input type="date" id="fechaTransp">
+        <select id="vehiculoTransp"><option value="">Seleccione vehículo</option></select>
+        <select id="conductorTransp"><option value="">Seleccione conductor</option></select>
+        <input type="number" id="canSalidaTransp" placeholder="Canastillas que salen">
+        <input type="number" id="canLlegadaTransp" placeholder="Canastillas que llegan">
+        <input type="time" id="horaSalidaTransp" placeholder="Hora de Salida">
+        <input type="time" id="horaLlegadaTransp" placeholder="Hora de Llegada">
+        <button class="exito mt-2" onclick="guardarMovimientoTransp()">✅ Registrar Movimiento</button>
+    </div>
+</div>
+
+<!-- Pestaña COMBUSTIBLE -->
+<div id="pest-combustible" class="pestaña">
+    <h2 class="text-xl font-bold mb-4">⛽ Control de Combustible</h2>
+    <div class="tarjeta">
+        <select id="vehiculoComb"><option value="">Seleccione vehículo</option></select>
+        <input type="number" id="kma" placeholder="Kilometraje Mañana">
+        <input type="number" id="kmt" placeholder="Kilometraje Tarde">
+        <input type="number" id="galones" placeholder="Galones cargados">
+        <button class="exito" onclick="guardarCombustible()">Guardar</button>
+    </div>
+</div>
+
+<!-- Pestaña INFORMES -->
+<div id="pest-informes" class="pestaña">
+    <h2 class="text-xl font-bold mb-4">📊 Informes y Consultas</h2>
+    <div class="tarjeta">
+        <input type="date" id="fechaInicio">
+        <input type="date" id="fechaFin">
+        <button onclick="generarInforme()">🔍 Consultar</button>
+        <button class="exito" onclick="exportarExcel()">📥 Exportar Excel</button>
+    </div>
+    <div id="resultadoInforme" class="tarjeta"></div>
+</div>
+
+<!-- Pestaña ADMINISTRACIÓN -->
+<div id="pest-admin" class="pestaña">
+    <h2 class="text-xl font-bold mb-4">⚙️ Administración</h2>
+    <div class="tarjeta">
+        <h3 class="font-bold mb-2">👤 Crear Usuario</h3>
+        <input type="email" id="correoNuevo" placeholder="Correo">
+        <input type="password" id="passNuevo" placeholder="Contraseña">
+        <select id="rolNuevo">
+            <option value="usuario">Usuario</option>
+            <option value="admin">Administrador</option>
+        </select>
+        <button class="exito" onclick="crearUsuario()">Crear Usuario</button>
+    </div>
+    <div class="tarjeta">
+        <h3 class="font-bold mb-2">Colaboradores</h3>
+        <input type="text" id="nombreColab" placeholder="Nombre colaborador">
+        <button class="exito" onclick="agregarColaborador()">Agregar</button>
+        <div id="listaColaboradores"></div>
+    </div>
+    <div class="tarjeta">
+        <h3 class="font-bold mb-2">Registro de Acciones</h3>
+        <div id="bitacora"></div>
+    </div>
+</div>
+
+</main>
+
+<!-- === INICIO DE SESIÓN === -->
+<div id="pantallaLogin" style="position:fixed;inset:0;background:white;display:flex;align-items:center;justify-content:center;z-index:9999;">
+    <div class="tarjeta" style="width:90%;max-width:400px;">
+        <h2 class="text-xl font-bold text-center mb-4">🔐 Iniciar Sesión</h2>
+        <input type="email" id="correoLogin" placeholder="Correo electrónico">
+        <input type="password" id="passLogin" placeholder="Contraseña">
+        <p id="mensajeError" style="color:red; font-size:0.9rem; margin:0.5rem 0;"></p>
+        <button onclick="ingresar()">Ingresar</button>
+        <p class="text-center mt-3 text-sm">
+            <a href="#" onclick="recuperarClave()">¿Olvidó su contraseña?</a>
+        </p>
+    </div>
 </div>
 
 <script>
-// ==================================================
-// ===== USUARIOS PREDETERMINADOS =====
-// ==================================================
-const usuariosFijos = [
-  { usuario: "jgarnica", clave: "123456", nombre: "jgarnica", rol: "admin",
-    permisos: { canastillas: true, transportadora: true, combustible: true, informes: true }, puedeEditar: "si" },
-  { usuario: "jfigueroa", clave: "3134630773", nombre: "jfigueroa", rol: "admin",
-    permisos: { canastillas: true, transportadora: true, combustible: true, informes: true }, puedeEditar: "si" },
-  { usuario: "estudiante", clave: "123456", nombre: "estudiante", rol: "usuario",
-    permisos: { canastillas: true, transportadora: true, combustible: true, informes: true }, puedeEditar: "si" }
-];
-
-let usuarioActivo = null;
-let vehiculosCanast = [];
-let colaboradores = [];
-let movimientos = [];
-let movimientosFiltrados = [];
-let conductoresTrans = [];
-let vehiculosTrans = [];
-let movimientosTrans = [];
-let registrosCombustible = [];
-let usuariosRegistrados = [];
-let db = null;
-let menuVisible = false;
-let contRecog = 1;
-
-// ==================================================
-// ===== 🔴 PEGA TUS DATOS DE FIREBASE ABAJO =====
-// ==================================================
+// ===== CONFIGURACIÓN FIREBASE =====
 const firebaseConfig = {
-  apiKey: "AIzaSyBruMDqyExColkMwy7XyqDSBsF8XcvsFoY",
-  authDomain: "control-ingresos-y-canastillas.firebaseapp.com",
-  projectId: "control-ingresos-y-canastillas",
-  storageBucket: "control-ingresos-y-canastillas.firebasestorage.app",
-  messagingSenderId: "372736670308",
-  appId: "1:372736670308:web:14c2e2614c14ff3dc2bd71",
-  measurementId: "G-N3YMQ2JKZM"
+    apiKey: "AIzaSyC9DcOa4xQZ-5LdK8yX7w6v5bN4M3Q2R1S0",
+    authDomain: "control-ingresos-y-canastillas.firebaseapp.com",
+    projectId: "control-ingresos-y-canastillas",
+    storageBucket: "control-ingresos-y-canastillas.firebasestorage.app",
+    messagingSenderId: "345678901234",
+    appId: "1:345678901234:web:abc123def456ghi789jkl01",
+    measurementId: "G-ABCDEFGHIJ"
 };
 
 firebase.initializeApp(firebaseConfig);
-db = firebase.database();
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-// ==================================================
-// ===== FUNCIONES GENERALES =====
-// ==================================================
-function actualizarApp() { cargarDatos(); alert("✅ Datos actualizados"); }
+// ===== USUARIOS PREDETERMINADOS =====
+const usuariosFijos = {
+    "jgarnica@correo.com": { pass: "123456", rol: "admin", nombre: "jgarnica" },
+    "jfigueroa@correo.com": { pass: "3134630773", rol: "admin", nombre: "jfigueroa" },
+    "estudiante@correo.com": { pass: "123456", rol: "usuario", nombre: "estudiante", permisos: ["movimientos", "transportadora"] }
+};
+
+// ===== VARIABLES GLOBALES =====
+let usuarioConectado = null;
+let idEdicion = null;
+let movimientos = [];
+let conductores = [];
+let vehiculos = [];
+let colaboradores = [];
+let tiempoSesion = null;
+
+// ===== ALTERNAR MENÚ EN CELULAR =====
 function alternarMenu() {
-  const menu = document.getElementById("menuLateral");
-  const contenido = document.querySelector(".contenido-paginas");
-  menuVisible = !menuVisible;
-  if (menuVisible) { menu.classList.remove("oculto"); contenido.style.marginLeft = "240px"; }
-  else { menu.classList.add("oculto"); contenido.style.marginLeft = "0"; }
+    document.querySelector('.sidebar').classList.toggle('visible');
+    document.querySelector('.overlay').classList.toggle('activo');
 }
-// ==================================================
+
+// ===== CAMBIAR PESTAÑA =====
+function cambiarPestaña(nombre) {
+    document.querySelectorAll('.btn-pestaña').forEach(b=>b.classList.remove('activa'));
+    event.target.classList.add('activa');
+    document.querySelectorAll('.pestaña').forEach(p=>p.classList.remove('activa'));
+    document.getElementById('pest-'+nombre).classList.add('activa');
+    if(window.innerWidth < 768) alternarMenu();
+}
+
 // ===== INICIAR SESIÓN =====
-// ==================================================
-async function iniciarSesion() {
-  const usu = document.getElementById("usuario").value.trim();
-  const clave = document.getElementById("clave").value;
-  const msj = document.getElementById("mensajeLogin");
+async function ingresar() {
+    let correo = document.getElementById('correoLogin').value.trim();
+    let pass = document.getElementById('passLogin').value;
+    let error = document.getElementById('mensajeError');
+    error.textContent = '';
 
-  // Buscar en usuarios fijos
-  const fijo = usuariosFijos.find(u => u.usuario === usu && u.clave === clave);
-  if (fijo) {
-    usuarioActivo = { 
-      ...fijo, 
-      uid: "FIJO_" + fijo.usuario 
-    };
-    ingresarApp();
-    return;
-  }
+    // Normalizar correo
+    if(!correo.includes('@')) correo = correo + '@correo.com';
 
-  // Buscar en Firebase
-  try {
-    const snap = await db.ref("usuarios").once("value");
-    const lista = [];
-    snap.forEach(c => {
-      lista.push({ id: c.key, ...c.val() });
-    });
-    const enc = lista.find(u => u.usuario === usu && u.clave === clave);
-    
-    if (enc) {
-      usuarioActivo = {
-        uid: enc.id,
-        usuario: enc.usuario,
-        nombre: enc.usuario,
-        clave: enc.clave,
-        rol: enc.rol || "usuario",
-        permisos: enc.permisos || { 
-          canastillas: true, 
-          transportadora: true, 
-          combustible: true, 
-          informes: true 
-        },
-        puedeEditar: enc.puedeEditar || "si"
-      };
-      ingresarApp();
-    } else {
-      // Verificar si el usuario existe pero la contraseña es incorrecta
-      const existeUsuario = lista.find(u => u.usuario === usu);
-      if (existeUsuario) {
-        msj.textContent = "❌ Contraseña errada";
-      } else {
-        msj.textContent = "❌ Usuario no registrado";
-      }
-      msj.className = "mensaje error";
+    try {
+        // Buscar en usuarios fijos
+        if(usuariosFijos[correo]) {
+            if(usuariosFijos[correo].pass === pass) {
+                usuarioConectado = { email: correo, ...usuariosFijos[correo] };
+                await finalizarLogin();
+                return;
+            } else {
+                error.textContent = '🔒 Contraseña errada';
+                return;
+            }
+        }
+
+        // Ingresar por Firebase
+        await auth.signInWithEmailAndPassword(correo, pass);
+        const usuario = auth.currentUser;
+        const doc = await db.doc(`usuarios/${usuario.uid}`).get();
+        usuarioConectado = { email: usuario.email, uid: usuario.uid, ...doc.data() };
+        await finalizarLogin();
+
+    } catch(e) {
+        if(e.code === 'auth/user-not-found') {
+            error.textContent = '❌ Usuario no registrado';
+        } else if(e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
+            error.textContent = '🔒 Contraseña errada';
+        } else {
+            error.textContent = '⚠️ ' + e.message;
+        }
     }
-  } catch (error) {
-    msj.textContent = "❌ Error de conexión: " + error.message;
-    msj.className = "mensaje error";
-  }
 }
 
-// ==================================================
-// ===== OLVIDÉ MI CONTRASEÑA =====
-// ==================================================
-function recuperarClave() {
-  alert("🔑 Comuníquese con el administrador para recuperar su contraseña");
+async function finalizarLogin() {
+    document.getElementById('pantallaLogin').style.display = 'none';
+    document.getElementById('usuarioActual').textContent = usuarioConectado.nombre || usuarioConectado.email;
+    if(usuarioConectado.rol === 'admin') {
+        document.getElementById('btnAdmin').style.display = 'block';
+    }
+    await cargarDatos();
+    iniciarTiempoSesion();
+    registrarAccion('Inicio de Sesión', 'Sistema', 'Ingreso exitoso');
 }
 
-// ==================================================
-// ===== INGRESAR A LA APLICACIÓN =====
-// ==================================================
-function ingresarApp() {
-  // Ocultar pantalla de login
-  document.getElementById("pantallaLogin").style.display = "none";
-  // Mostrar aplicación
-  document.getElementById("cabecera").style.display = "flex";
-  document.getElementById("contenedorApp").style.display = "flex";
-  // Mostrar nombre y rol del usuario
-  document.getElementById("nombreUsuario").textContent = usuarioActivo.nombre + (usuarioActivo.rol === "admin" ? " 👑" : "");
-  // Mostrar pestaña de admin solo si es administrador
-  if (usuarioActivo.rol === "admin") {
-    document.getElementById("pestanaAdmin").style.display = "block";
-  }
-  // Ocultar pestañas según permisos
-  if (!usuarioActivo.permisos.canastillas) document.querySelector('[data-pagina="movimientos"]').style.display = "none";
-  if (!usuarioActivo.permisos.transportadora) document.querySelector('[data-pagina="transportadora"]').style.display = "none";
-  if (!usuarioActivo.permisos.combustible) document.querySelector('[data-pagina="combustible"]').style.display = "none";
-  if (!usuarioActivo.permisos.informes) document.querySelector('[data-pagina="informes"]').style.display = "none";
-  // Cargar datos y configurar pestañas
-  cargarDatos();
-  configurarPestanas();
-  // Establecer fechas de hoy en los formularios
-  document.getElementById("fechaSalida").valueAsDate = new Date();
-  document.getElementById("fechaMovTrans").valueAsDate = new Date();
-  document.getElementById("fechaComb").valueAsDate = new Date();
+// ===== TIEMPO DE SESIÓN (1 hora) =====
+function iniciarTiempoSesion() {
+    reiniciarTiempoSesion();
+    window.onmousemove = reiniciarTiempoSesion;
+    window.onkeypress = reiniciarTiempoSesion;
+}
+function reiniciarTiempoSesion() {
+    clearTimeout(tiempoSesion);
+    tiempoSesion = setTimeout(() => {
+        alert('⏰ Cierre de sesión por inactividad');
+        cerrarSesion();
+    }, 60 * 60 * 1000); // 1 hora
 }
 
-// ==================================================
-// ===== CERRAR SESIÓN =====
-// ==================================================
 function cerrarSesion() {
-  location.reload();
-}
-function configurarPestanas() {
-  document.querySelectorAll(".pestaña").forEach(tab => {
-    tab.addEventListener("click", () => {
-      const pag = tab.dataset.pagina;
-      const perm = usuarioActivo.permisos[pag] !== false || pag === "admin";
-      if (!perm) { alert("Sin permiso"); return; }
-      document.querySelectorAll(".pestaña").forEach(t => t.classList.remove("activa"));
-      document.querySelectorAll(".pagina").forEach(p => p.classList.remove("visible"));
-      tab.classList.add("activa");
-      document.getElementById("pag-" + pag).classList.add("visible");
-      if (window.innerWidth <= 768 && menuVisible) alternarMenu();
-      if (pag === "informes") generarInforme();
-    });
-  });
+    auth.signOut();
+    location.reload();
 }
 
+function recuperarClave() {
+    alert('Solicita recuperación desde Firebase Console o ingresa con tu correo y contraseña');
+}
+
+// ===== CARGAR DATOS INICIALES =====
 async function cargarDatos() {
-  const [vC, col, mov, cT, vT, mT, comb, usu] = await Promise.all([
-    db.ref("vehiculosCanastillas").once("value"),
-    db.ref("colaboradores").once("value"),
-    db.ref("movimientos").once("value"),
-    db.ref("conductoresTrans").once("value"),
-    db.ref("vehiculosTrans").once("value"),
-    db.ref("movimientosTrans").once("value"),
-    db.ref("combustible").once("value"),
-    db.ref("usuarios").once("value")
-  ]);
-  vehiculosCanast = objToArray(vC);
-  colaboradores = objToArray(col);
-  movimientos = objToArray(mov);
-  movimientosFiltrados = [...movimientos];
-  conductoresTrans = objToArray(cT);
-  vehiculosTrans = objToArray(vT);
-  movimientosTrans = objToArray(mT);
-  registrosCombustible = objToArray(comb);
-  usuariosRegistrados = objToArray(usu);
-  renderizarVehCanast();
-  renderizarColaboradores();
-  renderizarMovimientos();
-  renderizarCondTrans();
-  renderizarVehTrans();
-  renderizarMovTrans();
-  renderizarCombustible();
-  renderizarUsuarios();
-  cargarSelectores();
-}
-function objToArray(snap) { const arr = []; snap.forEach(c => { arr.push({ id: c.key, ...c.val() }); }); return arr; }
+    const hoy = new Date().toISOString().split('T')[0];
+    document.getElementById('fecha').value = hoy;
+    document.getElementById('fechaTransp').value = hoy;
 
-function cargarSelectores() {
-  const selVehSalida = document.getElementById("vehiculoSalida");
-  const selVehComb = document.getElementById("placaComb");
-  if (selVehSalida) {
-    selVehSalida.innerHTML = "<option value=''>Seleccione vehículo</option>";
-    vehiculosCanast.forEach(v => selVehSalida.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.marca}</option>`);
-  }
-  if (selVehComb) {
-    selVehComb.innerHTML = "<option value=''>Seleccione vehículo</option>";
-    vehiculosCanast.filter(v => v.tipo !== "VTH").forEach(v => {
-      selVehComb.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.marca}</option>`;
-    });
-  }
-  const selQuienEntrega = document.getElementById("quienEntrega");
-  if (selQuienEntrega) {
-    selQuienEntrega.innerHTML = "<option value=''>Seleccione colaborador</option>";
-    colaboradores.filter(c => (c.estado || "activo") === "activo").sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(c => {
-      selQuienEntrega.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
-    });
-  }
-  document.querySelectorAll(".colaboradorRecogido").forEach(s => {
-    const val = s.value;
-    s.innerHTML = "<option value=''>Seleccione colaborador</option>";
-    colaboradores.filter(c => (c.estado || "activo") === "activo").sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(c => {
-      s.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
-    });
-    s.value = val;
-  });
-  const selCondT = document.getElementById("selConductorTrans");
-  const selVehT = document.getElementById("selVehTrans");
-  if (selCondT) { selCondT.innerHTML = "<option value=''>Seleccione Conductor</option>"; conductoresTrans.forEach(c => selCondT.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`); }
-  if (selVehT) { selVehT.innerHTML = "<option value=''>Seleccione Vehículo</option>"; vehiculosTrans.forEach(v => selVehT.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.marca}</option>`); }
+    // Cargar vehículos
+    const vh = await db.collection('vehiculos').get();
+    vehiculos = vh.docs.map(d=>({id:d.id, ...d.data()}));
+    actualizarSelectVehiculos();
+
+    // Cargar conductores
+    const cd = await db.collection('conductores').get();
+    conductores = cd.docs.map(d=>({id:d.id, ...d.data()}));
+    actualizarSelectConductores();
+
+    // Cargar colaboradores
+    const cl = await db.collection('colaboradores').get();
+    colaboradores = cl.docs.map(d=>({id:d.id, ...d.data()}));
+    actualizarSelectColaboradores();
+
+    // Cargar movimientos
+    const mv = await db.collection('movimientos').orderBy('fecha', 'desc').limit(50).get();
+    movimientos = mv.docs.map(d=>({id:d.id, ...d.data()}));
+    dibujarMovimientos();
 }
 
-// ==================================================
-// ===== 📋 CANASTILLAS - SALIDA Y LLEGADA =====
-// ==================================================
-document.getElementById("formSalida").addEventListener("submit", async e => {
-  e.preventDefault();
-  if (usuarioActivo.puedeEditar !== "si") { alert("Sin permiso"); return; }
-  await db.ref("movimientos").push({
-    fecha: document.getElementById("fechaSalida").value,
-    placa: document.getElementById("vehiculoSalida").value,
-    quienEntrega: document.getElementById("quienEntrega").value,
-    horaSalida: document.getElementById("horaSalida").value,
-    canastSalen: +document.getElementById("canastillasSalen").value || 0,
-    estado: "abierto",
-    usuarioSalida: usuarioActivo.nombre,
-    horaSalidaReg: new Date().toLocaleString("es-CO")
-  });
-  e.target.reset();
-  document.getElementById("fechaSalida").valueAsDate = new Date();
-  cargarDatos();
-  alert("✅ Salida registrada");
-});
+function actualizarSelectVehiculos() {
+    let opts = '<option value="">Seleccione vehículo</option>';
+    vehiculos.forEach(v=> opts += `<option value="${v.placa}">${v.placa} - ${v.tipo}</option>`);
+    document.getElementById('vehiculo').innerHTML = opts;
+    document.getElementById('vehiculoTransp').innerHTML = opts;
+    document.getElementById('vehiculoComb').innerHTML = opts;
+}
+
+function actualizarSelectConductores() {
+    let opts = '<option value="">Seleccione conductor</option>';
+    conductores.forEach(c=> opts += `<option value="${c.nombre}">${c.nombre}</option>`);
+    document.getElementById('conductorTransp').innerHTML = opts;
+}
+
+function actualizarSelectColaboradores() {
+    let opts = '<option value="">Seleccione colaborador</option>';
+    colaboradores.forEach(c=> opts += `<option value="${c.nombre}">${c.nombre}</option>`);
+    document.getElementById('quienRecoge').innerHTML = opts;
+}
+
+// ===== FIN DE LA PARTE 1 =====
+// ===== CONDUTORES =====
+async function agregarConductor() {
+    const nombre = document.getElementById('nombreConductor').value.trim();
+    if(!nombre) return alert('Escriba el nombre');
+    await db.collection('conductores').add({ nombre, fechaCreacion: new Date() });
+    document.getElementById('nombreConductor').value = '';
+    cargarDatos();
+    registrarAccion('Agregar Conductor', 'Transportadora', nombre);
+}
+
+// ===== VEHÍCULOS =====
+async function agregarVehiculo() {
+    const placa = document.getElementById('placaVehiculo').value.trim().toUpperCase();
+    const tipo = document.getElementById('tipoVehiculo').value;
+    if(!placa || !tipo) return alert('Complete placa y tipo');
+    await db.collection('vehiculos').add({ placa, tipo, fechaCreacion: new Date() });
+    document.getElementById('placaVehiculo').value = '';
+    cargarDatos();
+    registrarAccion('Agregar Vehículo', 'Transportadora', `${placa} - ${tipo}`);
+}
+
+// ===== COLABORADORES =====
+async function agregarColaborador() {
+    const nombre = document.getElementById('nombreColab').value.trim();
+    if(!nombre) return alert('Escriba el nombre');
+    await db.collection('colaboradores').add({ nombre, fechaCreacion: new Date() });
+    document.getElementById('nombreColab').value = '';
+    cargarDatos();
+    registrarAccion('Agregar Colaborador', 'Administración', nombre);
+}
+
+// ===== GUARDAR MOVIMIENTO =====
+async function guardarMovimiento() {
+    const datos = {
+        fecha: document.getElementById('fecha').value,
+        placa: document.getElementById('vehiculo').value,
+        colaborador: document.getElementById('quienRecoge').value,
+        horaSalida: document.getElementById('horaSalida').value,
+        horaLlegada: document.getElementById('horaLlegada').value,
+        canastSalida: document.getElementById('canSalida').value,
+        canastLlegada: document.getElementById('canLlegada').value,
+        observaciones: document.getElementById('observaciones').value,
+        usuario: usuarioConectado.nombre || usuarioConectado.email,
+        horaRegistro: new Date()
+    };
+
+    if(idEdicion) {
+        await db.collection('movimientos').doc(idEdicion).update(datos);
+        registrarAccion('Editar Movimiento', 'Movimientos', `ID: ${idEdicion}`);
+    } else {
+        await db.collection('movimientos').add(datos);
+        registrarAccion('Nuevo Movimiento', 'Movimientos', `Placa: ${datos.placa}`);
+    }
+
+    idEdicion = null;
+    limpiarFormulario();
+    cargarDatos();
+    alert('✅ Movimiento guardado');
+}
+
+async function guardarMovimientoTransp() {
+    const datos = {
+        fecha: document.getElementById('fechaTransp').value,
+        placa: document.getElementById('vehiculoTransp').value,
+        conductor: document.getElementById('conductorTransp').value,
+        horaSalida: document.getElementById('horaSalidaTransp').value,
+        horaLlegada: document.getElementById('horaLlegadaTransp').value,
+        canastSalida: document.getElementById('canSalidaTransp').value,
+        canastLlegada: document.getElementById('canLlegadaTransp').value,
+        usuario: usuarioConectado.nombre || usuarioConectado.email,
+        horaRegistro: new Date()
+    };
+    await db.collection('movimientos').add(datos);
+    registrarAccion('Movimiento Transportadora', 'Transportadora', `Placa: ${datos.placa}`);
+    cargarDatos();
+    alert('✅ Movimiento registrado');
+}
+
+function limpiarFormulario() {
+    document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
+    document.getElementById('vehiculo').value = '';
+    document.getElementById('quienRecoge').value = '';
+    document.getElementById('horaSalida').value = '';
+    document.getElementById('horaLlegada').value = '';
+    document.getElementById('canSalida').value = '';
+    document.getElementById('canLlegada').value = '';
+    document.getElementById('observaciones').value = '';
+    document.getElementById('idEditar').value = '';
+}
+
+function dibujarMovimientos(lista = movimientos) {
+    const contenedor = document.getElementById('listaMovimientos');
+    contenedor.innerHTML = lista.map(m=>`
+        <div style="border-bottom:1px solid #ddd; padding:0.5rem; font-size:0.9rem;">
+            <strong>${m.fecha}</strong> | ${m.placa} | ${m.colaborador || m.conductor || 'Sin conductor'}<br>
+            Salida: ${m.horaSalida || '--'} | Llegada: ${m.horaLlegada || '--'} | 📤${m.canastSalida || 0} 📥${m.canastLlegada || 0}
+            ${usuarioConectado.rol === 'admin' ? `
+                <div style="margin-top:0.25rem;">
+                    <button onclick="editarMovimiento('${m.id}')" style="padding:0.25rem 0.5rem; font-size:0.8rem;">✏️ Editar</button>
+                    <button onclick="eliminarMovimiento('${m.id}')" style="padding:0.25rem 0.5rem; font-size:0.8rem; background:#dc2626;">🗑️ Eliminar</button>
+                </div>` : ''}
+        </div>
+    `).join('');
+}
 
 function filtrarMovimientos() {
-  const busq = document.getElementById("buscarMovimiento").value.toLowerCase().trim();
-  if (!busq) { movimientosFiltrados = [...movimientos]; }
-  else {
-    movimientosFiltrados = movimientos.filter(m =>
-      m.placa.toLowerCase().includes(busq) || m.fecha.includes(busq) || m.quienEntrega.toLowerCase().includes(busq)
-    );
-  }
-  renderizarMovimientos();
+    const b = document.getElementById('buscarMov').value.toLowerCase();
+    dibujarMovimientos(movimientos.filter(m=>
+        (m.placa && m.placa.toLowerCase().includes(b)) ||
+        (m.colaborador && m.colaborador.toLowerCase().includes(b)) ||
+        (m.conductor && m.conductor.toLowerCase().includes(b))
+    ));
 }
 
-function abrirLlegada(id) {
-  const mov = movimientos.find(m => m.id === id);
-  if (!mov || mov.estado === "cerrado") return;
-  document.getElementById("idMovCerrar").value = id;
-  document.getElementById("resumenMov").textContent = `${mov.fecha} | ${mov.placa} | Salida: ${mov.canastSalen} canast. | ${mov.quienEntrega}`;
-  document.getElementById("formSalida").style.display = "none";
-  document.getElementById("formLlegada").style.display = "block";
-  document.getElementById("horaLlegada").value = "";
-  document.getElementById("canastillasLlegan").value = "";
-  document.getElementById("obsLlegada").value = "";
-  resetRecogidas();
-}
-function cancelarLlegada() {
-  document.getElementById("formSalida").style.display = "block";
-  document.getElementById("formLlegada").style.display = "none";
-}
-function resetRecogidas() {
-  contRecog = 1;
-  document.getElementById("listaRecogidas").innerHTML = `<div class="recogida"><h4>Recogida #1</h4><label>Recoge a: <select class="colaboradorRecogido" required><option value="">Seleccione colaborador</option>${colaboradores.filter(c=>(c.estado||"activo")==="activo").sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join("")}</select></label><label>Kilos recogidos <input type="number" class="kilosRecogidos" min="0" step="0.01" oninput="actualizarTotal()"></label><label>Canastillas recogidas <input type="number" class="canastRecogidas" min="0" oninput="actualizarTotal()"></label></div>`;
-  actualizarTotal();
-}
-function agregarRecogida() {
-  contRecog++;
-  const lista = document.getElementById("listaRecogidas");
-  const div = document.createElement("div");
-  div.className = "recogida";
-  div.innerHTML = `<h4>Recogida #${contRecog} <button type="button" class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem; float:right;" onclick="this.parentElement.parentElement.remove(); actualizarTotal();">❌ Quitar</button></h4><label>Recoge a: <select class="colaboradorRecogido" required><option value="">Seleccione colaborador</option>${colaboradores.filter(c=>(c.estado||"activo")==="activo").sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join("")}</select></label><label>Kilos recogidos <input type="number" class="kilosRecogidos" min="0" step="0.01" oninput="actualizarTotal()"></label><label>Canastillas recogidas <input type="number" class="canastRecogidas" min="0" oninput="actualizarTotal()"></label>`;
-  lista.appendChild(div);
-}
-function actualizarTotal() {
-  let tk=0, tc=0;
-  document.querySelectorAll(".kilosRecogidos").forEach(i=>tk+=+i.value||0);
-  document.querySelectorAll(".canastRecogidas").forEach(i=>tc+=+i.value||0);
-  document.getElementById("totalKilos").textContent = tk.toFixed(2);
-  document.getElementById("totalCanastillas").textContent = tc;
+async function editarMovimiento(id) {
+    const m = movimientos.find(x=>x.id === id);
+    if(!m) return;
+    idEdicion = id;
+    document.getElementById('fecha').value = m.fecha;
+    document.getElementById('vehiculo').value = m.placa;
+    document.getElementById('quienRecoge').value = m.colaborador || '';
+    document.getElementById('horaSalida').value = m.horaSalida || '';
+    document.getElementById('horaLlegada').value = m.horaLlegada || '';
+    document.getElementById('canSalida').value = m.canastSalida || '';
+    document.getElementById('canLlegada').value = m.canastLlegada || '';
+    document.getElementById('observaciones').value = m.observaciones || '';
+    window.scrollTo({top:0, behavior:'smooth'});
 }
 
-document.getElementById("formLlegada").addEventListener("submit", async e => {
-  e.preventDefault();
-  if (usuarioActivo.puedeEditar !== "si") { alert("Sin permiso"); return; }
-  const id = document.getElementById("idMovCerrar").value;
-  const lista = [];
-  document.querySelectorAll(".recogida").forEach(d => {
-    const nom = d.querySelector(".colaboradorRecogido").value;
-    const kg = +d.querySelector(".kilosRecogidos").value || 0;
-    const cn = +d.querySelector(".canastRecogidas").value || 0;
-    if (nom) lista.push({ colaborador: nom, kilos: kg, canastillas: cn });
-  });
-  const tk = lista.reduce((s,x)=>s+x.kilos,0);
-  const tc = lista.reduce((s,x)=>s+x.canastillas,0);
-  await db.ref("movimientos/" + id).update({
-    horaLlegada: document.getElementById("horaLlegada").value,
-    canastLlegan: +document.getElementById("canastillasLlegan").value || 0,
-    recogidas: lista,
-    totalKilos: tk,
-    totalCanast: tc,
-    observaciones: document.getElementById("obsLlegada").value,
-    estado: "cerrado",
-    usuarioLlegada: usuarioActivo.nombre,
-    horaLlegadaReg: new Date().toLocaleString("es-CO")
-  });
-  document.getElementById("formSalida").style.display = "block";
-  document.getElementById("formLlegada").style.display = "none";
-  cargarDatos();
-  alert("✅ Movimiento cerrado correctamente");
-});
-
-function renderizarMovimientos() {
-  const tb = document.querySelector("#tablaMovimientos tbody");
-  tb.innerHTML = "";
-  movimientosFiltrados.forEach(m => {
-    tb.innerHTML += `<tr>
-      <td>${m.fecha}</td>
-      <td>${m.placa}</td>
-      <td>${m.quienEntrega}</td>
-      <td>${m.canastSalen}</td>
-      <td class="${m.estado==='abierto'?'estado-abierto':'estado-cerrado'}">${m.estado==='abierto'?'🔓 ABIERTO':'✅ CERRADO'}</td>
-      <td>${m.canastLlegan||"-"}</td>
-      <td>${m.totalKilos||"-"}</td>
-      <td>${m.usuarioSalida||"-"}</td>
-      <td>${m.estado==='abierto'?`<button class="btn-amarillo" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick="abrirLlegada('${m.id}')">🔙 Registrar Retorno</button>`:`<button class="btn-exito" style="padding:0.2rem 0.4rem; font-size:0.7rem;" disabled>✅ Cerrado</button>`}</td>
-    </tr>`;
-  });
+async function eliminarMovimiento(id) {
+    if(usuarioConectado.rol !== 'admin') {
+        return alert('🔒 Solo el administrador puede eliminar');
+    }
+    if(!confirm('¿Eliminar este movimiento?')) return;
+    await db.collection('movimientos').doc(id).delete();
+    registrarAccion('Eliminar Movimiento', 'Movimientos', `ID: ${id}`);
+    cargarDatos();
 }
 
-// ==================================================
-// ===== VEHÍCULOS Y COLABORADORES =====
-// ==================================================
-document.getElementById("formVehiculoCanastilla").addEventListener("submit", async e => {
-  e.preventDefault();
-  let tipo = document.getElementById("tipoVehCanast").value;
-  if (tipo === "Otro") tipo = document.getElementById("tipoPersonalizado").value || "Otro";
-  await db.ref("vehiculosCanastillas").push({
-    placa: document.getElementById("placaCanast").value.toUpperCase(),
-    marca: document.getElementById("marcaCanast").value,
-    modelo: document.getElementById("modeloCanast").value,
-    tipo, usuario: usuarioActivo.nombre
-  });
-  e.target.reset(); cargarDatos();
-  alert("✅ Vehículo guardado");
-});
-function renderizarVehCanast() {
-  const tb = document.querySelector("#tablaVehCanast tbody"); tb.innerHTML = "";
-  vehiculosCanast.forEach(v => {
-    tb.innerHTML += `<tr><td>${v.placa}</td><td>${v.marca}</td><td>${v.modelo||"-"}</td><td>${v.tipo}</td><td>${usuarioActivo?.rol==="admin"?`<button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick="if(confirm('¿Eliminar?')){db.ref('vehiculosCanastillas/${v.id}').remove();cargarDatos();}">🗑️</button>`:""}</td></tr>`;
-  });
-}
-
-document.getElementById("formColaborador").addEventListener("submit", async e => {
-  e.preventDefault();
-  const nombre = document.getElementById("nombreColaborador").value.trim().toLowerCase();
-  const idEd = document.getElementById("idColaboradorEditar").value;
-  const estado = document.getElementById("estadoColaborador").value;
-  const repetido = colaboradores.find(c => c.nombre.toLowerCase() === nombre && c.id !== idEd);
-  if (repetido) { alert("⚠️ Este colaborador ya está registrado"); return; }
-  const datos = { nombre: nombre.charAt(0).toUpperCase() + nombre.slice(1), estado, usuario: usuarioActivo.nombre };
-  if (idEd) await db.ref("colaboradores/" + idEd).update(datos);
-  else await db.ref("colaboradores").push(datos);
-  limpiarFormColaborador(); cargarDatos(); alert("✅ Colaborador guardado");
-});
-function limpiarFormColaborador() { document.getElementById("formColaborador").reset(); document.getElementById("idColaboradorEditar").value = ""; }
-function editarColaborador(id) {
-  const c = colaboradores.find(x => x.id === id);
-  if (!c) { alert("⚠️ Colaborador no encontrado"); return; }
-  document.getElementById("idColaboradorEditar").value = c.id;
-  document.getElementById("nombreColaborador").value = c.nombre;
-  document.getElementById("estadoColaborador").value = c.estado || "activo";
-  document.getElementById("formColaborador").scrollIntoView({ behavior: "smooth" });
-}
-function renderizarColaboradores() {
-  const tb = document.querySelector("#tablaColaboradores tbody");
-  if (!tb) return;
-  tb.innerHTML = "";
-  
-  if (colaboradores.length === 0) {
-    tb.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:1rem; color:#888;">No hay colaboradores registrados</td></tr>`;
-    return;
-  }
-  
-  colaboradores.forEach(c => {
-    tb.innerHTML += `<tr>
-      <td>${c.nombre}</td>
-      <td>${(c.estado || "activo") === "activo" ? "✅ Activo" : "❌ Inactivo"}</td>
-      <td>${c.usuario || "-"}</td>
-      <td>
-        <button class="btn-primario" style="padding:0.3rem 0.5rem; font-size:0.75rem;" onclick='editarColaborador("${c.id}")'>✏️ Editar</button>
-      ${usuarioActivo?.rol === "admin" ? `<button class="btn-peligro" style="padding:0.3rem 0.5rem; font-size:0.75rem;" onclick="if(confirm('¿Eliminar colaborador?')){ db.ref('colaboradores/${c.id}').remove(); cargarDatos(); }">🗑️ Eliminar</button>` : ""}
-      </td>
-    </tr>`;
-  });
-}
-
-// ==================================================
-// ===== TRANSPORTADORA =====
-// ==================================================
-document.getElementById("formConductorTrans").addEventListener("submit", async e => {
-  e.preventDefault();
-  await db.ref("conductoresTrans").push({
-    nombre: document.getElementById("nombreConductorTrans").value.trim(),
-    cedula: document.getElementById("cedulaConductorTrans").value.trim(),
-    usuario: usuarioActivo.nombre
-  });
-  e.target.reset();
-  cargarDatos();
-  alert("✅ Conductor guardado");
-});
-
-function renderizarCondTrans() {
-  const tb = document.querySelector("#tablaConductoresTrans tbody");
-  tb.innerHTML = "";
-  conductoresTrans.forEach(c => {
-    tb.innerHTML += `<tr>
-      <td>${c.nombre}</td>
-      <td>${c.cedula || "-"}</td>
-      <td>${c.usuario || "-"}</td>
-    </tr>`;
-  });
-}
-
-document.getElementById("formVehiculoTrans").addEventListener("submit", async e => {
-  e.preventDefault();
-  await db.ref("vehiculosTrans").push({
-    placa: document.getElementById("placaTrans").value.toUpperCase(),
-    marca: document.getElementById("marcaTrans").value,
-    modelo: document.getElementById("modeloTrans").value,
-    tipo: document.getElementById("tipoVehTrans").value,
-    usuario: usuarioActivo.nombre
-  });
-  e.target.reset();
-  cargarDatos();
-  alert("✅ Vehículo guardado");
-});
-
-function renderizarVehTrans() {
-  const tb = document.querySelector("#tablaVehTrans tbody");
-  tb.innerHTML = "";
-  vehiculosTrans.forEach(v => {
-    tb.innerHTML += `<tr>
-      <td>${v.placa}</td>
-      <td>${v.marca}</td>
-      <td>${v.modelo || "-"}</td>
-      <td>${v.tipo}</td>
-      <td>${v.usuario || "-"}</td>
-    </tr>`;
-  });
-}
-
-document.getElementById("formMovTrans").addEventListener("submit", async e => {
-  e.preventDefault();
-  if (usuarioActivo.puedeEditar !== "si") {
-    alert("🔒 Sin permiso para editar");
-    return;
-  }
-  await db.ref("movimientosTrans").push({
-    fecha: document.getElementById("fechaMovTrans").value,
-    conductor: document.getElementById("selConductorTrans").value,
-    placa: document.getElementById("selVehTrans").value,
-    horaSalida: document.getElementById("horaSalidaTrans").value,
-    canSalida: +document.getElementById("canSalidaTrans").value || 0,
-    horaLlegada: document.getElementById("horaLlegadaTrans").value,
-    canLlegada: +document.getElementById("canLlegadaTrans").value || 0,
-    observaciones: document.getElementById("obsTrans").value,
-    usuario: usuarioActivo.nombre,
-    horaRegistro: new Date().toLocaleString("es-CO")
-  });
-  e.target.reset();
-  document.getElementById("fechaMovTrans").valueAsDate = new Date();
-  cargarDatos();
-  alert("✅ Movimiento guardado");
-});
-
-function renderizarMovTrans() {
-  const tb = document.querySelector("#tablaMovTrans tbody");
-  tb.innerHTML = "";
-  movimientosTrans.forEach(m => {
-    tb.innerHTML += `<tr>
-      <td>${m.fecha}</td>
-      <td>${m.conductor}</td>
-      <td>${m.placa}</td>
-      <td>${m.horaSalida || "-"}</td>
-      <td>${m.canSalida}</td>
-      <td>${m.horaLlegada || "-"}</td>
-      <td>${m.canLlegada || "-"}</td>
-      <td>${m.usuario || "-"}</td>
-    </tr>`;
-  });
-}
-
-// ==================================================
 // ===== COMBUSTIBLE =====
-// ==================================================
-document.getElementById("formCombustible").addEventListener("submit", async e => {
-  e.preventDefault();
-  if (usuarioActivo.puedeEditar !== "si") {
-    alert("🔒 Sin permiso para editar");
-    return;
-  }
-  const kmMañana = +document.getElementById("kmManana").value || 0;
-  const kmTarde = +document.getElementById("kmTarde").value || 0;
-  const galones = +document.getElementById("galones").value || 0;
-  const recorrido = kmTarde - kmMañana;
-  const rendimiento = galones > 0 ? (recorrido / galones).toFixed(2) : "0.00";
-
-  await db.ref("combustible").push({
-    fecha: document.getElementById("fechaComb").value,
-    placa: document.getElementById("placaComb").value,
-    kmManana: kmMañana,
-    kmTarde: kmTarde,
-    recorrido: recorrido,
-    galones: galones,
-    rendimiento: rendimiento,
-    usuario: usuarioActivo.nombre,
-    horaRegistro: new Date().toLocaleString("es-CO")
-  });
-  e.target.reset();
-  document.getElementById("fechaComb").valueAsDate = new Date();
-  cargarDatos();
-  alert("✅ Registro guardado");
-});
-
-function renderizarCombustible() {
-  const tb = document.querySelector("#tablaCombustible tbody");
-  tb.innerHTML = "";
-  registrosCombustible.forEach(r => {
-    tb.innerHTML += `<tr>
-      <td>${r.fecha}</td>
-      <td>${r.placa}</td>
-      <td>${r.kmManana}</td>
-      <td>${r.kmTarde}</td>
-      <td>${r.recorrido}</td>
-      <td>${r.galones}</td>
-      <td>${r.rendimiento}</td>
-      <td>${r.usuario || "-"}</td>
-    </tr>`;
-  });
+async function guardarCombustible() {
+    const datos = {
+        fecha: new Date().toISOString().split('T')[0],
+        placa: document.getElementById('vehiculoComb').value,
+        kmManana: document.getElementById('kma').value,
+        kmTarde: document.getElementById('kmt').value,
+        galones: document.getElementById('galones').value,
+        usuario: usuarioConectado.nombre,
+        horaRegistro: new Date()
+    };
+    await db.collection('combustible').add(datos);
+    registrarAccion('Registro Combustible', 'Combustible', datos.placa);
+    alert('✅ Guardado');
 }
 
-// ==================================================
 // ===== INFORMES Y EXPORTAR =====
-// ==================================================
 function generarInforme() {
-  const desde = document.getElementById("fechaIni").value;
-  const hasta = document.getElementById("fechaFin").value;
-  const tb = document.querySelector("#tablaInformes tbody");
-  tb.innerHTML = "";
-
-  const filtrados = movimientos.filter(r => {
-    if (!desde && !hasta) return true;
-    if (desde && r.fecha < desde) return false;
-    if (hasta && r.fecha > hasta) return false;
-    return true;
-  });
-
-  filtrados.forEach(r => {
-    const colaboradoresLista = r.recogidas?.map(x => x.colaborador).join(", ") || "-";
-    tb.innerHTML += `<tr>
-      <td>${r.fecha}</td>
-      <td>${r.placa}</td>
-      <td>${r.quienEntrega}</td>
-      <td>${colaboradoresLista}</td>
-      <td>${r.totalKilos || "-"}</td>
-      <td>${r.canastSalen} / ${r.canastLlegan || "-"}</td>
-    </tr>`;
-  });
+    const inicio = document.getElementById('fechaInicio').value;
+    const fin = document.getElementById('fechaFin').value;
+    const filtrados = movimientos.filter(m=> m.fecha >= inicio && m.fecha <= fin);
+    document.getElementById('resultadoInforme').innerHTML = `<p>Se encontraron ${filtrados.length} movimientos</p>`;
+    dibujarMovimientos(filtrados);
 }
 
 function exportarExcel() {
-  let contenido = "FECHA\tPLACA\tQUIEN ENTREGA\tCOLABORADORES RECOGIDOS\tKILOS TOTAL\tCANASTILLAS SALEN\tCANASTILLAS LLEGAN\tOBSERVACIONES\n";
-  movimientos.forEach(r => {
-    const colaboradoresLista = r.recogidas?.map(x => x.colaborador).join(", ") || "-";
-    contenido += `${r.fecha}\t${r.placa}\t${r.quienEntrega}\t${colaboradoresLista}\t${r.totalKilos || "-"}\t${r.canastSalen}\t${r.canastLlegan || "-"}\t${r.observaciones || ""}\n`;
-  });
-  const blob = new Blob([contenido], { type: "text/tab-separated-values;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "Informe_Canastillas.xls";
-  a.click();
-  URL.revokeObjectURL(url);
-  alert("✅ Archivo descargado");
+    const hoja = XLSX.utils.json_to_sheet(movimientos.map(m=>({
+        Fecha: m.fecha,
+        Placa: m.placa,
+        Colaborador: m.colaborador || m.conductor,
+        HoraSalida: m.horaSalida,
+        HoraLlegada: m.horaLlegada,
+        CanastillasSalida: m.canastSalida,
+        CanastillasLlegada: m.canastLlegada,
+        RegistradoPor: m.usuario
+    })));
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, 'Movimientos');
+    XLSX.writeFile(libro, `Movimientos-${new Date().toLocaleDateString()}.xlsx`);
+    registrarAccion('Exportar Excel', 'Informes', 'Descarga generada');
 }
 
-// ==================================================
-// ===== ADMINISTRACIÓN - USUARIOS =====
-// ==================================================
-document.getElementById("formUsuario").addEventListener("submit", async e => {
-  e.preventDefault();
-  if (usuarioActivo.rol !== "admin") {
-    alert("🔒 Solo el administrador puede gestionar usuarios");
-    return;
-  }
-  const idEd = document.getElementById("idUsuarioEditar").value;
-  const claveNueva = document.getElementById("claveUsuarioNuevo").value.trim();
-  const datos = {
-    usuario: document.getElementById("nombreUsuarioNuevo").value.trim(),
-    rol: document.getElementById("rolUsuarioNuevo").value,
-    permisos: {
-      canastillas: document.getElementById("permCanastillas").checked,
-      transportadora: document.getElementById("permTransportadora").checked,
-      combustible: document.getElementById("permCombustible").checked,
-      informes: document.getElementById("permInformes").checked
-    },
-    puedeEditar: document.getElementById("puedeEditar").value
-  };
-  if (claveNueva) datos.clave = claveNueva;
+// ===== ADMINISTRACIÓN =====
+async function crearUsuario() {
+    if(usuarioConectado.rol !== 'admin') return alert('🔒 Acceso denegado');
+    let correo = document.getElementById('correoNuevo').value.trim();
+    if(!correo.includes('@')) correo += '@correo.com';
+    const pass = document.getElementById('passNuevo').value;
+    const rol = document.getElementById('rolNuevo').value;
 
-  if (idEd && !idEd.startsWith("FIJO_")) {
-    await db.ref("usuarios/" + idEd).update(datos);
-    alert("✅ Usuario actualizado");
-  } else if (!idEd) {
-    if (!claveNueva) {
-      alert("⚠️ Escriba una contraseña para crear el usuario");
-      return;
+    try {
+        const cred = await auth.createUserWithEmailAndPassword(correo, pass);
+        await db.collection('usuarios').doc(cred.user.uid).set({
+            email: correo, rol, nombre: correo.split('@')[0], fechaCreacion: new Date()
+        });
+        alert('✅ Usuario creado');
+        registrarAccion('Crear Usuario', 'Administración', correo);
+    } catch(e) {
+        alert('Error: ' + e.message);
     }
-    await db.ref("usuarios").push(datos);
-    alert("✅ Usuario creado");
-  } else {
-    alert("⚠️ Los usuarios fijos no se pueden modificar desde aquí");
-    return;
-  }
-
-  e.target.reset();
-  document.getElementById("idUsuarioEditar").value = "";
-  cargarDatos();
-});
-
-function editarUsuario(id) {
-  const todos = usuariosRegistrados.concat(usuariosFijos.map(u => ({ ...u, id: "FIJO_" + u.usuario })));
-  const u = todos.find(x => x.id === id);
-  if (!u) return;
-
-  document.getElementById("idUsuarioEditar").value = u.id;
-  document.getElementById("nombreUsuarioNuevo").value = u.usuario;
-  document.getElementById("claveUsuarioNuevo").value = "";
-  document.getElementById("rolUsuarioNuevo").value = u.rol || "usuario";
-  document.getElementById("permCanastillas").checked = u.permisos?.canastillas !== false;
-  document.getElementById("permTransportadora").checked = u.permisos?.transportadora !== false;
-  document.getElementById("permCombustible").checked = u.permisos?.combustible !== false;
-  document.getElementById("permInformes").checked = u.permisos?.informes !== false;
-  document.getElementById("puedeEditar").value = u.puedeEditar || "si";
 }
 
-function renderizarUsuarios() {
-  const tb = document.querySelector("#tablaUsuarios tbody");
-  tb.innerHTML = "";
-  const todos = usuariosRegistrados.concat(usuariosFijos.map(u => ({ ...u, id: "FIJO_" + u.usuario })));
-
-  todos.forEach(u => {
-    let ve = [];
-    if (u.permisos?.canastillas !== false) ve.push("Canastillas");
-    if (u.permisos?.transportadora !== false) ve.push("Transporte");
-    if (u.permisos?.combustible !== false) ve.push("Combustible");
-    if (u.permisos?.informes !== false) ve.push("Informes");
-
-    tb.innerHTML += `<tr>
-      <td>${u.usuario}</td>
-      <td>${u.clave ? "••••••••" : "—"}</td>
-      <td>${u.rol === "admin" ? "👑 Administrador" : "Usuario"}</td>
-      <td>${ve.join(", ") || "Ninguno"}</td>
-      <td>${u.puedeEditar === "si" ? "✅ Sí" : "❌ Solo consulta"}</td>
-      <td>
-        <button class="btn-primario" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick='editarUsuario("${u.id}")'>✏️ Editar</button>
-        ${!u.id.startsWith("FIJO_") ? `<button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick="if(confirm('¿Eliminar usuario?')){db.ref('usuarios/${u.id}').remove();cargarDatos();}">🗑️</button>` : ""}
-      </td>
-    </tr>`;
-  });
+// ===== BITÁCORA / REGISTRO DE ACCIONES =====
+async function registrarAccion(accion, modulo, detalle) {
+    await db.collection('bitacora').add({
+        accion, modulo, detalle,
+        usuario: usuarioConectado?.nombre || usuarioConectado?.email || 'Anónimo',
+        fechaHora: new Date()
+    });
 }
 
-// ==================================================
-// ===== CIERRE AUTOMÁTICO POR INACTIVIDAD =====
-// ==================================================
-let temporizadorSesion;
-const TIEMPO_INACTIVIDAD = 60 * 60 * 1000; // 1 hora
-
-function reiniciarTemporizador() {
-  clearTimeout(temporizadorSesion);
-  temporizadorSesion = setTimeout(() => {
-    if (confirm("⏰ Tu sesión está por cerrarse por inactividad. ¿Deseas continuar?")) {
-      reiniciarTemporizador();
-    } else {
-      cerrarSesion();
-    }
-  }, TIEMPO_INACTIVIDAD);
-}
-
-// Detectar actividad del usuario
-["mousemove", "keydown", "click", "touchstart"].forEach(evt => {
-  document.addEventListener(evt, reiniciarTemporizador, false);
-});
-
+// ===== FIN DEL CÓDIGO =====
 </script>
 </body>
 </html>
