@@ -111,7 +111,7 @@
     .total-acum { background:#e8f0fe; padding:0.8rem; border-radius:8px; margin-top:1rem; font-weight:bold; }
     .sub-seccion { margin-bottom:1.5rem; border-left:3px solid var(--azul); padding-left:1rem; }
 
-    /* --- RESPONSIVE → En celular menú se oculta por defecto --- */
+    /* --- RESPONSIVE --- */
     @media(max-width:768px) {
       .menu-lateral { transform: translateX(-100%); }
       .contenido-paginas { margin-left:0; }
@@ -200,10 +200,26 @@
   <!-- --- COLABORADORES --- -->
   <div class="sub-seccion">
     <form id="formColaborador">
-      <h3>👤 Registrar Colaborador</h3>
-      <label>Nombre del Colaborador <input type="text" id="nombreColaborador" required></label>
-      <button type="submit" class="btn-primario">Guardar Colaborador</button>
+      <input type="hidden" id="idColaboradorEditar">
+      <h3>👤 Registrar / Editar Colaborador</h3>
+      <label>Nombre del Colaborador <input type="text" id="nombreColaborador" required style="text-transform:capitalize;"></label>
+      <label>Estado
+        <select id="estadoColaborador">
+          <option value="activo">✅ Activo</option>
+          <option value="inactivo">❌ Inactivo</option>
+        </select>
+      </label>
+      <button type="submit" class="btn-primario">💾 Guardar</button>
+      <button type="button" class="btn-naranja" onclick="limpiarFormColaborador()">🆕 Nuevo</button>
     </form>
+
+    <h4>Lista de Colaboradores</h4>
+    <div class="tabla-contenedor">
+      <table id="tablaColaboradores">
+        <thead><tr><th>Nombre</th><th>Estado</th><th>Registrado por</th><th>Acciones</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 
   <!-- --- REGISTRO DE RECOGIDAS --- -->
@@ -216,7 +232,11 @@
         <option value="">Seleccione vehículo</option>
       </select>
     </label>
-    <label>Quien Recoge <input type="text" id="quienRecoge" placeholder="Nombre del conductor o encargado" required></label>
+    <label>Quien Recoge
+      <select id="quienRecoge" required>
+        <option value="">Seleccione colaborador</option>
+      </select>
+    </label>
 
     <!-- RECOGIDAS DINÁMICAS -->
     <div id="listaRecogidas">
@@ -484,6 +504,7 @@ let menuVisible = true;
 
 // ===== FIREBASE CONFIG =====
 const firebaseConfig = {
+ const firebaseConfig = {
   apiKey: "AIzaSyBruMDqyExColkMwy7XyqDSBsF8XcvsFoY",
   authDomain: "control-ingresos-y-canastillas.firebaseapp.com",
   projectId: "control-ingresos-y-canastillas",
@@ -519,6 +540,7 @@ function alternarMenu() {
     contenido.style.marginLeft = "0";
   }
 }
+
 // ==================================================
 // ===== INICIAR SESIÓN =====
 // ==================================================
@@ -605,9 +627,7 @@ function configurarPestanas() {
       tab.classList.add("activa");
       document.getElementById("pag-" + pag).classList.add("visible");
 
-      // En celular: ocultar menú al elegir pestaña
       if (window.innerWidth <= 768 && menuVisible) alternarMenu();
-
       if (pag === "informes") generarInforme();
     });
   });
@@ -637,6 +657,7 @@ async function cargarDatos() {
   usuariosRegistrados = objToArray(usu);
 
   renderizarVehCanast();
+  renderizarColaboradores();
   renderizarRecogidas();
   renderizarCondTrans();
   renderizarVehTrans();
@@ -669,10 +690,30 @@ function cargarSelectores() {
     });
   }
 
+  // === QUIEN RECOGE → Select con colaboradores ACTIVOS ===
+  const selQuienRecoge = document.getElementById("quienRecoge");
+  if (selQuienRecoge) {
+    const valorActual = selQuienRecoge.value;
+    selQuienRecoge.innerHTML = "<option value=''>Seleccione colaborador</option>";
+    colaboradores
+      .filter(c => (c.estado || "activo") === "activo")
+      .sort((a, b) => a.nombre.localeCompare(b.nombre))
+      .forEach(c => {
+        selQuienRecoge.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
+      });
+    selQuienRecoge.value = valorActual;
+  }
+
+  // === RECOGE A → Select con colaboradores ACTIVOS ===
   document.querySelectorAll(".colaboradorRecogido").forEach(s => {
     const val = s.value;
     s.innerHTML = "<option value=''>Seleccione colaborador</option>";
-    colaboradores.forEach(c => s.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`);
+    colaboradores
+      .filter(c => (c.estado || "activo") === "activo")
+      .sort((a, b) => a.nombre.localeCompare(b.nombre))
+      .forEach(c => {
+        s.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
+      });
     s.value = val;
   });
 
@@ -722,12 +763,64 @@ function renderizarVehCanast() {
 // ==================================================
 document.getElementById("formColaborador").addEventListener("submit", async e => {
   e.preventDefault();
-  await db.ref("colaboradores").push({
-    nombre: document.getElementById("nombreColaborador").value.trim(),
+  const nombre = document.getElementById("nombreColaborador").value.trim().toLowerCase();
+  const idEd = document.getElementById("idColaboradorEditar").value;
+  const estado = document.getElementById("estadoColaborador").value;
+
+  // === NO PERMITIR NOMBRES REPETIDOS ===
+  const repetido = colaboradores.find(c =>
+    c.nombre.toLowerCase() === nombre && c.id !== idEd
+  );
+  if (repetido) {
+    alert("⚠️ Este colaborador ya está registrado");
+    return;
+  }
+
+  const datos = {
+    nombre: nombre.charAt(0).toUpperCase() + nombre.slice(1),
+    estado: estado,
     usuario: usuarioActivo.nombre
-  });
-  e.target.reset(); cargarDatos();
+  };
+
+  if (idEd) {
+    await db.ref("colaboradores/" + idEd).update(datos);
+  } else {
+    await db.ref("colaboradores").push(datos);
+  }
+
+  limpiarFormColaborador();
+  cargarDatos();
+  alert("✅ Colaborador guardado");
 });
+
+function limpiarFormColaborador() {
+  document.getElementById("formColaborador").reset();
+  document.getElementById("idColaboradorEditar").value = "";
+}
+
+function editarColaborador(id) {
+  const c = colaboradores.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById("idColaboradorEditar").value = c.id;
+  document.getElementById("nombreColaborador").value = c.nombre;
+  document.getElementById("estadoColaborador").value = c.estado || "activo";
+}
+
+function renderizarColaboradores() {
+  const tb = document.querySelector("#tablaColaboradores tbody");
+  tb.innerHTML = "";
+  colaboradores.forEach(c => {
+    tb.innerHTML += `
+      <tr>
+        <td>${c.nombre}</td>
+        <td>${(c.estado || "activo") === "activo" ? "✅ Activo" : "❌ Inactivo"}</td>
+        <td>${c.usuario || "-"}</td>
+        <td>
+          <button class="btn-primario" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick='editarColaborador("${c.id}")'>✏️ Editar</button>
+        </td>
+      </tr>`;
+  });
+}
 
 // ==================================================
 // ===== CANASTILLAS → RECOGIDAS DINÁMICAS =====
@@ -744,7 +837,7 @@ function agregarRecogida() {
     <label>Recoge a:
       <select class="colaboradorRecogido" required>
         <option value="">Seleccione colaborador</option>
-        ${colaboradores.map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join("")}
+        ${colaboradores.filter(c=>(c.estado||"activo")==="activo").sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join("")}
       </select>
     </label>
     <label>Kilos <input type="number" class="kilosRecogidos" min="0" step="0.01" oninput="actualizarTotal()"></label>
@@ -768,7 +861,7 @@ function resetFormRecogida() {
       <label>Recoge a:
         <select class="colaboradorRecogido" required>
           <option value="">Seleccione colaborador</option>
-          ${colaboradores.map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join("")}
+          ${colaboradores.filter(c=>(c.estado||"activo")==="activo").sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join("")}
         </select>
       </label>
       <label>Kilos <input type="number" class="kilosRecogidos" min="0" step="0.01" oninput="actualizarTotal()"></label>
@@ -795,7 +888,7 @@ document.getElementById("formRecogida").addEventListener("submit", async e => {
   const datos = {
     fecha: document.getElementById("fechaRecogida").value,
     placa: document.getElementById("vehiculoRecolector").value,
-    quienRecoge: document.getElementById("quienRecoge").value.trim(),
+    quienRecoge: document.getElementById("quienRecoge").value,
     recogidas: lista,
     totalKilos: tk,
     totalCanastillas: tc,
@@ -819,7 +912,7 @@ function renderizarRecogidas() {
         <td>${r.fecha}</td><td>${r.placa}</td><td>${r.quienRecoge}</td><td>${noms}</td>
         <td>${r.totalKilos}</td><td>${r.totalCanastillas}</td><td>${r.usuario||"-"}</td>
         <td>${usuarioActivo.rol==="admin"?`<button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick="db.ref('recogidas/${r.id}').remove();cargarDatos();">🗑️</button>`:""}</td>
-      </tr>`;
+              </tr>`;
   });
 }
 
@@ -897,7 +990,7 @@ function renderizarMovTrans() {
         <td>${m.fecha}</td><td>${m.conductor}</td><td>${m.placa}</td>
         <td>${m.horaSalida||"-"}</td><td>${m.canSalida}</td>
         <td>${m.horaLlegada||"-"}</td><td>${m.canLlegada}</td><td>${m.usuario||"-"}</td>
-           </tr>`;
+      </tr>`;
   });
 }
 
@@ -1068,9 +1161,6 @@ function renderizarUsuarios() {
   });
 }
 
-// ==================================================
-// ===== FIN DEL CÓDIGO =====
-// ==================================================
 </script>
 </body>
 </html>
