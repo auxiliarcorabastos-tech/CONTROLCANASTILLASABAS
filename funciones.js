@@ -27,7 +27,7 @@ let movimientos = [];
 let conductores = [];
 let vehiculosMov = [];
 let vehiculosTransp = [];
-let colaboradores = []; // ✅ ÚNICA lista compartida de colaboradores
+let colaboradores = [];
 let tiempoSesion = null;
 let filasRecogida = [];
 
@@ -51,6 +51,7 @@ function cambiarPestaña(nombre) {
     event.target.classList.add('activa');
     document.querySelectorAll('.pestaña').forEach(p => p.classList.remove('activa'));
     document.getElementById('pest-' + nombre).classList.add('activa');
+    document.getElementById('tituloPestaña').textContent = event.target.textContent.trim();
     if (window.innerWidth < 768) document.getElementById('sidebar').classList.remove('mostrar');
     if (nombre === 'admin') cargarListasAdmin();
 }
@@ -58,8 +59,8 @@ function cambiarPestaña(nombre) {
 function cambiarSubpestañaAdmin(nombre) {
     document.querySelectorAll('.btn-subpestaña').forEach(b => b.classList.remove('activa'));
     event.target.classList.add('activa');
-    document.querySelectorAll('.subpestaña-admin').forEach(p => p.classList.remove('activa'));
-    document.getElementById('sub-admin-' + nombre).classList.add('activa');
+    document.querySelectorAll('.subpestaña-admin').forEach(p => p.classList.add('oculto'));
+    document.getElementById('sub-admin-' + nombre).classList.remove('oculto');
     cargarListasAdmin();
 }
 
@@ -103,7 +104,7 @@ async function ingresar() {
 async function finalizarLogin() {
     document.getElementById('modalLogin').style.display = 'none';
     document.querySelector('.btn-salir').style.display = 'block';
-    if (usuarioConectado.rol === 'admin') document.getElementById('btnAdmin').style.display = 'block';
+    if (usuarioConectado.rol === 'admin') document.getElementById('btnAdmin').classList.remove('oculto');
     await cargarDatos();
     iniciarTiempoSesion();
     registrarAccion('Inicio de Sesión', 'Sistema', '');
@@ -131,18 +132,22 @@ function reiniciarTiempoSesion() {
     }, 60 * 60 * 1000);
 }
 
-// ===== ✅ ÚNICA LISTA DE COLABORADORES - COMPARTIDA EN TODO EL SISTEMA =====
+// ===== ÚNICA LISTA DE COLABORADORES =====
 function obtenerOpcionesColaboradoresActivos(valorSeleccionado = '') {
     const activos = colaboradores.filter(c => c.activo !== false);
     return '<option value="">Seleccione colaborador</option>' +
         activos.map(c => `<option value="${c.nombre}" ${valorSeleccionado === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('');
 }
 
+function actualizarSelectColaboradoresConductores() {
+    const sel = document.getElementById('colaboradorConductor');
+    if (sel) sel.innerHTML = obtenerOpcionesColaboradoresActivos();
+}
+
 // ===== GESTIÓN DE RECOGIDAS =====
 function agregarFilaRecogida(datos = null) {
-    const id = Date.now() + Math.random();
     filasRecogida.push({
-        id,
+        id: Date.now() + Math.random(),
         recogio: datos?.recogio || '',
         kilos: datos?.kilos || 0,
         canastillas: datos?.canastillas || 0
@@ -159,23 +164,29 @@ function actualizarFilaRecogida(id, campo, valor) {
     const fila = filasRecogida.find(f => f.id === id);
     if (fila) {
         fila[campo] = (campo === 'kilos' || campo === 'canastillas') ? Number(valor) || 0 : valor;
-        calcularTotalesRecogidas();
+        calcularTotalesAutomaticos();
     }
 }
 
-function calcularTotalesRecogidas() {
-    let total = 0;
-    filasRecogida.forEach(f => total += Number(f.canastillas) || 0);
-    const salida = document.getElementById('canSalidaTotal');
+// ===== ✅ SUMA AUTOMÁTICA DE KILOS Y CANASTILLAS DE LLEGADA =====
+function calcularTotalesAutomaticos() {
+    let totalKilos = 0;
+    let totalCanastillas = 0;
+    filasRecogida.forEach(f => {
+        totalKilos += Number(f.kilos) || 0;
+        totalCanastillas += Number(f.canastillas) || 0;
+    });
+
+    const kilosTotal = document.getElementById('kilosTotales');
+    if (kilosTotal) kilosTotal.value = totalKilos || '';
+
     const llegada = document.getElementById('canLlegadaTotal');
-    if (salida) salida.value = total || '';
-    if (llegada) llegada.value = total || '';
+    if (llegada) llegada.value = totalCanastillas || '';
 }
 
 function renderizarFilasRecogida() {
     const cont = document.getElementById('listaRecogidas');
     if (!cont) return;
-    // ✅ MISMA lista de colaboradores para las recogidas
     cont.innerHTML = filasRecogida.map(f => `
         <div class="fila-recogida">
             <select onchange="actualizarFilaRecogida(${f.id}, 'recogio', this.value)">
@@ -187,37 +198,26 @@ function renderizarFilasRecogida() {
                    oninput="actualizarFilaRecogida(${f.id}, 'canastillas', this.value)">
             <button class="btn-quitar" onclick="quitarFilaRecogida(${f.id})">✕</button>
         </div>`).join('');
-    calcularTotalesRecogidas();
-}
-
-// ===== ✅ ACTUALIZAR SELECT DE COLABORADORES CONDUCTORES =====
-function actualizarSelectColaboradoresConductores() {
-    const sel = document.getElementById('colaboradorConductor');
-    if (sel) {
-        sel.innerHTML = obtenerOpcionesColaboradoresActivos();
-    }
+    calcularTotalesAutomaticos();
 }
 
 // ===== CARGA DE DATOS DESDE FIREBASE =====
 async function cargarDatos() {
     try {
-        // ✅ CARGAR ÚNICA LISTA DE COLABORADORES
         const cl = await db.collection('colaboradores').orderBy('nombre').get();
         colaboradores = cl.docs.map(d => ({ id: d.id, ...d.data() }));
-        
-        // ✅ ACTUALIZAR TODOS LOS SELECT QUE USAN COLABORADORES
         actualizarSelectColaboradoresConductores();
         renderizarFilasRecogida();
 
-        const vm = await db.collection('vehiculos_movimientos').get();
+        const vm = await db.collection('vehiculos_movimientos').orderBy('placa').get();
         vehiculosMov = vm.docs.map(d => ({ id: d.id, ...d.data() }));
         actualizarSelectVehiculosMov();
 
-        const vt = await db.collection('vehiculos_transportadora').get();
+        const vt = await db.collection('vehiculos_transportadora').orderBy('placa').get();
         vehiculosTransp = vt.docs.map(d => ({ id: d.id, ...d.data() }));
         actualizarSelectVehiculosTransp();
 
-        const cd = await db.collection('conductores').get();
+        const cd = await db.collection('conductores').orderBy('nombre').get();
         conductores = cd.docs.map(d => ({ id: d.id, ...d.data() }));
         actualizarSelectConductores();
 
@@ -286,7 +286,7 @@ async function agregarConductor() {
     registrarAccion('Agregar Conductor', 'Transportadora', nombre);
 }
 
-// ===== GUARDAR MOVIMIENTO =====
+// ===== ✅ GUARDAR MOVIMIENTO (Salida / Llegada) =====
 async function guardarMovimiento() {
     const recogidasGuardar = filasRecogida.map(f => ({
         recogio: f.recogio,
@@ -294,15 +294,20 @@ async function guardarMovimiento() {
         canastillas: Number(f.canastillas) || 0
     }));
 
+    const canSalida = Number(document.getElementById('canSalidaTotal').value) || 0;
+    const canLlegada = Number(document.getElementById('canLlegadaTotal').value) || 0;
+    const kilosTotal = Number(document.getElementById('kilosTotales').value) || 0;
+
     const datos = {
         fecha: document.getElementById('fecha').value,
         placa: document.getElementById('vehiculoMov').value,
-        colaboradorConductor: document.getElementById('colaboradorConductor').value, // ✅ De la MISMA lista
+        colaboradorConductor: document.getElementById('colaboradorConductor').value,
         horaSalida: document.getElementById('horaSalida').value,
         horaLlegada: document.getElementById('horaLlegada').value,
-        recogidas: recogidasGuardar, // ✅ Recogidos también de la MISMA lista
-        totalCanastillasSalida: Number(document.getElementById('canSalidaTotal').value) || 0,
-        totalCanastillasLlegada: Number(document.getElementById('canLlegadaTotal').value) || 0,
+        recogidas: recogidasGuardar,
+        kilosTotales: kilosTotal,
+        totalCanastillasSalida: canSalida,
+        totalCanastillasLlegada: canLlegada,
         observaciones: document.getElementById('observaciones').value,
         usuario: usuarioConectado.nombre || usuarioConectado.email,
         horaRegistro: new Date()
@@ -310,10 +315,12 @@ async function guardarMovimiento() {
 
     if (idEdicion) {
         await db.collection('movimientos').doc(idEdicion).update(datos);
-        registrarAccion('Editar Movimiento', 'Movimientos', `ID: ${idEdicion}`);
+        registrarAccion('Llegada Registrada', 'Movimientos', `ID: ${idEdicion}`);
+        alert('✅ Llegada registrada correctamente');
     } else {
         await db.collection('movimientos').add(datos);
-        registrarAccion('Nuevo Movimiento', 'Movimientos', `Placa: ${datos.placa}`);
+        registrarAccion('Salida Registrada', 'Movimientos', `Placa: ${datos.placa}`);
+        alert('✅ Salida registrada');
     }
 
     idEdicion = null;
@@ -325,9 +332,10 @@ async function guardarMovimiento() {
     document.getElementById('horaLlegada').value = '';
     document.getElementById('canSalidaTotal').value = '';
     document.getElementById('canLlegadaTotal').value = '';
+    document.getElementById('kilosTotales').value = '';
     document.getElementById('observaciones').value = '';
+    
     await cargarDatos();
-    alert('✅ Movimiento guardado');
 }
 
 // ===== MOVIMIENTO TRANSPORTADORA =====
@@ -363,12 +371,13 @@ function dibujarMovimientos(lista = movimientos) {
         return `<div style="border-bottom:1px solid #e5e7eb; padding:0.75rem 0;">
             <strong>${m.fecha}</strong> | ${m.placa} | Conductor: ${m.colaboradorConductor || 'N/D'}<br>
             Salida: ${m.horaSalida || '--'} | Llegada: ${m.horaLlegada || '--'}<br>
-            <em>Recogidas:</em><br><small>${rec}</small><br>
-            📤 ${m.totalCanastillasSalida} | 📥 ${m.totalCanastillasLlegada}
-            ${usuarioConectado?.rol === 'admin' ? `<div style="margin-top:0.5rem;">
-                <button onclick="editarMovimiento('${m.id}')" class="btn-editar">✏️ Editar</button>
-                <button onclick="eliminarMovimiento('${m.id}')" class="btn-eliminar">🗑️ Eliminar</button>
-            </div>` : ''}
+            📤 Salida: ${m.totalCanastillasSalida || 0} canastillas<br>
+            📥 Llegada: ${m.totalCanastillasLlegada || 0} canastillas | ⚖️ ${m.kilosTotales || 0} kg<br>
+            <em>Recogidas:</em><br><small>${rec}</small>
+            <div style="margin-top:0.5rem;">
+                <button onclick="editarMovimiento('${m.id}')" class="btn-editar">✏️ Completar Llegada</button>
+                ${usuarioConectado?.rol === 'admin' ? `<button onclick="eliminarMovimiento('${m.id}')" class="btn-eliminar">🗑️ Eliminar</button>` : ''}
+            </div>
         </div>`;
     }).join('');
 }
@@ -381,22 +390,31 @@ function filtrarMovimientos() {
     ));
 }
 
+// ===== ✏️ EDITAR = CARGAR PARA COMPLETAR LLEGADA =====
 async function editarMovimiento(id) {
     const m = movimientos.find(x => x.id === id);
     if (!m) return;
+    
     idEdicion = id;
+    
     document.getElementById('fecha').value = m.fecha;
     document.getElementById('vehiculoMov').value = m.placa;
     document.getElementById('colaboradorConductor').value = m.colaboradorConductor || '';
     document.getElementById('horaSalida').value = m.horaSalida || '';
+    document.getElementById('canSalidaTotal').value = m.totalCanastillasSalida || '';
+
     document.getElementById('horaLlegada').value = m.horaLlegada || '';
+    document.getElementById('canLlegadaTotal').value = m.totalCanastillasLlegada || '';
+    document.getElementById('kilosTotales').value = m.kilosTotales || '';
     document.getElementById('observaciones').value = m.observaciones || '';
+    
     filasRecogida = (m.recogidas || []).map(r => ({
         id: Date.now() + Math.random(),
         recogio: r.recogio || '',
         kilos: r.kilos || 0,
         canastillas: r.canastillas || 0
     }));
+    
     renderizarFilasRecogida();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -434,8 +452,6 @@ function generarInforme() {
     const fin = document.getElementById('fechaFin').value;
     if (!inicio || !fin) return alert('Seleccione fechas');
     const filtro = movimientos.filter(m => m.fecha >= inicio && m.fecha <= fin);
-    const res = document.getElementById('resultadoInforme');
-    if (res) res.innerHTML = `<p><strong>✅ ${filtro.length} movimientos encontrados</strong></p>`;
     dibujarMovimientos(filtro);
 }
 
@@ -445,9 +461,12 @@ function exportarExcel() {
         Fecha: m.fecha,
         Placa: m.placa,
         Conductor: m.colaboradorConductor,
+        HoraSalida: m.horaSalida || '',
+        HoraLlegada: m.horaLlegada || '',
+        CanastillasSalida: m.totalCanastillasSalida || 0,
+        CanastillasLlegada: m.totalCanastillasLlegada || 0,
+        KilosTotales: m.kilosTotales || 0,
         Recogidas: m.recogidas?.map(r => `${r.recogio}: ${r.kilos}kg / ${r.canastillas}can`).join(' | ') || '',
-        CanastillasSalida: m.totalCanastillasSalida,
-        CanastillasLlegada: m.totalCanastillasLlegada,
         Observaciones: m.observaciones || '',
         RegistradoPor: m.usuario
     }));
@@ -460,88 +479,87 @@ function exportarExcel() {
 
 // ===== ADMINISTRACIÓN: CARGAR LISTAS =====
 async function cargarListasAdmin() {
-    // ✅ COLABORADORES - ÚNICA LISTA PARA TODO EL SISTEMA
-    const cl = await db.collection('colaboradores').orderBy('nombre').get();
-    colaboradores = cl.docs.map(d => ({ id: d.id, ...d.data() }));
-    
-    const listaColab = document.getElementById('listaColaboradoresAdmin');
-    if (listaColab) {
-        listaColab.innerHTML = colaboradores.map(c => `
-            <div class="fila-lista ${c.activo === false ? 'inactivo' : ''}">
-                <span>${c.nombre}</span>
-                <div>
-                    <button class="btn-editar" onclick="editarColaborador('${c.id}','${c.nombre}')">✏️ Editar</button>
-                    <button class="btn-inactivar" onclick="inactivarColaborador('${c.id}',${c.activo !== false})">
-                        ${c.activo === false ? '✅ Activar' : '⏸️ Inactivar'}
-                    </button>
-                    <button class="btn-eliminar" onclick="eliminarColaborador('${c.id}')">🗑️ Eliminar</button>
-                </div>
-            </div>`).join('');
-    }
+    try {
+        const cl = await db.collection('colaboradores').orderBy('nombre').get();
+        colaboradores = cl.docs.map(d => ({ id: d.id, ...d.data() }));
+        
+        const listaColab = document.getElementById('listaColaboradoresAdmin');
+        if (listaColab) {
+            listaColab.innerHTML = colaboradores.map(c => `
+                <div class="fila-lista ${c.activo === false ? 'inactivo' : ''}">
+                    <span>${c.nombre}</span>
+                    <div>
+                        <button class="btn-editar" onclick="editarColaborador('${c.id}','${c.nombre}')">✏️ Editar</button>
+                        <button class="btn-inactivar" onclick="inactivarColaborador('${c.id}',${c.activo !== false})">
+                            ${c.activo === false ? '✅ Activar' : '⏸️ Inactivar'}
+                        </button>
+                        <button class="btn-eliminar" onclick="eliminarColaborador('${c.id}')">🗑️ Eliminar</button>
+                    </div>
+                </div>`).join('');
+        }
 
-    // ✅ ACTUALIZAR AUTOMÁTICAMENTE EN TODA LA APP
-    actualizarSelectColaboradoresConductores();
-    renderizarFilasRecogida();
+        actualizarSelectColaboradoresConductores();
+        renderizarFilasRecogida();
 
-    // Conductores
-    const cd = await db.collection('conductores').orderBy('nombre').get();
-    conductores = cd.docs.map(d => ({ id: d.id, ...d.data() }));
-    const listaCond = document.getElementById('listaConductoresAdmin');
-    if (listaCond) {
-        listaCond.innerHTML = conductores.map(c => `
-            <div class="fila-lista ${c.activo === false ? 'inactivo' : ''}">
-                <span>${c.nombre}</span>
-                <div>
-                    <button class="btn-editar" onclick="editarConductor('${c.id}','${c.nombre}')">✏️ Editar</button>
-                    <button class="btn-inactivar" onclick="inactivarConductor('${c.id}',${c.activo !== false})">
-                        ${c.activo === false ? '✅ Activar' : '⏸️ Inactivar'}
-                    </button>
-                    <button class="btn-eliminar" onclick="eliminarConductor('${c.id}')">🗑️ Eliminar</button>
-                </div>
-            </div>`).join('');
-    }
-    actualizarSelectConductores();
+        const cd = await db.collection('conductores').orderBy('nombre').get();
+        conductores = cd.docs.map(d => ({ id: d.id, ...d.data() }));
+        const listaCond = document.getElementById('listaConductoresAdmin');
+        if (listaCond) {
+            listaCond.innerHTML = conductores.map(c => `
+                <div class="fila-lista ${c.activo === false ? 'inactivo' : ''}">
+                    <span>${c.nombre}</span>
+                    <div>
+                        <button class="btn-editar" onclick="editarConductor('${c.id}','${c.nombre}')">✏️ Editar</button>
+                        <button class="btn-inactivar" onclick="inactivarConductor('${c.id}',${c.activo !== false})">
+                            ${c.activo === false ? '✅ Activar' : '⏸️ Inactivar'}
+                        </button>
+                        <button class="btn-eliminar" onclick="eliminarConductor('${c.id}')">🗑️ Eliminar</button>
+                    </div>
+                </div>`).join('');
+        }
+        actualizarSelectConductores();
 
-    // Vehículos Movimientos
-    const vm = await db.collection('vehiculos_movimientos').orderBy('placa').get();
-    vehiculosMov = vm.docs.map(d => ({ id: d.id, ...d.data() }));
-    const listaVM = document.getElementById('listaVehiculosMovAdmin');
-    if (listaVM) {
-        listaVM.innerHTML = vehiculosMov.map(v => `
-            <div class="fila-lista">
-                <span>${v.placa} — ${v.tipo}</span>
-                <div>
-                    <button class="btn-editar" onclick="editarVehiculoMov('${v.id}','${v.placa}','${v.tipo}')">✏️ Editar</button>
-                    <button class="btn-eliminar" onclick="eliminarVehiculoMov('${v.id}')">🗑️ Eliminar</button>
-                </div>
-            </div>`).join('');
-    }
-    actualizarSelectVehiculosMov();
+        const vm = await db.collection('vehiculos_movimientos').orderBy('placa').get();
+        vehiculosMov = vm.docs.map(d => ({ id: d.id, ...d.data() }));
+        const listaVM = document.getElementById('listaVehiculosMovAdmin');
+        if (listaVM) {
+            listaVM.innerHTML = vehiculosMov.map(v => `
+                <div class="fila-lista">
+                    <span>${v.placa} — ${v.tipo}</span>
+                    <div>
+                        <button class="btn-editar" onclick="editarVehiculoMov('${v.id}','${v.placa}','${v.tipo}')">✏️ Editar</button>
+                        <button class="btn-eliminar" onclick="eliminarVehiculoMov('${v.id}')">🗑️ Eliminar</button>
+                    </div>
+                </div>`).join('');
+        }
+        actualizarSelectVehiculosMov();
 
-    // Vehículos Transportadora
-    const vt = await db.collection('vehiculos_transportadora').orderBy('placa').get();
-    vehiculosTransp = vt.docs.map(d => ({ id: d.id, ...d.data() }));
-    const listaVT = document.getElementById('listaVehiculosTranspAdmin');
-    if (listaVT) {
-        listaVT.innerHTML = vehiculosTransp.map(v => `
-            <div class="fila-lista">
-                <span>${v.placa} — ${v.tipo}</span>
-                <div>
-                    <button class="btn-editar" onclick="editarVehiculoTransp('${v.id}','${v.placa}','${v.tipo}')">✏️ Editar</button>
-                    <button class="btn-eliminar" onclick="eliminarVehiculoTransp('${v.id}')">🗑️ Eliminar</button>
-                </div>
-            </div>`).join('');
+        const vt = await db.collection('vehiculos_transportadora').orderBy('placa').get();
+        vehiculosTransp = vt.docs.map(d => ({ id: d.id, ...d.data() }));
+        const listaVT = document.getElementById('listaVehiculosTranspAdmin');
+        if (listaVT) {
+            listaVT.innerHTML = vehiculosTransp.map(v => `
+                <div class="fila-lista">
+                    <span>${v.placa} — ${v.tipo}</span>
+                    <div>
+                        <button class="btn-editar" onclick="editarVehiculoTransp('${v.id}','${v.placa}','${v.tipo}')">✏️ Editar</button>
+                        <button class="btn-eliminar" onclick="eliminarVehiculoTransp('${v.id}')">🗑️ Eliminar</button>
+                    </div>
+                </div>`).join('');
+        }
+        actualizarSelectVehiculosTransp();
+    } catch (e) {
+        console.log('Error cargando admin:', e.message);
     }
-    actualizarSelectVehiculosTransp();
 }
 
-// ===== ✅ GESTIÓN DE COLABORADORES - ÚNICA FUENTE =====
+// ===== COLABORADORES =====
 async function agregarColaboradorAdmin() {
     const nombre = document.getElementById('nombreColabAdmin').value.trim();
     if (!nombre) return alert('Escriba el nombre');
     await db.collection('colaboradores').add({ nombre, activo: true, fechaCreacion: new Date() });
     document.getElementById('nombreColabAdmin').value = '';
-    await cargarListasAdmin(); // ✅ Se actualiza en TODA la app automáticamente
+    await cargarListasAdmin();
     registrarAccion('Agregar Colaborador', 'Administración', nombre);
 }
 
@@ -549,13 +567,13 @@ async function editarColaborador(id, nombreActual) {
     const nuevoNombre = prompt('Editar nombre:', nombreActual);
     if (!nuevoNombre || nuevoNombre.trim() === '') return;
     await db.collection('colaboradores').doc(id).update({ nombre: nuevoNombre.trim() });
-    await cargarListasAdmin(); // ✅ Se actualiza en TODA la app automáticamente
+    await cargarListasAdmin();
     registrarAccion('Editar Colaborador', 'Administración', `${nombreActual} ➔ ${nuevoNombre}`);
 }
 
 async function inactivarColaborador(id, estado) {
     await db.collection('colaboradores').doc(id).update({ activo: !estado });
-    await cargarListasAdmin(); // ✅ Deja de aparecer en las listas pero NO se borra
+    await cargarListasAdmin();
     registrarAccion(estado ? 'Inactivar Colaborador' : 'Activar Colaborador', 'Administración', '');
 }
 
