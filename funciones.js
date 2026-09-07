@@ -25,39 +25,49 @@ let usuarioConectado = null;
 let idEdicion = null;
 let movimientos = [];
 let conductores = [];
-let vehiculosMov = [];       // Vehículos de MOVIMIENTOS
-let vehiculosTransp = [];     // Vehículos de TRANSPORTADORA
+let vehiculosMov = [];
+let vehiculosTransp = [];
 let colaboradores = [];
 let tiempoSesion = null;
-let filasRecogida = [];       // Lista de recogidas
+let filasRecogida = [];
 
-// ===== REFRESCAR DATOS SIN RECARGAR PÁGINA =====
-async function refrescarDatos() {
-    console.log('🔄 Actualizando datos...');
-    await cargarDatos();
-    alert('✅ Datos actualizados correctamente');
-}
+// ===== INICIO =====
+document.addEventListener('DOMContentLoaded', () => {
+    const hoy = new Date().toISOString().split('T')[0];
+    const fecha = document.getElementById('fecha');
+    const fechaTransp = document.getElementById('fechaTransp');
+    if (fecha) fecha.value = hoy;
+    if (fechaTransp) fechaTransp.value = hoy;
+    agregarFilaRecogida();
+});
 
-// ===== ALTERNAR MENÚ LATERAL =====
+// ===== MENÚ Y PESTAÑAS =====
 function alternarMenu() {
-    document.getElementById('menuLateral').classList.toggle('visible');
-    document.getElementById('capaOscura').classList.toggle('activo');
+    document.getElementById('sidebar').classList.toggle('mostrar');
 }
 
-// ===== CAMBIAR PESTAÑA =====
 function cambiarPestaña(nombre) {
     document.querySelectorAll('.btn-pestaña').forEach(b => b.classList.remove('activa'));
     event.target.classList.add('activa');
     document.querySelectorAll('.pestaña').forEach(p => p.classList.remove('activa'));
     document.getElementById('pest-' + nombre).classList.add('activa');
-    if (window.innerWidth < 768) alternarMenu();
+    if (window.innerWidth < 768) document.getElementById('sidebar').classList.remove('mostrar');
+    if (nombre === 'admin') cargarListasAdmin();
 }
 
-// ===== INICIAR SESIÓN =====
+function cambiarSubpestañaAdmin(nombre) {
+    document.querySelectorAll('.btn-subpestaña').forEach(b => b.classList.remove('activa'));
+    event.target.classList.add('activa');
+    document.querySelectorAll('.subpestaña-admin').forEach(p => p.classList.remove('activa'));
+    document.getElementById('sub-admin-' + nombre).classList.add('activa');
+    cargarListasAdmin();
+}
+
+// ===== INICIO DE SESIÓN =====
 async function ingresar() {
     let correo = document.getElementById('correoLogin').value.trim();
-    let pass = document.getElementById('passLogin').value;
-    let error = document.getElementById('mensajeError');
+    const pass = document.getElementById('passLogin').value;
+    const error = document.getElementById('mensajeError');
     error.textContent = '';
 
     if (!correo.includes('@')) correo += '@correo.com';
@@ -74,12 +84,15 @@ async function ingresar() {
             }
         }
 
-        await auth.signInWithEmailAndPassword(correo, pass);
-        const usuario = auth.currentUser;
-        const doc = await db.doc(`usuarios/${usuario.uid}`).get();
-        usuarioConectado = { email: usuario.email, uid: usuario.uid, ...doc.data() };
-        await finalizarLogin();
-
+        const cred = await auth.signInWithEmailAndPassword(correo, pass);
+        const doc = await db.doc(`usuarios/${cred.user.uid}`).get();
+        if (doc.exists) {
+            usuarioConectado = { email: cred.user.email, uid: cred.user.uid, ...doc.data() };
+            await finalizarLogin();
+        } else {
+            error.textContent = '❌ Usuario no registrado';
+            await auth.signOut();
+        }
     } catch (e) {
         if (e.code === 'auth/user-not-found') error.textContent = '❌ Usuario no registrado';
         else if (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') error.textContent = '🔒 Contraseña errada';
@@ -88,15 +101,23 @@ async function ingresar() {
 }
 
 async function finalizarLogin() {
-    document.getElementById('pantallaLogin').style.display = 'none';
-    document.getElementById('usuarioActual').textContent = usuarioConectado.nombre || usuarioConectado.email;
+    document.getElementById('modalLogin').style.display = 'none';
+    document.querySelector('.btn-salir').style.display = 'block';
     if (usuarioConectado.rol === 'admin') document.getElementById('btnAdmin').style.display = 'block';
     await cargarDatos();
     iniciarTiempoSesion();
-    registrarAccion('Inicio de Sesión', 'Sistema', 'Ingreso exitoso');
+    registrarAccion('Inicio de Sesión', 'Sistema', '');
 }
 
-// ===== TIEMPO DE SESIÓN (1 hora) =====
+function cerrarSesion() {
+    auth.signOut();
+    location.reload();
+}
+
+function recuperarClave() {
+    alert('Solicita recuperación desde tu consola de Firebase o contacta al administrador');
+}
+
 function iniciarTiempoSesion() {
     reiniciarTiempoSesion();
     window.onmousemove = reiniciarTiempoSesion;
@@ -110,110 +131,94 @@ function reiniciarTiempoSesion() {
     }, 60 * 60 * 1000);
 }
 
-function cerrarSesion() {
-    auth.signOut();
-    location.reload();
-}
-
-function recuperarClave() {
-    alert('Solicita recuperación desde Firebase Console o ingresa con tu correo y contraseña');
-}
-
-// ===== GESTIÓN DE FILAS DE RECOGIDA =====
+// ===== GESTIÓN DE RECOGIDAS =====
 function agregarFilaRecogida(datos = null) {
-    const idFila = Date.now() + Math.random();
-    filasRecogida.push({ 
-        id: idFila, 
-        recogio: datos?.recogio || '', 
-        kilos: datos?.kilos || 0, 
-        canastillas: datos?.canastillas || 0 
+    const id = Date.now() + Math.random();
+    filasRecogida.push({
+        id,
+        recogio: datos?.recogio || '',
+        kilos: datos?.kilos || 0,
+        canastillas: datos?.canastillas || 0
     });
     renderizarFilasRecogida();
 }
 
-function quitarFilaRecogida(idFila) {
-    filasRecogida = filasRecogida.filter(f => f.id !== idFila);
+function quitarFilaRecogida(id) {
+    filasRecogida = filasRecogida.filter(f => f.id !== id);
     renderizarFilasRecogida();
 }
 
-function actualizarFilaRecogida(idFila, campo, valor) {
-    const fila = filasRecogida.find(f => f.id === idFila);
+function actualizarFilaRecogida(id, campo, valor) {
+    const fila = filasRecogida.find(f => f.id === id);
     if (fila) {
         fila[campo] = (campo === 'kilos' || campo === 'canastillas') ? Number(valor) || 0 : valor;
-        calcularTotales();
+        calcularTotalesRecogidas();
     }
 }
 
-function calcularTotales() {
-    let totalCan = 0;
-    filasRecogida.forEach(f => {
-        totalCan += Number(f.canastillas) || 0;
-    });
-    document.getElementById('canSalidaTotal').value = totalCan || '';
-    document.getElementById('canLlegadaTotal').value = totalCan || '';
+function calcularTotalesRecogidas() {
+    let total = 0;
+    filasRecogida.forEach(f => total += Number(f.canastillas) || 0);
+    const salida = document.getElementById('canSalidaTotal');
+    const llegada = document.getElementById('canLlegadaTotal');
+    if (salida) salida.value = total || '';
+    if (llegada) llegada.value = total || '';
 }
 
 function renderizarFilasRecogida() {
     const cont = document.getElementById('listaRecogidas');
-    const opcionesColab = colaboradores.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
+    if (!cont) return;
+    const opts = colaboradores.filter(c => c.activo !== false).map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
     cont.innerHTML = filasRecogida.map(f => `
         <div class="fila-recogida">
             <select onchange="actualizarFilaRecogida(${f.id}, 'recogio', this.value)">
-                <option value="">¿A quién recoge?</option>${opcionesColab}
-                ${f.recogio ? `<option selected value="${f.recogio}">${f.recogio}</option>` : ''}
+                <option value="">¿A quién recoge?</option>${opts}
+                ${f.recogio ? `<option selected>${f.recogio}</option>` : ''}
             </select>
-            <input type="number" placeholder="Kilos" value="${f.kilos || ''}" 
+            <input type="number" placeholder="Kilos" value="${f.kilos || ''}"
                    oninput="actualizarFilaRecogida(${f.id}, 'kilos', this.value)">
-            <input type="number" placeholder="Canastillas" value="${f.canastillas || ''}" 
+            <input type="number" placeholder="Canastillas" value="${f.canastillas || ''}"
                    oninput="actualizarFilaRecogida(${f.id}, 'canastillas', this.value)">
             <button class="btn-quitar" onclick="quitarFilaRecogida(${f.id})">✕</button>
-        </div>
-    `).join('');
-    calcularTotales();
+        </div>`).join('');
+    calcularTotalesRecogidas();
 }
 
-// ===== CARGAR DATOS DESDE FIREBASE =====
+// ===== CARGA DE DATOS DESDE FIREBASE =====
 async function cargarDatos() {
-    const hoy = new Date().toISOString().split('T')[0];
-    if (document.getElementById('fecha')) document.getElementById('fecha').value = hoy;
-    if (document.getElementById('fechaTransp')) document.getElementById('fechaTransp').value = hoy;
-
     try {
-        // Vehículos de MOVIMIENTOS (colección separada)
         const vm = await db.collection('vehiculos_movimientos').get();
         vehiculosMov = vm.docs.map(d => ({ id: d.id, ...d.data() }));
         actualizarSelectVehiculosMov();
 
-        // Vehículos de TRANSPORTADORA (colección separada)
         const vt = await db.collection('vehiculos_transportadora').get();
         vehiculosTransp = vt.docs.map(d => ({ id: d.id, ...d.data() }));
         actualizarSelectVehiculosTransp();
 
-        // Conductores
         const cd = await db.collection('conductores').get();
         conductores = cd.docs.map(d => ({ id: d.id, ...d.data() }));
         actualizarSelectConductores();
 
-        // Colaboradores
         const cl = await db.collection('colaboradores').get();
         colaboradores = cl.docs.map(d => ({ id: d.id, ...d.data() }));
-        actualizarSelectColaboradores();
+        renderizarFilasRecogida();
 
-        // Movimientos
         const mv = await db.collection('movimientos').orderBy('fecha', 'desc').limit(50).get();
         movimientos = mv.docs.map(d => ({ id: d.id, ...d.data() }));
         dibujarMovimientos();
     } catch (e) {
-        console.log('⚠️ Al cargar datos:', e.message);
+        console.log('Error cargando datos:', e.message);
     }
 }
 
-// ===== VEHÍCULOS DE MOVIMIENTOS =====
+// ===== VEHÍCULOS MOVIMIENTOS =====
 function actualizarSelectVehiculosMov() {
-    let opts = '<option value="">Seleccione vehículo</option>';
-    vehiculosMov.forEach(v => opts += `<option value="${v.placa}">${v.placa} - ${v.tipo}</option>`);
-    if (document.getElementById('vehiculoMov')) document.getElementById('vehiculoMov').innerHTML = opts;
-    if (document.getElementById('vehiculoComb')) document.getElementById('vehiculoComb').innerHTML = opts;
+    const sel = document.getElementById('vehiculoMov');
+    const sel2 = document.getElementById('vehiculoComb');
+    const opts = '<option value="">Seleccione vehículo</option>' +
+        vehiculosMov.map(v => `<option value="${v.placa}">${v.placa} - ${v.tipo}</option>`).join('');
+    if (sel) sel.innerHTML = opts;
+    if (sel2) sel2.innerHTML = opts;
 }
 
 async function agregarVehiculoMov() {
@@ -224,14 +229,15 @@ async function agregarVehiculoMov() {
     document.getElementById('placaVehiculoMov').value = '';
     document.getElementById('tipoVehiculoMov').value = '';
     await cargarDatos();
-    registrarAccion('Agregar Vehículo (Movimientos)', 'Movimientos', `${placa} - ${tipo}`);
+    registrarAccion('Agregar Vehículo Mov', 'Movimientos', `${placa} - ${tipo}`);
 }
 
-// ===== VEHÍCULOS DE TRANSPORTADORA =====
+// ===== VEHÍCULOS TRANSPORTADORA =====
 function actualizarSelectVehiculosTransp() {
-    let opts = '<option value="">Seleccione vehículo</option>';
-    vehiculosTransp.forEach(v => opts += `<option value="${v.placa}">${v.placa} - ${v.tipo}</option>`);
-    if (document.getElementById('vehiculoTransp')) document.getElementById('vehiculoTransp').innerHTML = opts;
+    const sel = document.getElementById('vehiculoTransp');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Seleccione vehículo</option>' +
+        vehiculosTransp.map(v => `<option value="${v.placa}">${v.placa} - ${v.tipo}</option>`).join('');
 }
 
 async function agregarVehiculoTransp() {
@@ -242,44 +248,29 @@ async function agregarVehiculoTransp() {
     document.getElementById('placaVehiculoTransp').value = '';
     document.getElementById('tipoVehiculoTransp').value = '';
     await cargarDatos();
-    registrarAccion('Agregar Vehículo (Transportadora)', 'Transportadora', `${placa} - ${tipo}`);
+    registrarAccion('Agregar Vehículo Transp', 'Transportadora', `${placa} - ${tipo}`);
 }
 
 // ===== CONDUCTORES =====
 function actualizarSelectConductores() {
-    let opts = '<option value="">Seleccione conductor</option>';
-    conductores.forEach(c => opts += `<option value="${c.nombre}">${c.nombre}</option>`);
-    if (document.getElementById('conductorTransp')) document.getElementById('conductorTransp').innerHTML = opts;
+    const sel = document.getElementById('conductorTransp');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Seleccione conductor</option>' +
+        conductores.filter(c => c.activo !== false).map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
 }
 
 async function agregarConductor() {
     const nombre = document.getElementById('nombreConductor').value.trim();
     if (!nombre) return alert('Escriba el nombre');
-    await db.collection('conductores').add({ nombre, fechaCreacion: new Date() });
+    await db.collection('conductores').add({ nombre, activo: true, fechaCreacion: new Date() });
     document.getElementById('nombreConductor').value = '';
     await cargarDatos();
     registrarAccion('Agregar Conductor', 'Transportadora', nombre);
 }
 
-// ===== COLABORADORES =====
-function actualizarSelectColaboradores() {
-    let opts = '<option value="">Seleccione colaborador</option>';
-    colaboradores.forEach(c => opts += `<option value="${c.nombre}">${c.nombre}</option>`);
-    if (document.getElementById('colaboradorConductor')) document.getElementById('colaboradorConductor').innerHTML = opts;
-}
-
-async function agregarColaborador() {
-    const nombre = document.getElementById('nombreColab').value.trim();
-    if (!nombre) return alert('Escriba el nombre del colaborador');
-    await db.collection('colaboradores').add({ nombre, fechaCreacion: new Date() });
-    document.getElementById('nombreColab').value = '';
-    await cargarDatos();
-    registrarAccion('Agregar Colaborador', 'Administración', nombre);
-}
-
-// ===== GUARDAR MOVIMIENTO CON RECOGIDAS =====
+// ===== GUARDAR MOVIMIENTO =====
 async function guardarMovimiento() {
-    const recogidasParaGuardar = filasRecogida.map(f => ({
+    const recogidasGuardar = filasRecogida.map(f => ({
         recogio: f.recogio,
         kilos: Number(f.kilos) || 0,
         canastillas: Number(f.canastillas) || 0
@@ -291,7 +282,7 @@ async function guardarMovimiento() {
         colaboradorConductor: document.getElementById('colaboradorConductor').value,
         horaSalida: document.getElementById('horaSalida').value,
         horaLlegada: document.getElementById('horaLlegada').value,
-        recogidas: recogidasParaGuardar,
+        recogidas: recogidasGuardar,
         totalCanastillasSalida: Number(document.getElementById('canSalidaTotal').value) || 0,
         totalCanastillasLlegada: Number(document.getElementById('canLlegadaTotal').value) || 0,
         observaciones: document.getElementById('observaciones').value,
@@ -307,9 +298,9 @@ async function guardarMovimiento() {
         registrarAccion('Nuevo Movimiento', 'Movimientos', `Placa: ${datos.placa}`);
     }
 
-    // Limpiar formulario
     idEdicion = null;
     filasRecogida = [];
+    agregarFilaRecogida();
     document.getElementById('vehiculoMov').value = '';
     document.getElementById('colaboradorConductor').value = '';
     document.getElementById('horaSalida').value = '';
@@ -317,12 +308,11 @@ async function guardarMovimiento() {
     document.getElementById('canSalidaTotal').value = '';
     document.getElementById('canLlegadaTotal').value = '';
     document.getElementById('observaciones').value = '';
-    renderizarFilasRecogida();
     await cargarDatos();
     alert('✅ Movimiento guardado');
 }
 
-// ===== GUARDAR MOVIMIENTO DE TRANSPORTADORA =====
+// ===== MOVIMIENTO TRANSPORTADORA =====
 async function guardarMovimientoTransp() {
     const datos = {
         fecha: document.getElementById('fechaTransp').value,
@@ -332,7 +322,7 @@ async function guardarMovimientoTransp() {
         canastillasLlegada: Number(document.getElementById('canLlegadaTransp').value) || 0,
         horaSalida: document.getElementById('horaSalidaTransp').value,
         horaLlegada: document.getElementById('horaLlegadaTransp').value,
-        usuario: usuarioConectado.nombre || usuarioConectado.email,
+        usuario: usuarioConectado.nombre,
         horaRegistro: new Date()
     };
     await db.collection('movimientos_transportadora').add(datos);
@@ -340,28 +330,26 @@ async function guardarMovimientoTransp() {
     document.getElementById('canLlegadaTransp').value = '';
     document.getElementById('horaSalidaTransp').value = '';
     document.getElementById('horaLlegadaTransp').value = '';
-    await cargarDatos();
-    alert('✅ Movimiento de transportadora registrado');
-    registrarAccion('Movimiento Transportadora', 'Transportadora', `Placa: ${datos.placa}`);
+    alert('✅ Movimiento registrado');
+    registrarAccion('Movimiento Transp', 'Transportadora', datos.placa);
 }
 
-// ===== DIBUJAR MOVIMIENTOS EN LISTA =====
+// ===== LISTA MOVIMIENTOS =====
 function dibujarMovimientos(lista = movimientos) {
     const cont = document.getElementById('listaMovimientos');
     if (!cont) return;
     cont.innerHTML = lista.map(m => {
-        const listaRec = m.recogidas?.length 
-            ? m.recogidas.map(r => `• ${r.recogio || 'Sin nombre'}: ${r.kilos}kg / ${r.canastillas} can`).join('<br>')
+        const rec = m.recogidas?.length ?
+            m.recogidas.map(r => `• ${r.recogio || 'Sin nombre'}: ${r.kilos}kg / ${r.canastillas} can`).join('<br>')
             : 'Sin recogidas';
-        return `
-        <div style="border-bottom:1px solid #e2e8f0; padding:0.75rem 0; border-radius:0.5rem;">
+        return `<div style="border-bottom:1px solid #e5e7eb; padding:0.75rem 0;">
             <strong>${m.fecha}</strong> | ${m.placa} | Conductor: ${m.colaboradorConductor || 'N/D'}<br>
             Salida: ${m.horaSalida || '--'} | Llegada: ${m.horaLlegada || '--'}<br>
-            <em>Recogidas:</em><br><small>${listaRec}</small><br>
-            📤 Salida: ${m.totalCanastillasSalida} | 📥 Llegada: ${m.totalCanastillasLlegada}
+            <em>Recogidas:</em><br><small>${rec}</small><br>
+            📤 ${m.totalCanastillasSalida} | 📥 ${m.totalCanastillasLlegada}
             ${usuarioConectado?.rol === 'admin' ? `<div style="margin-top:0.5rem;">
-                <button onclick="editarMovimiento('${m.id}')" style="padding:0.35rem 0.6rem; font-size:0.8rem; margin-right:0.3rem;">✏️ Editar</button> 
-                <button onclick="eliminarMovimiento('${m.id}')" style="padding:0.35rem 0.6rem; font-size:0.8rem; background:linear-gradient(135deg,#ef4444,#dc2626);">🗑️ Eliminar</button>
+                <button onclick="editarMovimiento('${m.id}')" class="btn-editar">✏️ Editar</button>
+                <button onclick="eliminarMovimiento('${m.id}')" class="btn-eliminar">🗑️ Eliminar</button>
             </div>` : ''}
         </div>`;
     }).join('');
@@ -369,7 +357,7 @@ function dibujarMovimientos(lista = movimientos) {
 
 function filtrarMovimientos() {
     const b = document.getElementById('buscarMov').value.toLowerCase();
-    dibujarMovimientos(movimientos.filter(m => 
+    dibujarMovimientos(movimientos.filter(m =>
         (m.placa && m.placa.toLowerCase().includes(b)) ||
         (m.colaboradorConductor && m.colaboradorConductor.toLowerCase().includes(b))
     ));
@@ -396,7 +384,7 @@ async function editarMovimiento(id) {
 }
 
 async function eliminarMovimiento(id) {
-    if (usuarioConectado?.rol !== 'admin') return alert('🔒 Solo el administrador puede eliminar');
+    if (usuarioConectado?.rol !== 'admin') return alert('🔒 Acceso denegado');
     if (!confirm('¿Eliminar este movimiento?')) return;
     await db.collection('movimientos').doc(id).delete();
     registrarAccion('Eliminar Movimiento', 'Movimientos', `ID: ${id}`);
@@ -418,43 +406,231 @@ async function guardarCombustible() {
     document.getElementById('kma').value = '';
     document.getElementById('kmt').value = '';
     document.getElementById('galones').value = '';
-    alert('✅ Combustible guardado');
-    registrarAccion('Registro Combustible', 'Combustible', `Placa: ${datos.placa}`);
+    alert('✅ Guardado');
+    registrarAccion('Registro Combustible', 'Combustible', datos.placa);
 }
 
-// ===== INFORMES Y EXPORTAR =====
+// ===== INFORMES =====
 function generarInforme() {
     const inicio = document.getElementById('fechaInicio').value;
     const fin = document.getElementById('fechaFin').value;
-    if (!inicio || !fin) return alert('Seleccione rango de fechas');
-    const filtrados = movimientos.filter(m => m.fecha >= inicio && m.fecha <= fin);
+    if (!inicio || !fin) return alert('Seleccione fechas');
+    const filtro = movimientos.filter(m => m.fecha >= inicio && m.fecha <= fin);
     const res = document.getElementById('resultadoInforme');
-    if (res) {
-        res.innerHTML = `<p><strong>✅ ${filtrados.length} movimientos encontrados</strong></p>`;
-    }
-    dibujarMovimientos(filtrados);
+    if (res) res.innerHTML = `<p><strong>✅ ${filtro.length} movimientos encontrados</strong></p>`;
+    dibujarMovimientos(filtro);
 }
 
 function exportarExcel() {
-    if (movimientos.length === 0) return alert('No hay datos para exportar');
+    if (movimientos.length === 0) return alert('Sin datos para exportar');
     const datos = movimientos.map(m => ({
         Fecha: m.fecha,
         Placa: m.placa,
         Conductor: m.colaboradorConductor,
-        HoraSalida: m.horaSalida,
-        HoraLlegada: m.horaLlegada,
         Recogidas: m.recogidas?.map(r => `${r.recogio}: ${r.kilos}kg / ${r.canastillas}can`).join(' | ') || '',
         CanastillasSalida: m.totalCanastillasSalida,
         CanastillasLlegada: m.totalCanastillasLlegada,
         Observaciones: m.observaciones || '',
-        RegistradoPor: m.usuario,
-        HoraRegistro: m.horaRegistro ? new Date(m.horaRegistro.seconds * 1000).toLocaleString('es-CO') : ''
+        RegistradoPor: m.usuario
     }));
     const libro = XLSX.utils.book_new();
     const hoja = XLSX.utils.json_to_sheet(datos);
     XLSX.utils.book_append_sheet(libro, hoja, 'Movimientos');
     XLSX.writeFile(libro, `Movimientos_${new Date().toLocaleDateString('es-CO')}.xlsx`);
     registrarAccion('Exportar Excel', 'Informes', `${movimientos.length} registros`);
+}
+
+// ===== ADMINISTRACIÓN: CARGAR LISTAS =====
+async function cargarListasAdmin() {
+    // Colaboradores
+    const cl = await db.collection('colaboradores').orderBy('nombre').get();
+    colaboradores = cl.docs.map(d => ({ id: d.id, ...d.data() }));
+    const listaColab = document.getElementById('listaColaboradoresAdmin');
+    if (listaColab) {
+        listaColab.innerHTML = colaboradores.map(c => `
+            <div class="fila-lista ${c.activo === false ? 'inactivo' : ''}">
+                <span>${c.nombre}</span>
+                <div>
+                    <button class="btn-editar" onclick="editarColaborador('${c.id}','${c.nombre}')">✏️ Editar</button>
+                    <button class="btn-inactivar" onclick="inactivarColaborador('${c.id}',${c.activo !== false})">
+                        ${c.activo === false ? '✅ Activar' : '⏸️ Inactivar'}
+                    </button>
+                    <button class="btn-eliminar" onclick="eliminarColaborador('${c.id}')">🗑️ Eliminar</button>
+                </div>
+            </div>`).join('');
+    }
+    renderizarFilasRecogida();
+
+    // Conductores
+    const cd = await db.collection('conductores').orderBy('nombre').get();
+    conductores = cd.docs.map(d => ({ id: d.id, ...d.data() }));
+    const listaCond = document.getElementById('listaConductoresAdmin');
+    if (listaCond) {
+        listaCond.innerHTML = conductores.map(c => `
+            <div class="fila-lista ${c.activo === false ? 'inactivo' : ''}">
+                <span>${c.nombre}</span>
+                <div>
+                    <button class="btn-editar" onclick="editarConductor('${c.id}','${c.nombre}')">✏️ Editar</button>
+                    <button class="btn-inactivar" onclick="inactivarConductor('${c.id}',${c.activo !== false})">
+                        ${c.activo === false ? '✅ Activar' : '⏸️ Inactivar'}
+                    </button>
+                    <button class="btn-eliminar" onclick="eliminarConductor('${c.id}')">🗑️ Eliminar</button>
+                </div>
+            </div>`).join('');
+    }
+    actualizarSelectConductores();
+
+    // Vehículos Movimientos
+    const vm = await db.collection('vehiculos_movimientos').orderBy('placa').get();
+    vehiculosMov = vm.docs.map(d => ({ id: d.id, ...d.data() }));
+    const listaVM = document.getElementById('listaVehiculosMovAdmin');
+    if (listaVM) {
+        listaVM.innerHTML = vehiculosMov.map(v => `
+            <div class="fila-lista">
+                <span>${v.placa} — ${v.tipo}</span>
+                <div>
+                    <button class="btn-editar" onclick="editarVehiculoMov('${v.id}','${v.placa}','${v.tipo}')">✏️ Editar</button>
+                    <button class="btn-eliminar" onclick="eliminarVehiculoMov('${v.id}')">🗑️ Eliminar</button>
+                </div>
+            </div>`).join('');
+    }
+    actualizarSelectVehiculosMov();
+
+    // Vehículos Transportadora
+    const vt = await db.collection('vehiculos_transportadora').orderBy('placa').get();
+    vehiculosTransp = vt.docs.map(d => ({ id: d.id, ...d.data() }));
+    const listaVT = document.getElementById('listaVehiculosTranspAdmin');
+    if (listaVT) {
+        listaVT.innerHTML = vehiculosTransp.map(v => `
+            <div class="fila-lista">
+                <span>${v.placa} — ${v.tipo}</span>
+                <div>
+                    <button class="btn-editar" onclick="editarVehiculoTransp('${v.id}','${v.placa}','${v.tipo}')">✏️ Editar</button>
+                    <button class="btn-eliminar" onclick="eliminarVehiculoTransp('${v.id}')">🗑️ Eliminar</button>
+                </div>
+            </div>`).join('');
+    }
+    actualizarSelectVehiculosTransp();
+}
+
+// ===== COLABORADORES =====
+async function agregarColaboradorAdmin() {
+    const nombre = document.getElementById('nombreColabAdmin').value.trim();
+    if (!nombre) return alert('Escriba el nombre');
+    await db.collection('colaboradores').add({ nombre, activo: true, fechaCreacion: new Date() });
+    document.getElementById('nombreColabAdmin').value = '';
+    await cargarListasAdmin();
+    registrarAccion('Agregar Colaborador', 'Administración', nombre);
+}
+
+async function editarColaborador(id, nombreActual) {
+    const nuevoNombre = prompt('Editar nombre:', nombreActual);
+    if (!nuevoNombre || nuevoNombre.trim() === '') return;
+    await db.collection('colaboradores').doc(id).update({ nombre: nuevoNombre.trim() });
+    await cargarListasAdmin();
+    registrarAccion('Editar Colaborador', 'Administración', `${nombreActual} ➔ ${nuevoNombre}`);
+}
+
+async function inactivarColaborador(id, estado) {
+    await db.collection('colaboradores').doc(id).update({ activo: !estado });
+    await cargarListasAdmin();
+    registrarAccion(estado ? 'Inactivar Colaborador' : 'Activar Colaborador', 'Administración', '');
+}
+
+async function eliminarColaborador(id) {
+    if (!confirm('¿Eliminar este colaborador definitivamente?')) return;
+    await db.collection('colaboradores').doc(id).delete();
+    await cargarListasAdmin();
+    registrarAccion('Eliminar Colaborador', 'Administración', '');
+}
+
+// ===== CONDUCTORES ADMIN =====
+async function agregarConductorAdmin() {
+    const nombre = document.getElementById('nombreConductorAdmin').value.trim();
+    if (!nombre) return alert('Escriba el nombre');
+    await db.collection('conductores').add({ nombre, activo: true, fechaCreacion: new Date() });
+    document.getElementById('nombreConductorAdmin').value = '';
+    await cargarListasAdmin();
+    registrarAccion('Agregar Conductor', 'Administración', nombre);
+}
+
+async function editarConductor(id, nombreActual) {
+    const nuevoNombre = prompt('Editar nombre:', nombreActual);
+    if (!nuevoNombre || nuevoNombre.trim() === '') return;
+    await db.collection('conductores').doc(id).update({ nombre: nuevoNombre.trim() });
+    await cargarListasAdmin();
+    registrarAccion('Editar Conductor', 'Administración', `${nombreActual} ➔ ${nuevoNombre}`);
+}
+
+async function inactivarConductor(id, estado) {
+    await db.collection('conductores').doc(id).update({ activo: !estado });
+    await cargarListasAdmin();
+    registrarAccion(estado ? 'Inactivar Conductor' : 'Activar Conductor', 'Administración', '');
+}
+
+async function eliminarConductor(id) {
+    if (!confirm('¿Eliminar este conductor definitivamente?')) return;
+    await db.collection('conductores').doc(id).delete();
+    await cargarListasAdmin();
+    registrarAccion('Eliminar Conductor', 'Administración', '');
+}
+
+// ===== VEHÍCULOS MOVIMIENTOS ADMIN =====
+async function agregarVehiculoMovAdmin() {
+    const placa = document.getElementById('placaVehiculoMovAdmin').value.trim().toUpperCase();
+    const tipo = document.getElementById('tipoVehiculoMovAdmin').value;
+    if (!placa || !tipo) return alert('Complete placa y tipo');
+    await db.collection('vehiculos_movimientos').add({ placa, tipo, fechaCreacion: new Date() });
+    document.getElementById('placaVehiculoMovAdmin').value = '';
+    document.getElementById('tipoVehiculoMovAdmin').value = '';
+    await cargarListasAdmin();
+    registrarAccion('Agregar Vehículo Mov', 'Administración', `${placa} - ${tipo}`);
+}
+
+async function editarVehiculoMov(id, placaActual, tipoActual) {
+    const nuevaPlaca = prompt('Editar placa:', placaActual);
+    if (!nuevaPlaca) return;
+    const nuevoTipo = prompt('Editar tipo:', tipoActual);
+    if (!nuevoTipo) return;
+    await db.collection('vehiculos_movimientos').doc(id).update({ placa: nuevaPlaca.trim().toUpperCase(), tipo: nuevoTipo });
+    await cargarListasAdmin();
+    registrarAccion('Editar Vehículo Mov', 'Administración', `${placaActual} ➔ ${nuevaPlaca}`);
+}
+
+async function eliminarVehiculoMov(id) {
+    if (!confirm('¿Eliminar este vehículo definitivamente?')) return;
+    await db.collection('vehiculos_movimientos').doc(id).delete();
+    await cargarListasAdmin();
+    registrarAccion('Eliminar Vehículo Mov', 'Administración', '');
+}
+
+// ===== VEHÍCULOS TRANSPORTADORA ADMIN =====
+async function agregarVehiculoTranspAdmin() {
+    const placa = document.getElementById('placaVehiculoTranspAdmin').value.trim().toUpperCase();
+    const tipo = document.getElementById('tipoVehiculoTranspAdmin').value;
+    if (!placa || !tipo) return alert('Complete placa y tipo');
+    await db.collection('vehiculos_transportadora').add({ placa, tipo, fechaCreacion: new Date() });
+    document.getElementById('placaVehiculoTranspAdmin').value = '';
+    document.getElementById('tipoVehiculoTranspAdmin').value = '';
+    await cargarListasAdmin();
+    registrarAccion('Agregar Vehículo Transp', 'Administración', `${placa} - ${tipo}`);
+}
+
+async function editarVehiculoTransp(id, placaActual, tipoActual) {
+    const nuevaPlaca = prompt('Editar placa:', placaActual);
+    if (!nuevaPlaca) return;
+    const nuevoTipo = prompt('Editar tipo:', tipoActual);
+    if (!nuevoTipo) return;
+    await db.collection('vehiculos_transportadora').doc(id).update({ placa: nuevaPlaca.trim().toUpperCase(), tipo: nuevoTipo });
+    await cargarListasAdmin();
+    registrarAccion('Editar Vehículo Transp', 'Administración', `${placaActual} ➔ ${nuevaPlaca}`);
+}
+
+async function eliminarVehiculoTransp(id) {
+    if (!confirm('¿Eliminar este vehículo definitivamente?')) return;
+    await db.collection('vehiculos_transportadora').doc(id).delete();
+    await cargarListasAdmin();
+    registrarAccion('Eliminar Vehículo Transp', 'Administración', '');
 }
 
 // ===== CREAR USUARIO EN FIREBASE =====
@@ -465,6 +641,7 @@ async function crearUsuario() {
     const rol = document.getElementById('rolNuevo').value;
     if (!correo.includes('@')) correo += '@correo.com';
     if (pass.length < 6) return alert('La contraseña debe tener al menos 6 caracteres');
+
     try {
         const cred = await auth.createUserWithEmailAndPassword(correo, pass);
         await db.collection('usuarios').doc(cred.user.uid).set({
@@ -475,14 +652,14 @@ async function crearUsuario() {
         });
         document.getElementById('correoNuevo').value = '';
         document.getElementById('passNuevo').value = '';
-        alert('✅ Usuario creado correctamente');
-        registrarAccion('Crear Usuario', 'Administración', correo);
+        alert('✅ Usuario creado: ' + correo);
+        registrarAccion('Crear Usuario', 'Administración', `${correo} [${rol}]`);
     } catch (e) {
         alert('❌ Error: ' + e.message);
     }
 }
 
-// ===== REGISTRAR ACCIONES EN BITÁCORA =====
+// ===== BITÁCORA DE ACCIONES =====
 async function registrarAccion(accion, modulo, detalle) {
     try {
         await db.collection('bitacora').add({
