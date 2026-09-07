@@ -13,7 +13,7 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
     :root { --azul:#1a73e8; --verde:#0f9d58; --rojo:#d93025; --gris:#f1f3f4; --texto:#202124; --naranja:#fa7b17; --amarillo:#fbbc05; }
-    body { background: #f8f9fa; color: var(--texto); padding-bottom: 60px; }
+    body { background: #f8f9fa; color: var(--texto); }
 
     /* --- LOGIN --- */
     #pantallaLogin {
@@ -38,26 +38,48 @@
     .error { color:var(--rojo); }
     .enlace { background:none; color:var(--azul); text-decoration:underline; font-size:0.9rem; }
 
-    /* --- CABECERA Y NAV --- */
+    /* --- CABECERA SUPERIOR --- */
     .cabecera {
-      background:var(--azul); color:#fff; padding:1rem; display:flex;
-      justify-content:space-between; align-items:center; position:sticky; top:0; z-index:90;
+      background:var(--azul); color:#fff; padding:0.7rem 1rem;
+      display:flex; justify-content:space-between; align-items:center;
+      position:fixed; top:0; left:0; right:0; height:56px; z-index:90;
+      box-shadow:0 2px 6px #0002;
     }
-    .navegacion {
-      display:flex; flex-wrap:wrap; background:#fff; border-bottom:1px solid #ddd;
-      position:sticky; top:60px; z-index:80;
+    .cabecera h1 { font-size:1.1rem; }
+    .btn-menu {
+      background:#fff3; border:none; color:#fff; font-size:1.4rem;
+      padding:0.3rem 0.6rem; border-radius:6px; cursor:pointer; margin-right:0.5rem;
     }
+    .btn-actualizar {
+      background:var(--verde); border:none; color:#fff; padding:0.4rem 0.8rem;
+      border-radius:6px; cursor:pointer; font-size:0.9rem; margin-right:0.5rem;
+    }
+    .btn-actualizar:hover { background:#0b8047; }
+
+    /* --- MENÚ LATERAL IZQUIERDA --- */
+    .contenedor-app { display:flex; margin-top:56px; min-height:calc(100vh - 56px); }
+    .menu-lateral {
+      width:240px; background:#fff; border-right:1px solid #e0e0e0;
+      position:fixed; top:56px; left:0; bottom:0; z-index:80;
+      transition: transform 0.3s ease; overflow-y:auto;
+    }
+    .menu-lateral.oculto { transform: translateX(-100%); }
+    .menu-lateral.oculto + .contenido-paginas { margin-left:0; }
     .pestaña {
-      padding:0.8rem 1rem; cursor:pointer; border-bottom:3px solid transparent;
-      white-space:nowrap; font-size:0.95rem;
+      padding:0.9rem 1.2rem; cursor:pointer; border-left:3px solid transparent;
+      font-size:0.95rem; display:flex; align-items:center; gap:0.6rem;
+      border-bottom:1px solid #f5f5f5;
     }
-    .pestaña.activa { border-bottom:3px solid var(--azul); color:var(--azul); font-weight:bold; }
+    .pestaña.activa { border-left:3px solid var(--azul); background:#e8f0fe; color:var(--azul); font-weight:bold; }
     .pestaña:hover { background:var(--gris); }
 
-    /* --- CONTENIDO --- */
-    .pagina { display:none; padding:1rem; max-width:1200px; margin:0 auto; }
+    /* --- CONTENIDO DE PÁGINAS --- */
+    .contenido-paginas {
+      flex:1; margin-left:240px; padding:1rem; transition: margin-left 0.3s ease;
+    }
+    .pagina { display:none; max-width:1200px; margin:0 auto; }
     .pagina.visible { display:block; }
-    h2 { margin:1rem 0; color:var(--azul); }
+    h2 { margin:0.5rem 0 1rem; color:var(--azul); font-size:1.3rem; }
     h3 { margin:0.8rem 0; color:#444; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:0.3rem; }
 
     /* --- FORMULARIOS Y TABLAS --- */
@@ -69,13 +91,12 @@
     }
     button {
       padding:0.5rem 1rem; border:none; border-radius:5px; cursor:pointer; font-size:0.9rem;
-      margin:0.2rem;
+      margin:0.2rem 0.2rem 0.2rem 0;
     }
     .btn-primario { background:var(--azul); color:#fff; }
     .btn-exito { background:var(--verde); color:#fff; }
     .btn-peligro { background:var(--rojo); color:#fff; }
     .btn-naranja { background:var(--naranja); color:#fff; }
-    .btn-amarillo { background:var(--amarillo); color:#202124; }
     .btn-primario:hover { background:#1557b0; }
     .btn-exito:hover { background:#0b8047; }
     .btn-peligro:hover { background:#b02018; }
@@ -90,10 +111,13 @@
     .total-acum { background:#e8f0fe; padding:0.8rem; border-radius:8px; margin-top:1rem; font-weight:bold; }
     .sub-seccion { margin-bottom:1.5rem; border-left:3px solid var(--azul); padding-left:1rem; }
 
-    /* --- RESPONSIVE --- */
+    /* --- RESPONSIVE → En celular menú se oculta por defecto --- */
     @media(max-width:768px) {
+      .menu-lateral { transform: translateX(-100%); }
+      .contenido-paginas { margin-left:0; }
+      .menu-lateral.mostrar { transform: translateX(0); }
       th, td { padding:0.3rem 0.2rem; font-size:0.8rem; }
-      .pestaña { padding:0.5rem 0.6rem; font-size:0.85rem; }
+      .cabecera h1 { font-size:0.95rem; }
     }
   </style>
 </head>
@@ -111,26 +135,30 @@
   </div>
 </div>
 
-<!-- ===== CABECERA ===== -->
+<!-- ===== CABECERA SUPERIOR ===== -->
 <header class="cabecera" id="cabecera" style="display:none;">
-  <h1>🚚 Control de Ingresos y Canastillas</h1>
-  <div>
-    <span id="nombreUsuario"></span>
-    <button onclick="cerrarSesion()" style="background:#fff3; color:#fff; padding:0.4rem 0.8rem; border-radius:6px; margin-left:0.5rem;">Salir</button>
+  <div style="display:flex; align-items:center;">
+    <button class="btn-menu" onclick="alternarMenu()">☰</button>
+    <h1>🚚 Control de Canastillas</h1>
+  </div>
+  <div style="display:flex; align-items:center; gap:0.3rem;">
+    <button class="btn-actualizar" onclick="actualizarApp()">🔄 Actualizar</button>
+    <span id="nombreUsuario" style="font-size:0.9rem;"></span>
+    <button onclick="cerrarSesion()" style="background:#fff3; color:#fff; padding:0.4rem 0.6rem; border-radius:6px; border:none; margin-left:0.3rem;">Salir</button>
   </div>
 </header>
 
-<!-- ===== NAVEGACIÓN / PESTAÑAS ===== -->
-<nav class="navegacion" id="menuPestanas" style="display:none;">
-  <div class="pestaña activa" data-pagina="movimientos">📋 Canastillas</div>
-  <div class="pestaña" data-pagina="transportadora">🚛 Transportadora</div>
-  <div class="pestaña" data-pagina="combustible">⛽ Combustible</div>
-  <div class="pestaña" data-pagina="informes">📊 Informes</div>
-  <div class="pestaña" data-pagina="admin" id="pestanaAdmin" style="display:none;">⚙️ Administración</div>
-</nav>
+<!-- ===== MENÚ LATERAL + CONTENIDO ===== -->
+<div class="contenedor-app" id="contenedorApp" style="display:none;">
+  <nav class="menu-lateral" id="menuLateral">
+    <div class="pestaña activa" data-pagina="movimientos">📋 Canastillas</div>
+    <div class="pestaña" data-pagina="transportadora">🚛 Transportadora</div>
+    <div class="pestaña" data-pagina="combustible">⛽ Combustible</div>
+    <div class="pestaña" data-pagina="informes">📊 Informes</div>
+    <div class="pestaña" data-pagina="admin" id="pestanaAdmin" style="display:none;">⚙️ Administración</div>
+  </nav>
 
-<!-- ===== PÁGINAS / MÓDULOS ===== -->
-<main id="contenidoPrincipal" style="display:none;">
+  <main class="contenido-paginas" id="contenidoPrincipal">
 
 <!-- ================================================== -->
 <!-- ===== PESTAÑA 1: MOVIMIENTOS DE CANASTILLAS ===== -->
@@ -156,7 +184,7 @@
           <option value="Otro">Otro (especificar)</option>
         </select>
       </label>
-      <label>Tipo Personalizado <input type="text" id="tipoPersonalizado" placeholder="Sí eligió Otro, escriba aquí"></label>
+      <label>Tipo Personalizado <input type="text" id="tipoPersonalizado" placeholder="Si eligió Otro, escriba aquí"></label>
       <button type="submit" class="btn-primario">Guardar Vehículo</button>
     </form>
 
@@ -316,7 +344,7 @@
 <!-- ================================================== -->
 <section class="pagina" id="pag-combustible">
   <h2>⛽ Combustible y Kilometraje</h2>
-  <p style="color:#666; font-size:0.9rem; margin-bottom:1rem;">Vehículos registrados en Canastillas</p>
+  <p style="color:#666; font-size:0.9rem; margin-bottom:1rem;">Vehículos registrados en Canastillas (sin VTH)</p>
 
   <form id="formCombustible">
     <h3>Registrar Consumo</h3>
@@ -364,7 +392,7 @@
     <table id="tablaInformes">
       <thead>
         <tr>
-          <th>Fecha</th><th>Vehículo</th><th>Quien Recoge</th><th>Colaboradores</th><th>Total Kilos</th><th>Total Canast.</th>
+          <th>Fecha</th><th>Placa</th><th>Quien Recoge</th><th>Colaboradores</th><th>Total Kilos</th><th>Total Canast.</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -425,7 +453,8 @@
   </div>
 </section>
 
-</main>
+  </main>
+</div>
 
 <script>
 // ==================================================
@@ -451,6 +480,7 @@ let movimientosTrans = [];
 let registrosCombustible = [];
 let usuariosRegistrados = [];
 let db = null;
+let menuVisible = true;
 
 // ===== FIREBASE CONFIG =====
 const firebaseConfig = {
@@ -465,6 +495,30 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 db = firebase.database();
+
+// ==================================================
+// ===== BOTÓN ACTUALIZAR APP =====
+// ==================================================
+function actualizarApp() {
+  cargarDatos();
+  alert("✅ Datos actualizados correctamente");
+}
+
+// ==================================================
+// ===== MOSTRAR / OCULTAR MENÚ LATERAL =====
+// ==================================================
+function alternarMenu() {
+  const menu = document.getElementById("menuLateral");
+  const contenido = document.querySelector(".contenido-paginas");
+  menuVisible = !menuVisible;
+  if (menuVisible) {
+    menu.classList.remove("oculto");
+    contenido.style.marginLeft = "240px";
+  } else {
+    menu.classList.add("oculto");
+    contenido.style.marginLeft = "0";
+  }
+}
 // ==================================================
 // ===== INICIAR SESIÓN =====
 // ==================================================
@@ -473,7 +527,6 @@ async function iniciarSesion() {
   const clave = document.getElementById("clave").value;
   const msj = document.getElementById("mensajeLogin");
 
-  // Usuarios fijos primero
   const fijo = usuariosFijos.find(u => u.usuario === usu && u.clave === clave);
   if (fijo) {
     usuarioActivo = { ...fijo, uid: "FIJO_" + fijo.usuario };
@@ -481,7 +534,6 @@ async function iniciarSesion() {
     return;
   }
 
-  // Buscar en Firebase
   try {
     const snap = await db.ref("usuarios").once("value");
     const lista = [];
@@ -518,14 +570,11 @@ function recuperarClave() {
 function ingresarApp() {
   document.getElementById("pantallaLogin").style.display = "none";
   document.getElementById("cabecera").style.display = "flex";
-  document.getElementById("menuPestanas").style.display = "flex";
-  document.getElementById("contenidoPrincipal").style.display = "block";
+  document.getElementById("contenedorApp").style.display = "flex";
   document.getElementById("nombreUsuario").textContent = usuarioActivo.nombre + (usuarioActivo.rol === "admin" ? " 👑" : "");
 
-  // Admin ve pestaña de administración
   if (usuarioActivo.rol === "admin") document.getElementById("pestanaAdmin").style.display = "block";
 
-  // Ocultar pestañas según permisos
   if (!usuarioActivo.permisos.canastillas) document.querySelector('[data-pagina="movimientos"]').style.display = "none";
   if (!usuarioActivo.permisos.transportadora) document.querySelector('[data-pagina="transportadora"]').style.display = "none";
   if (!usuarioActivo.permisos.combustible) document.querySelector('[data-pagina="combustible"]').style.display = "none";
@@ -533,7 +582,7 @@ function ingresarApp() {
 
   cargarDatos();
   configurarPestanas();
-  // Fecha de hoy por defecto
+
   document.getElementById("fechaRecogida").valueAsDate = new Date();
   document.getElementById("fechaMovTrans").valueAsDate = new Date();
   document.getElementById("fechaComb").valueAsDate = new Date();
@@ -542,7 +591,7 @@ function ingresarApp() {
 function cerrarSesion() { location.reload(); }
 
 // ==================================================
-// ===== NAVEGACIÓN =====
+// ===== NAVEGACIÓN POR PESTAÑAS LATERALES =====
 // ==================================================
 function configurarPestanas() {
   document.querySelectorAll(".pestaña").forEach(tab => {
@@ -555,6 +604,9 @@ function configurarPestanas() {
       document.querySelectorAll(".pagina").forEach(p => p.classList.remove("visible"));
       tab.classList.add("activa");
       document.getElementById("pag-" + pag).classList.add("visible");
+
+      // En celular: ocultar menú al elegir pestaña
+      if (window.innerWidth <= 768 && menuVisible) alternarMenu();
 
       if (pag === "informes") generarInforme();
     });
@@ -604,7 +656,6 @@ function objToArray(snap) {
 // ===== CARGAR SELECTORES =====
 // ==================================================
 function cargarSelectores() {
-  // Vehículos en recogidas y combustible
   const selVehRec = document.getElementById("vehiculoRecolector");
   const selVehComb = document.getElementById("placaComb");
   if (selVehRec) {
@@ -618,7 +669,6 @@ function cargarSelectores() {
     });
   }
 
-  // Colaboradores en recogidas
   document.querySelectorAll(".colaboradorRecogido").forEach(s => {
     const val = s.value;
     s.innerHTML = "<option value=''>Seleccione colaborador</option>";
@@ -626,7 +676,6 @@ function cargarSelectores() {
     s.value = val;
   });
 
-  // Conductores y vehículos de transportadora
   const selCondT = document.getElementById("selConductorTrans");
   const selVehT = document.getElementById("selVehTrans");
   if (selCondT) {
@@ -731,7 +780,6 @@ function resetFormRecogida() {
   document.getElementById("idEditar").value="";
 }
 
-// ===== GUARDAR RECOGIDA =====
 document.getElementById("formRecogida").addEventListener("submit", async e => {
   e.preventDefault();
   if (usuarioActivo.puedeEditar !== "si") { alert("Sin permiso de edición"); return; }
@@ -761,7 +809,6 @@ document.getElementById("formRecogida").addEventListener("submit", async e => {
   resetFormRecogida(); cargarDatos();
 });
 
-// ===== RENDERIZAR RECOGIDAS =====
 function renderizarRecogidas() {
   const tb = document.querySelector("#tablaRecogidas tbody");
   tb.innerHTML = "";
@@ -850,30 +897,30 @@ function renderizarMovTrans() {
         <td>${m.fecha}</td><td>${m.conductor}</td><td>${m.placa}</td>
         <td>${m.horaSalida||"-"}</td><td>${m.canSalida}</td>
         <td>${m.horaLlegada||"-"}</td><td>${m.canLlegada}</td><td>${m.usuario||"-"}</td>
-      </tr>`;
+           </tr>`;
   });
 }
 
 // ==================================================
 // ===== COMBUSTIBLE =====
-// ===== Anclado a Vehículos de Canastillas =====
 // ==================================================
 document.getElementById("formCombustible").addEventListener("submit", async e => {
   e.preventDefault();
   if (usuarioActivo.puedeEditar !== "si") { alert("Sin permiso"); return; }
-  const kmM = +document.getElementById("kmManana").value || 0;
-  const kmT = +document.getElementById("kmTarde").value || 0;
-  const recorrido = kmT > kmM ? kmT - kmM : 0;
-  const gal = +document.getElementById("galones").value || 0;
-  const rend = gal > 0 ? (recorrido / gal).toFixed(2) : "-";
+  const kmMañana = +document.getElementById("kmManana").value || 0;
+  const kmTarde = +document.getElementById("kmTarde").value || 0;
+  const galones = +document.getElementById("galones").value || 0;
+  const recorrido = kmTarde - kmMañana;
+  const rendimiento = galones > 0 ? (recorrido / galones).toFixed(2) : "0.00";
+
   await db.ref("combustible").push({
     fecha: document.getElementById("fechaComb").value,
     placa: document.getElementById("placaComb").value,
-    kmManana: kmM,
-    kmTarde: kmT,
+    kmManana,
+    kmTarde,
     recorrido,
-    galones: gal,
-    rendimiento: rend,
+    galones,
+    rendimiento,
     usuario: usuarioActivo.nombre,
     hora: new Date().toLocaleString("es-CO")
   });
@@ -886,8 +933,8 @@ function renderizarCombustible() {
   registrosCombustible.forEach(r => {
     tb.innerHTML += `
       <tr>
-        <td>${r.fecha}</td><td>${r.placa}</td><td>${r.kmManana}</td><td>${r.kmTarde}</td><td>${r.recorrido}</td>
-        <td>${r.galones}</td><td>${r.rendimiento}</td><td>${r.usuario||"-"}</td>
+        <td>${r.fecha}</td><td>${r.placa}</td><td>${r.kmManana}</td><td>${r.kmTarde}</td>
+        <td>${r.recorrido}</td><td>${r.galones}</td><td>${r.rendimiento}</td><td>${r.usuario||"-"}</td>
       </tr>`;
   });
 }
@@ -899,12 +946,12 @@ function generarInforme() {
   const desde = document.getElementById("fechaIni").value;
   const hasta = document.getElementById("fechaFin").value;
   const tb = document.querySelector("#tablaInformes tbody");
-    tb.innerHTML = "";
+  tb.innerHTML = "";
+
   recogidas.filter(r => {
     if (!desde && !hasta) return true;
-    const fecha = r.fecha;
-    if (desde && fecha < desde) return false;
-    if (hasta && fecha > hasta) return false;
+    if (desde && r.fecha < desde) return false;
+    if (hasta && r.fecha > hasta) return false;
     return true;
   }).forEach(r => {
     const nombres = r.recogidas?.map(x => x.colaborador).join(", ") || "-";
@@ -959,15 +1006,19 @@ document.getElementById("formUsuario").addEventListener("submit", async e => {
   };
   if (claveNueva) datos.clave = claveNueva;
 
-  if (idEd) {
+  if (idEd && !idEd.startsWith("FIJO_")) {
     await db.ref("usuarios/" + idEd).update(datos);
-  } else {
+  } else if (!idEd) {
     if (!claveNueva) {
       alert("Escriba una contraseña para crear el usuario");
       return;
     }
     await db.ref("usuarios").push(datos);
+  } else {
+    alert("⚠️ Los usuarios fijos del sistema no se pueden modificar aquí");
+    return;
   }
+
   e.target.reset();
   document.getElementById("idUsuarioEditar").value = "";
   cargarDatos();
@@ -978,6 +1029,7 @@ function editarUsuario(id) {
   const todos = usuariosRegistrados.concat(usuariosFijos.map(u => ({ ...u, id: "FIJO_" + u.usuario })));
   const u = todos.find(x => x.id === id);
   if (!u) return;
+
   document.getElementById("idUsuarioEditar").value = u.id;
   document.getElementById("nombreUsuarioNuevo").value = u.usuario;
   document.getElementById("claveUsuarioNuevo").value = u.clave || "";
@@ -993,12 +1045,14 @@ function renderizarUsuarios() {
   const tb = document.querySelector("#tablaUsuarios tbody");
   tb.innerHTML = "";
   const todos = usuariosRegistrados.concat(usuariosFijos.map(u => ({ ...u, id: "FIJO_" + u.usuario })));
+
   todos.forEach(u => {
     let ve = [];
     if (u.permisos?.canastillas !== false) ve.push("Canastillas");
     if (u.permisos?.transportadora !== false) ve.push("Transporte");
     if (u.permisos?.combustible !== false) ve.push("Combustible");
     if (u.permisos?.informes !== false) ve.push("Informes");
+
     tb.innerHTML += `
       <tr>
         <td>${u.usuario}</td>
@@ -1008,11 +1062,15 @@ function renderizarUsuarios() {
         <td>${u.puedeEditar === "si" ? "✅ Sí" : "❌ Solo consulta"}</td>
         <td>
           <button class="btn-primario" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick='editarUsuario("${u.id}")'>✏️ Editar</button>
+          ${!u.id.startsWith("FIJO_") ? `<button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick='db.ref("usuarios/${u.id}").remove();cargarDatos();'>🗑️</button>` : ""}
         </td>
       </tr>`;
   });
 }
 
+// ==================================================
+// ===== FIN DEL CÓDIGO =====
+// ==================================================
 </script>
 </body>
 </html>
