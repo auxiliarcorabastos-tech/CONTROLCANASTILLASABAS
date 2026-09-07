@@ -1,371 +1,3 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Control de Ingresos y Canastillas</title>
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-  <!-- Estilos -->
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
-    :root { --azul:#1a73e8; --verde:#0f9d58; --rojo:#d93025; --gris:#f1f3f4; --texto:#202124; --naranja:#fa7b17; }
-    body { background: #f8f9fa; color: var(--texto); padding-bottom: 60px; }
-
-    /* --- LOGIN --- */
-    #pantallaLogin {
-      position: fixed; inset:0; background: linear-gradient(135deg, #1a73e8, #4285f4);
-      display:flex; align-items:center; justify-content:center; z-index:999;
-    }
-    .caja-login {
-      background:#fff; padding:2rem; border-radius:12px; box-shadow:0 4px 20px #0003;
-      width: 90%; max-width:400px;
-    }
-    .caja-login h2 { text-align:center; margin-bottom:1.5rem; color:var(--azul); }
-    .caja-login input {
-      width:100%; padding:0.8rem; margin:0.5rem 0; border:1px solid #ddd;
-      border-radius:8px; font-size:1rem;
-    }
-    .caja-login button {
-      width:100%; padding:0.8rem; background:var(--azul); color:#fff;
-      border:none; border-radius:8px; font-size:1rem; cursor:pointer; margin-top:0.5rem;
-    }
-    .caja-login button:hover { background:#1557b0; }
-    .mensaje { margin-top:0.8rem; font-size:0.9rem; text-align:center; min-height:1.5rem; }
-    .error { color:var(--rojo); }
-    .enlace { background:none; color:var(--azul); text-decoration:underline; font-size:0.9rem; }
-
-    /* --- CABECERA Y NAV --- */
-    .cabecera {
-      background:var(--azul); color:#fff; padding:1rem; display:flex;
-      justify-content:space-between; align-items:center; position:sticky; top:0; z-index:90;
-    }
-    .navegacion {
-      display:flex; flex-wrap:wrap; background:#fff; border-bottom:1px solid #ddd;
-      position:sticky; top:60px; z-index:80;
-    }
-    .pestaña {
-      padding:0.8rem 1rem; cursor:pointer; border-bottom:3px solid transparent;
-      white-space:nowrap; font-size:0.95rem;
-    }
-    .pestaña.activa { border-bottom:3px solid var(--azul); color:var(--azul); font-weight:bold; }
-    .pestaña:hover { background:var(--gris); }
-
-    /* --- CONTENIDO --- */
-    .pagina { display:none; padding:1rem; max-width:1200px; margin:0 auto; }
-    .pagina.visible { display:block; }
-    h2 { margin:1rem 0; color:var(--azul); }
-    h3 { margin:0.8rem 0; color:#444; font-size:1rem; }
-
-    /* --- FORMULARIOS Y TABLAS --- */
-    form { background:#fff; padding:1.2rem; border-radius:10px; box-shadow:0 2px 8px #0001; margin-bottom:1.5rem; }
-    label { display:block; margin-top:0.6rem; font-weight:600; font-size:0.9rem; }
-    input, select {
-      width:100%; padding:0.5rem; margin-top:0.2rem; border:1px solid #ccc;
-      border-radius:5px; font-size:0.9rem;
-    }
-    button {
-      padding:0.5rem 1rem; border:none; border-radius:5px; cursor:pointer; font-size:0.9rem;
-      margin:0.2rem;
-    }
-    .btn-primario { background:var(--azul); color:#fff; }
-    .btn-exito { background:var(--verde); color:#fff; }
-    .btn-peligro { background:var(--rojo); color:#fff; }
-    .btn-naranja { background:var(--naranja); color:#fff; }
-    .btn-primario:hover { background:#1557b0; }
-    .btn-exito:hover { background:#0b8047; }
-    .btn-peligro:hover { background:#b02018; }
-    .btn-naranja:hover { background:#d66a0f; }
-
-    .tabla-contenedor { overflow-x:auto; }
-    table { width:100%; border-collapse:collapse; margin-top:0.8rem; }
-    th, td { padding:0.5rem; text-align:left; border-bottom:1px solid #eee; font-size:0.85rem; }
-    th { background:var(--gris); }
-    tr:hover { background:#f9f9f9; }
-    .fila-vth { color:#555; font-style:italic; }
-    .recogida { border:1px solid #e0e0e0; padding:0.8rem; border-radius:8px; margin-top:0.8rem; background:#fafafa; }
-    .total-acum { background:#e8f0fe; padding:0.8rem; border-radius:8px; margin-top:1rem; font-weight:bold; }
-
-    /* --- RESPONSIVE --- */
-    @media(max-width:768px) {
-      th, td { padding:0.3rem 0.2rem; font-size:0.8rem; }
-      .pestaña { padding:0.5rem 0.6rem; font-size:0.85rem; }
-    }
-  </style>
-</head>
-<body>
-
-<!-- ===== PANTALLA DE LOGIN ===== -->
-<div id="pantallaLogin">
-  <div class="caja-login">
-    <h2>🔐 Iniciar Sesión</h2>
-    <input type="text" id="usuario" placeholder="Nombre de usuario">
-    <input type="password" id="clave" placeholder="Contraseña">
-    <button onclick="iniciarSesion()">Ingresar</button>
-    <div class="mensaje" id="mensajeLogin"></div>
-    <button class="enlace" onclick="recuperarClave()">¿Olvidé mi contraseña?</button>
-  </div>
-</div>
-
-<!-- ===== CABECERA ===== -->
-<header class="cabecera" id="cabecera" style="display:none;">
-  <h1>🚚 Control de Ingresos y Canastillas</h1>
-  <div>
-    <span id="nombreUsuario"></span>
-    <button onclick="cerrarSesion()" style="background:#fff3; color:#fff; padding:0.4rem 0.8rem; border-radius:6px; margin-left:0.5rem;">Salir</button>
-  </div>
-</header>
-
-<!-- ===== NAVEGACIÓN / PESTAÑAS ===== -->
-<nav class="navegacion" id="menuPestanas" style="display:none;">
-  <div class="pestaña activa" data-pagina="movimientos">📋 Movimientos</div>
-  <div class="pestaña" data-pagina="transportadora">🚛 Transportadora</div>
-  <div class="pestaña" data-pagina="informes">📊 Informes</div>
-  <div class="pestaña" data-pagina="admin" id="pestanaAdmin" style="display:none;">⚙️ Administración</div>
-</nav>
-
-<!-- ===== PÁGINAS / MÓDULOS ===== -->
-<main id="contenidoPrincipal" style="display:none;">
-
-<!-- ================================================== -->
-<!-- ===== PESTAÑA MOVIMIENTOS → Colaboradores ===== -->
-<!-- ================================================== -->
-<section class="pagina visible" id="pag-movimientos">
-  <h2>📋 Movimientos y Recogidas</h2>
-
-  <!-- CREAR COLABORADOR -->
-  <form id="formColaborador">
-    <h3>👤 Registrar Nuevo Colaborador</h3>
-    <label>Nombre del Colaborador <input type="text" id="nombreColaborador" required></label>
-    <button type="submit" class="btn-primario">Guardar Colaborador</button>
-  </form>
-
-  <!-- REGISTRAR RECOGIDAS -->
-  <form id="formRecogida">
-    <input type="hidden" id="idEditar">
-    <h3>📦 Registrar Recogida de Canastillas</h3>
-    <label>Fecha <input type="date" id="fechaRecogida" required></label>
-    <label>Conductor / Quien Recoge
-      <select id="conductorRecogedor" required>
-        <option value="">Seleccione</option>
-      </select>
-    </label>
-
-    <!-- SECCIÓN DE RECOGIDAS DINÁMICAS -->
-    <div id="listaRecogidas">
-      <div class="recogida" data-indice="1">
-        <h4>Recogida #1</h4>
-        <label>Recoge a:
-          <select class="colaboradorRecogido" required>
-            <option value="">Seleccione colaborador</option>
-          </select>
-        </label>
-        <label>Kilos <input type="number" class="kilosRecogidos" min="0" step="0.01" oninput="actualizarTotal()"></label>
-        <label>Canastillas <input type="number" class="canastRecogidas" min="0" oninput="actualizarTotal()"></label>
-      </div>
-    </div>
-
-    <button type="button" class="btn-naranja" onclick="agregarRecogida()">➕ Añadir otra recogida</button>
-
-    <!-- TOTALES ACUMULADOS -->
-    <div class="total-acum">
-      🔢 Total Kilos: <span id="totalKilos">0</span> kg &nbsp;|&nbsp;
-      📦 Total Canastillas: <span id="totalCanastillas">0</span>
-    </div>
-
-    <label>Observaciones <input type="text" id="obsRecogida"></label>
-    <button type="submit" class="btn-exito">💾 Guardar Todo</button>
-    <button type="reset" class="btn-peligro" onclick="resetFormRecogida()">🗑️ Limpiar</button>
-  </form>
-
-  <!-- LISTA DE RECOGIDAS -->
-  <h3>📋 Historial de Recogidas</h3>
-  <div class="tabla-contenedor">
-    <table id="tablaRecogidas">
-      <thead>
-        <tr>
-          <th>Fecha</th><th>Recogido por</th><th>Colaboradores</th><th>Total Kilos</th><th>Total Canast.</th><th>Registrado por</th><th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</section>
-
-<!-- ================================================== -->
-<!-- ===== PESTAÑA TRANSPORTADORA ===== -->
-<!-- ================================================== -->
-<section class="pagina" id="pag-transportadora">
-  <h2>🚛 Transportadora</h2>
-
-  <!-- REGISTRAR VEHÍCULO -->
-  <form id="formVehiculo">
-    <h3>🚗 Registrar Vehículo</h3>
-    <label>Placa <input type="text" id="placa" required style="text-transform:uppercase" maxlength="10"></label>
-    <label>Marca / Modelo <input type="text" id="modelo"></label>
-    <label>Tipo de Vehículo
-      <select id="tipoVehiculo" required>
-        <option value="">Seleccione</option>
-        <option value="Liviano">Liviano</option>
-        <option value="Camioneta">Camioneta</option>
-        <option value="Camión">Camión</option>
-        <option value="Moto">Moto</option>
-        <option value="VTH">Vehículo de Tracción Humana (VTH)</option>
-      </select>
-    </label>
-    <button type="submit" class="btn-primario">Guardar Vehículo</button>
-  </form>
-
-  <!-- REGISTRAR SALIDA Y LLEGADA -->
-  <form id="formMovimientoTrans">
-    <input type="hidden" id="idEditarTrans">
-    <h3>📦 Salida y Regreso del Vehículo</h3>
-    <label>Fecha <input type="date" id="fechaTrans" required></label>
-    <label>Conductor <select id="conductorTrans" required><option value="">Seleccione</option></select></label>
-    <label>Vehículo / Placa <select id="vehiculoTrans" required><option value="">Seleccione</option></select></label>
-    <h4>📤 Salida</h4>
-    <label>Hora de Salida <input type="time" id="horaSalida"></label>
-    <label>Canastillas que SALEN <input type="number" id="canSalida" min="0"></label>
-    <h4>📥 Regreso / Llegada</h4>
-    <label>Hora de Llegada <input type="time" id="horaLlegada"></label>
-    <label>Canastillas que LLEGAN <input type="number" id="canLlegada" min="0"></label>
-    <label>Observaciones <input type="text" id="obsTrans"></label>
-    <button type="submit" class="btn-exito">Guardar Movimiento</button>
-  </form>
-
-  <!-- LISTA MOVIMIENTOS TRANSPORTADORA -->
-  <h3>📋 Lista de Salidas y Llegadas</h3>
-  <div class="tabla-contenedor">
-    <table id="tablaTrans">
-      <thead>
-        <tr>
-          <th>Fecha</th><th>Conductor</th><th>Placa</th><th>Hora Salida</th><th>Canast. Salen</th>
-          <th>Hora Llegada</th><th>Canast. Llegan</th><th>Registrado por</th><th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</section>
-
-<!-- ================================================== -->
-<!-- ===== PESTAÑA INFORMES ===== -->
-<!-- ================================================== -->
-<section class="pagina" id="pag-informes">
-  <h2>📊 Informes y Consultas</h2>
-  <div style="background:#fff; padding:1rem; border-radius:10px; margin-bottom:1rem;">
-    <h4>Filtrar por rango de fechas</h4>
-    <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:0.5rem;">
-      <label>Desde <input type="date" id="fechaIni"></label>
-      <label>Hasta <input type="date" id="fechaFin"></label>
-      <button class="btn-primario" onclick="generarInforme()">Generar Reporte</button>
-    </div>
-  </div>
-  <h3>Resumen de Recogidas</h3>
-  <div class="tabla-contenedor">
-    <table id="tablaInformes">
-      <thead>
-        <tr>
-          <th>Fecha</th><th>Recogido por</th><th>Colaboradores</th><th>Total Kilos</th><th>Total Canast.</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-  <br>
-  <button class="btn-exito" onclick="exportarExcel()">📥 Exportar a Excel</button>
-</section>
-
-<!-- ================================================== -->
-<!-- ===== PESTAÑA ADMINISTRACIÓN ===== -->
-<!-- ================================================== -->
-<section class="pagina" id="pag-admin">
-  <h2>⚙️ Administración del Sistema</h2>
-  <form id="formUsuario">
-    <h3>Gestión de Usuarios del Sistema</h3>
-    <input type="hidden" id="idUsuarioEditar">
-    <label>Nombre de Usuario <input type="text" id="nombreUsuarioNuevo" required></label>
-    <label>Contraseña <input type="text" id="claveUsuarioNuevo" placeholder="Escriba nueva contraseña"></label>
-    <label>Rol
-      <select id="rolUsuarioNuevo">
-        <option value="usuario">Usuario</option>
-        <option value="admin">Administrador</option>
-      </select>
-    </label>
-    <h4>¿Qué pestañas puede ver?</h4>
-    <label style="display:flex; align-items:center; gap:0.3rem;">
-      <input type="checkbox" id="permMovimientos" checked> 📋 Movimientos / Canastillas
-    </label>
-    <label style="display:flex; align-items:center; gap:0.3rem;">
-      <input type="checkbox" id="permTransportadora" checked> 🚛 Transportadora
-    </label>
-    <label style="display:flex; align-items:center; gap:0.3rem;">
-      <input type="checkbox" id="permInformes" checked> 📊 Informes
-    </label>
-    <label>¿Puede Editar Información?
-      <select id="puedeEditar">
-        <option value="si">✅ Sí</option>
-        <option value="no">❌ Solo Consulta</option>
-      </select>
-    </label>
-    <button type="submit" class="btn-primario">💾 Guardar Usuario</button>
-  </form>
-
-  <h3>Lista de Usuarios</h3>
-  <div class="tabla-contenedor">
-    <table id="tablaUsuarios">
-      <thead>
-        <tr>
-          <th>Usuario</th><th>Contraseña</th><th>Rol</th><th>Puede Ver</th><th>Puede Editar</th><th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-</section>
-
-</main>
-
-<script>
-// ==================================================
-// ===== USUARIOS PREDETERMINADOS =====
-// ==================================================
-const usuariosFijos = [
-  { usuario: "jgarnica", clave: "123456", nombre: "jgarnica", rol: "admin",
-    permisos: { movimientos: true, transportadora: true, informes: true }, puedeEditar: "si" },
-  { usuario: "jfigueroa", clave: "3134630773", nombre: "jfigueroa", rol: "admin",
-    permisos: { movimientos: true, transportadora: true, informes: true }, puedeEditar: "si" },
-  { usuario: "estudiante", clave: "123456", nombre: "estudiante", rol: "usuario",
-    permisos: { movimientos: true, transportadora: true, informes: true }, puedeEditar: "si" }
-];
-
-// ===== VARIABLES GLOBALES =====
-let usuarioActivo = null;
-let colaboradores = [];
-let vehiculos = [];
-let recogidas = [];
-let movimientosTrans = [];
-let usuariosRegistrados = [];
-let idEdicion = null;
-let db = null;
-let auth = null;
-
-// ===== FIREBASE CONFIG =====
-const firebaseConfig = {
-  apiKey: "AIzaSyBruMDqyExColkMwy7XyqDSBsF8XcvsFoY",
-  authDomain: "control-ingresos-y-canastillas.firebaseapp.com",
-  projectId: "control-ingresos-y-canastillas",
-  storageBucket: "control-ingresos-y-canastillas.firebasestorage.app",
-  messagingSenderId: "372736670308",
-  appId: "1:372736670308:web:14c2e2614c14ff3dc2bd71",
-  measurementId: "G-N3YMQ2JKZM"
-};
-
-firebase.initializeApp(firebaseConfig);
-auth = firebase.auth();
-db = firebase.database();
 // ==================================================
 // ===== INICIAR SESIÓN =====
 // ==================================================
@@ -374,7 +6,7 @@ async function iniciarSesion() {
   const clave = document.getElementById("clave").value;
   const msj = document.getElementById("mensajeLogin");
 
-  // ✅ PRIMERO: Verificar usuarios fijos
+  // Usuarios fijos primero
   const fijo = usuariosFijos.find(u => u.usuario === usu && u.clave === clave);
   if (fijo) {
     usuarioActivo = { ...fijo, uid: "FIJO_" + fijo.usuario };
@@ -382,21 +14,21 @@ async function iniciarSesion() {
     return;
   }
 
-  // 🔴 Luego buscar en Firebase
+  // Buscar en Firebase
   try {
     const snap = await db.ref("usuarios").once("value");
     const lista = [];
-    snap.forEach(child => { lista.push({ id: child.key, ...child.val() }); });
-    const encontrado = lista.find(u => u.usuario === usu && u.clave === clave);
-    if (encontrado) {
+    snap.forEach(c => { lista.push({ id: c.key, ...c.val() }); });
+    const enc = lista.find(u => u.usuario === usu && u.clave === clave);
+    if (enc) {
       usuarioActivo = {
-        uid: encontrado.id,
-        usuario: encontrado.usuario,
-        nombre: encontrado.usuario,
-        clave: encontrado.clave,
-        rol: encontrado.rol || "usuario",
-        permisos: encontrado.permisos || { movimientos:true, transportadora:true, informes:true },
-        puedeEditar: encontrado.puedeEditar || "si"
+        uid: enc.id,
+        usuario: enc.usuario,
+        nombre: enc.usuario,
+        clave: enc.clave,
+        rol: enc.rol || "usuario",
+        permisos: enc.permisos || { canastillas:true, transportadora:true, combustible:true, informes:true },
+        puedeEditar: enc.puedeEditar || "si"
       };
       ingresarApp();
     } else {
@@ -404,14 +36,13 @@ async function iniciarSesion() {
       msj.className = "mensaje error";
     }
   } catch {
-    msj.textContent = "❌ Sin conexión a datos";
+    msj.textContent = "❌ Error de conexión";
     msj.className = "mensaje error";
   }
 }
 
-// ===== RECUPERAR CONTRASEÑA =====
 function recuperarClave() {
-  alert("Comuníquese con el administrador para recuperar su contraseña");
+  alert("Comuníquese con el administrador");
 }
 
 // ==================================================
@@ -424,72 +55,81 @@ function ingresarApp() {
   document.getElementById("contenidoPrincipal").style.display = "block";
   document.getElementById("nombreUsuario").textContent = usuarioActivo.nombre + (usuarioActivo.rol === "admin" ? " 👑" : "");
 
-  // Mostrar pestaña Admin solo si es administrador
-  if (usuarioActivo.rol === "admin") {
-    document.getElementById("pestanaAdmin").style.display = "block";
-  }
+  // Admin ve pestaña de administración
+  if (usuarioActivo.rol === "admin") document.getElementById("pestanaAdmin").style.display = "block";
 
   // Ocultar pestañas según permisos
-  if (!usuarioActivo.permisos.movimientos) document.querySelector('[data-pagina="movimientos"]').style.display = "none";
+  if (!usuarioActivo.permisos.canastillas) document.querySelector('[data-pagina="movimientos"]').style.display = "none";
   if (!usuarioActivo.permisos.transportadora) document.querySelector('[data-pagina="transportadora"]').style.display = "none";
+  if (!usuarioActivo.permisos.combustible) document.querySelector('[data-pagina="combustible"]').style.display = "none";
   if (!usuarioActivo.permisos.informes) document.querySelector('[data-pagina="informes"]').style.display = "none";
 
   cargarDatos();
   configurarPestanas();
+  // Fecha de hoy por defecto
   document.getElementById("fechaRecogida").valueAsDate = new Date();
-  document.getElementById("fechaTrans").valueAsDate = new Date();
+  document.getElementById("fechaMovTrans").valueAsDate = new Date();
+  document.getElementById("fechaComb").valueAsDate = new Date();
 }
 
 function cerrarSesion() { location.reload(); }
 
 // ==================================================
-// ===== NAVEGACIÓN POR PESTAÑAS =====
+// ===== NAVEGACIÓN =====
 // ==================================================
 function configurarPestanas() {
   document.querySelectorAll(".pestaña").forEach(tab => {
     tab.addEventListener("click", () => {
-      const pagina = tab.dataset.pagina;
-      const permiso = usuarioActivo.permisos[pagina] !== false;
-      if (!permiso && pagina !== "admin") { alert("No tienes permiso"); return; }
+      const pag = tab.dataset.pagina;
+      const perm = usuarioActivo.permisos[pag] !== false || pag === "admin";
+      if (!perm) { alert("Sin permiso"); return; }
 
       document.querySelectorAll(".pestaña").forEach(t => t.classList.remove("activa"));
       document.querySelectorAll(".pagina").forEach(p => p.classList.remove("visible"));
       tab.classList.add("activa");
-      document.getElementById("pag-" + pagina).classList.add("visible");
+      document.getElementById("pag-" + pag).classList.add("visible");
 
-      if (pagina === "informes") generarInforme();
+      if (pag === "informes") generarInforme();
     });
   });
 }
 
 // ==================================================
-// ===== CARGAR DATOS DESDE FIREBASE =====
+// ===== CARGAR TODOS LOS DATOS =====
 // ==================================================
 async function cargarDatos() {
-  const [colSnap, vehSnap, recSnap, transSnap, usuSnap] = await Promise.all([
+  const [vC, col, rec, cT, vT, mT, comb, usu] = await Promise.all([
+    db.ref("vehiculosCanastillas").once("value"),
     db.ref("colaboradores").once("value"),
-    db.ref("vehiculos").once("value"),
     db.ref("recogidas").once("value"),
-    db.ref("movTrans").once("value"),
+    db.ref("conductoresTrans").once("value"),
+    db.ref("vehiculosTrans").once("value"),
+    db.ref("movimientosTrans").once("value"),
+    db.ref("combustible").once("value"),
     db.ref("usuarios").once("value")
   ]);
-  colaboradores = objToArray(colSnap);
-  vehiculos = objToArray(vehSnap);
-  recogidas = objToArray(recSnap);
-  movimientosTrans = objToArray(transSnap);
-  usuariosRegistrados = objToArray(usuSnap);
+  vehiculosCanast = objToArray(vC);
+  colaboradores = objToArray(col);
+  recogidas = objToArray(rec);
+  conductoresTrans = objToArray(cT);
+  vehiculosTrans = objToArray(vT);
+  movimientosTrans = objToArray(mT);
+  registrosCombustible = objToArray(comb);
+  usuariosRegistrados = objToArray(usu);
 
-  renderizarColaboradores();
-  renderizarVehiculos();
+  renderizarVehCanast();
   renderizarRecogidas();
-  renderizarTrans();
+  renderizarCondTrans();
+  renderizarVehTrans();
+  renderizarMovTrans();
+  renderizarCombustible();
   renderizarUsuarios();
   cargarSelectores();
 }
 
-function objToArray(snapshot) {
+function objToArray(snap) {
   const arr = [];
-  snapshot.forEach(c => { arr.push({ id: c.key, ...c.val() }); });
+  snap.forEach(c => { arr.push({ id: c.key, ...c.val() }); });
   return arr;
 }
 
@@ -497,61 +137,94 @@ function objToArray(snapshot) {
 // ===== CARGAR SELECTORES =====
 // ==================================================
 function cargarSelectores() {
-  // Selectores de colaboradores en recogidas
-  document.querySelectorAll(".colaboradorRecogido").forEach(s => {
-    const actual = s.value;
-    s.innerHTML = "<option value=''>Seleccione</option>";
-    colaboradores.forEach(c => s.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`);
-    s.value = actual;
-  });
-
-  // Selector conductor en recogidas
-  const selCondRec = document.getElementById("conductorRecogedor");
-  if (selCondRec) {
-    selCondRec.innerHTML = "<option value=''>Seleccione</option>";
-    [...new Set([...colaboradores.map(c=>c.nombre), ...usuariosRegistrados.map(u=>u.usuario), ...usuariosFijos.map(u=>u.usuario)])].sort().forEach(n=>{
-      selCondRec.innerHTML += `<option value="${n}">${n}</option>`;
+  // Vehículos en recogidas y combustible
+  const selVehRec = document.getElementById("vehiculoRecolector");
+  const selVehComb = document.getElementById("placaComb");
+  if (selVehRec) {
+    selVehRec.innerHTML = "<option value=''>Seleccione vehículo</option>";
+    vehiculosCanast.forEach(v => selVehRec.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.marca}</option>`);
+  }
+  if (selVehComb) {
+    selVehComb.innerHTML = "<option value=''>Seleccione vehículo</option>";
+    vehiculosCanast.filter(v => v.tipo !== "VTH").forEach(v => {
+      selVehComb.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.marca}</option>`;
     });
   }
 
-  // Selectores Transportadora
-  const selCondT = document.getElementById("conductorTrans");
+  // Colaboradores en recogidas
+  document.querySelectorAll(".colaboradorRecogido").forEach(s => {
+    const val = s.value;
+    s.innerHTML = "<option value=''>Seleccione colaborador</option>";
+    colaboradores.forEach(c => s.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`);
+    s.value = val;
+  });
+
+  // Conductores y vehículos de transportadora
+  const selCondT = document.getElementById("selConductorTrans");
+  const selVehT = document.getElementById("selVehTrans");
   if (selCondT) {
     selCondT.innerHTML = "<option value=''>Seleccione Conductor</option>";
-    colaboradores.forEach(c => selCondT.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`);
+    conductoresTrans.forEach(c => selCondT.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`);
   }
-  const selVehT = document.getElementById("vehiculoTrans");
   if (selVehT) {
     selVehT.innerHTML = "<option value=''>Seleccione Vehículo</option>";
-    vehiculos.forEach(v => selVehT.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.modelo}</option>`);
+    vehiculosTrans.forEach(v => selVehT.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.marca}</option>`);
   }
 }
 
 // ==================================================
-// ===== COLABORADORES =====
+// ===== CANASTILLAS → VEHÍCULOS =====
+// ==================================================
+document.getElementById("formVehiculoCanastilla").addEventListener("submit", async e => {
+  e.preventDefault();
+  let tipo = document.getElementById("tipoVehCanast").value;
+  if (tipo === "Otro") tipo = document.getElementById("tipoPersonalizado").value || "Otro";
+  await db.ref("vehiculosCanastillas").push({
+    placa: document.getElementById("placaCanast").value.toUpperCase(),
+    marca: document.getElementById("marcaCanast").value,
+    modelo: document.getElementById("modeloCanast").value,
+    tipo,
+    usuario: usuarioActivo.nombre
+  });
+  e.target.reset(); cargarDatos();
+});
+
+function renderizarVehCanast() {
+  const tb = document.querySelector("#tablaVehCanast tbody");
+  tb.innerHTML = "";
+  vehiculosCanast.forEach(v => {
+    tb.innerHTML += `
+      <tr>
+        <td>${v.placa}</td><td>${v.marca}</td><td>${v.modelo||"-"}</td><td>${v.tipo}</td>
+        <td>${usuarioActivo.rol==="admin"?`<button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick="db.ref('vehiculosCanastillas/${v.id}').remove();cargarDatos();">🗑️</button>`:""}</td>
+      </tr>`;
+  });
+}
+
+// ==================================================
+// ===== CANASTILLAS → COLABORADORES =====
 // ==================================================
 document.getElementById("formColaborador").addEventListener("submit", async e => {
   e.preventDefault();
-  const nom = document.getElementById("nombreColaborador").value.trim();
-  await db.ref("colaboradores").push({ nombre: nom, registradoPor: usuarioActivo.nombre });
-  e.target.reset();
-  cargarDatos();
+  await db.ref("colaboradores").push({
+    nombre: document.getElementById("nombreColaborador").value.trim(),
+    usuario: usuarioActivo.nombre
+  });
+  e.target.reset(); cargarDatos();
 });
-function renderizarColaboradores() { cargarSelectores(); }
 
 // ==================================================
-// ===== RECOGIDAS DINÁMICAS =====
+// ===== CANASTILLAS → RECOGIDAS DINÁMICAS =====
 // ==================================================
-let contadorRecogidas = 1;
+let contRecog = 1;
 
 function agregarRecogida() {
-  contadorRecogidas++;
-  const cont = document.getElementById("listaRecogidas");
-  const nueva = document.createElement("div");
-  nueva.className = "recogida";
-  nueva.dataset.indice = contadorRecogidas;
-  nueva.innerHTML = `
-    <h4>Recogida #${contadorRecogidas} <button type="button" class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem; float:right;" onclick="this.parentElement.parentElement.remove(); actualizarTotal();">❌ Quitar</button></h4>
+  contRecog++;
+  const lista = document.getElementById("listaRecogidas");
+  const div = document.createElement("div");
+  div.className = "recogida";
+  div.innerHTML = `
+    <h4>Recogida #${contRecog} <button type="button" class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem; float:right;" onclick="this.parentElement.parentElement.remove(); actualizarTotal();">❌ Quitar</button></h4>
     <label>Recoge a:
       <select class="colaboradorRecogido" required>
         <option value="">Seleccione colaborador</option>
@@ -561,20 +234,20 @@ function agregarRecogida() {
     <label>Kilos <input type="number" class="kilosRecogidos" min="0" step="0.01" oninput="actualizarTotal()"></label>
     <label>Canastillas <input type="number" class="canastRecogidas" min="0" oninput="actualizarTotal()"></label>
   `;
-  cont.appendChild(nueva);
+  lista.appendChild(div);
 }
 
 function actualizarTotal() {
-  let totalK = 0, totalC = 0;
-  document.querySelectorAll(".kilosRecogidos").forEach(i => totalK += +i.value || 0);
-  document.querySelectorAll(".canastRecogidas").forEach(i => totalC += +i.value || 0);
-  document.getElementById("totalKilos").textContent = totalK.toFixed(2);
-  document.getElementById("totalCanastillas").textContent = totalC;
+  let tk=0, tc=0;
+  document.querySelectorAll(".kilosRecogidos").forEach(i=>tk+=+i.value||0);
+  document.querySelectorAll(".canastRecogidas").forEach(i=>tc+=+i.value||0);
+  document.getElementById("totalKilos").textContent = tk.toFixed(2);
+  document.getElementById("totalCanastillas").textContent = tc;
 }
 
 function resetFormRecogida() {
   document.getElementById("listaRecogidas").innerHTML = `
-    <div class="recogida" data-indice="1">
+    <div class="recogida">
       <h4>Recogida #1</h4>
       <label>Recoge a:
         <select class="colaboradorRecogido" required>
@@ -586,45 +259,39 @@ function resetFormRecogida() {
       <label>Canastillas <input type="number" class="canastRecogidas" min="0" oninput="actualizarTotal()"></label>
     </div>
   `;
-  contadorRecogidas = 1;
-  actualizarTotal();
-  document.getElementById("obsRecogida").value = "";
-  document.getElementById("idEditar").value = "";
+  contRecog=1; actualizarTotal();
+  document.getElementById("obsRecogida").value="";
+  document.getElementById("idEditar").value="";
 }
 
 // ===== GUARDAR RECOGIDA =====
 document.getElementById("formRecogida").addEventListener("submit", async e => {
   e.preventDefault();
-  if (usuarioActivo.puedeEditar !== "si") { alert("No puedes editar"); return; }
-
+  if (usuarioActivo.puedeEditar !== "si") { alert("Sin permiso de edición"); return; }
   const lista = [];
-  document.querySelectorAll(".recogida").forEach(div => {
-    const nom = div.querySelector(".colaboradorRecogido").value;
-    const kil = +div.querySelector(".kilosRecogidos").value || 0;
-    const can = +div.querySelector(".canastRecogidas").value || 0;
-    if (nom) lista.push({ colaborador: nom, kilos: kil, canastillas: can });
+  document.querySelectorAll(".recogida").forEach(d => {
+    const nom = d.querySelector(".colaboradorRecogido").value;
+    const kg = +d.querySelector(".kilosRecogidos").value || 0;
+    const cn = +d.querySelector(".canastRecogidas").value || 0;
+    if (nom) lista.push({ colaborador: nom, kilos: kg, canastillas: cn });
   });
-
-  const totalK = lista.reduce((s,i)=>s+i.kilos,0);
-  const totalC = lista.reduce((s,i)=>s+i.canastillas,0);
-
+  const tk = lista.reduce((s,x)=>s+x.kilos,0);
+  const tc = lista.reduce((s,x)=>s+x.canastillas,0);
   const datos = {
     fecha: document.getElementById("fechaRecogida").value,
-    conductor: document.getElementById("conductorRecogedor").value,
+    placa: document.getElementById("vehiculoRecolector").value,
+    quienRecoge: document.getElementById("quienRecoge").value.trim(),
     recogidas: lista,
-    totalKilos: totalK,
-    totalCanastillas: totalC,
+    totalKilos: tk,
+    totalCanastillas: tc,
     observaciones: document.getElementById("obsRecogida").value,
     usuario: usuarioActivo.nombre,
     hora: new Date().toLocaleString("es-CO")
   };
-
   const id = document.getElementById("idEditar").value;
-  if (id) await db.ref("recogidas/" + id).update(datos);
+  if (id) await db.ref("recogidas/"+id).update(datos);
   else await db.ref("recogidas").push(datos);
-
-  resetFormRecogida();
-  cargarDatos();
+  resetFormRecogida(); cargarDatos();
 });
 
 // ===== RENDERIZAR RECOGIDAS =====
@@ -632,80 +299,128 @@ function renderizarRecogidas() {
   const tb = document.querySelector("#tablaRecogidas tbody");
   tb.innerHTML = "";
   recogidas.forEach(r => {
-    const nombres = r.recogidas?.map(x=>x.colaborador).join(", ") || "-";
+    const noms = r.recogidas?.map(x=>x.colaborador).join(", ") || "-";
     tb.innerHTML += `
       <tr>
-        <td>${r.fecha}</td>
-        <td>${r.conductor}</td>
-        <td>${nombres}</td>
-        <td>${r.totalKilos}</td>
-        <td>${r.totalCanastillas}</td>
-        <td>${r.usuario || "-"}</td>
-        <td>
-          ${usuarioActivo.rol==="admin"?`<button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick="eliminarRecogida('${r.id}')">🗑️</button>`:""}
-        </td>
+        <td>${r.fecha}</td><td>${r.placa}</td><td>${r.quienRecoge}</td><td>${noms}</td>
+        <td>${r.totalKilos}</td><td>${r.totalCanastillas}</td><td>${r.usuario||"-"}</td>
+        <td>${usuarioActivo.rol==="admin"?`<button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick="db.ref('recogidas/${r.id}').remove();cargarDatos();">🗑️</button>`:""}</td>
       </tr>`;
   });
 }
-async function eliminarRecogida(id) {
-  if(!confirm("¿Eliminar?"))return;
-  await db.ref("recogidas/"+id).remove(); cargarDatos();
+
+// ==================================================
+// ===== TRANSPORTADORA → CONDUCTORES =====
+// ==================================================
+document.getElementById("formConductorTrans").addEventListener("submit", async e => {
+  e.preventDefault();
+  await db.ref("conductoresTrans").push({
+    nombre: document.getElementById("nombreConductorTrans").value.trim(),
+    cedula: document.getElementById("cedulaConductorTrans").value.trim(),
+    usuario: usuarioActivo.nombre
+  });
+  e.target.reset(); cargarDatos();
+});
+
+function renderizarCondTrans() {
+  const tb = document.querySelector("#tablaConductoresTrans tbody");
+  tb.innerHTML = "";
+  conductoresTrans.forEach(c => {
+    tb.innerHTML += `<tr><td>${c.nombre}</td><td>${c.cedula||"-"}</td><td>${c.usuario||"-"}</td></tr>`;
+  });
 }
 
 // ==================================================
 // ===== TRANSPORTADORA → VEHÍCULOS =====
 // ==================================================
-document.getElementById("formVehiculo").addEventListener("submit", async e => {
+document.getElementById("formVehiculoTrans").addEventListener("submit", async e => {
   e.preventDefault();
-  await db.ref("vehiculos").push({
-    placa: document.getElementById("placa").value.toUpperCase(),
-    modelo: document.getElementById("modelo").value,
-    tipo: document.getElementById("tipoVehiculo").value,
+  await db.ref("vehiculosTrans").push({
+    placa: document.getElementById("placaTrans").value.toUpperCase(),
+    marca: document.getElementById("marcaTrans").value,
+    modelo: document.getElementById("modeloTrans").value,
+    tipo: document.getElementById("tipoVehTrans").value,
     usuario: usuarioActivo.nombre
   });
   e.target.reset(); cargarDatos();
 });
-function renderizarVehiculos() { cargarSelectores(); }
+
+function renderizarVehTrans() {
+  const tb = document.querySelector("#tablaVehTrans tbody");
+  tb.innerHTML = "";
+  vehiculosTrans.forEach(v => {
+    tb.innerHTML += `<tr><td>${v.placa}</td><td>${v.marca}</td><td>${v.modelo||"-"}</td><td>${v.tipo}</td><td>${v.usuario||"-"}</td></tr>`;
+  });
+}
 
 // ==================================================
-// ===== TRANSPORTADORA → SALIDA Y LLEGADA =====
+// ===== TRANSPORTADORA → MOVIMIENTOS =====
 // ==================================================
-document.getElementById("formMovimientoTrans").addEventListener("submit", async e => {
+document.getElementById("formMovTrans").addEventListener("submit", async e => {
   e.preventDefault();
-  if (usuarioActivo.puedeEditar !== "si") { alert("No puedes editar"); return; }
-  const datos = {
-    fecha: document.getElementById("fechaTrans").value,
-    conductor: document.getElementById("conductorTrans").value,
-    placa: document.getElementById("vehiculoTrans").value,
-    horaSalida: document.getElementById("horaSalida").value,
-    canSalida: +document.getElementById("canSalida").value || 0,
-    horaLlegada: document.getElementById("horaLlegada").value || "",
-    canLlegada: +document.getElementById("canLlegada").value || 0,
-    obs: document.getElementById("obsTrans").value,
+  if (usuarioActivo.puedeEditar !== "si") { alert("Sin permiso"); return; }
+  await db.ref("movimientosTrans").push({
+    fecha: document.getElementById("fechaMovTrans").value,
+    conductor: document.getElementById("selConductorTrans").value,
+    placa: document.getElementById("selVehTrans").value,
+    horaSalida: document.getElementById("horaSalidaTrans").value,
+    canSalida: +document.getElementById("canSalidaTrans").value || 0,
+    horaLlegada: document.getElementById("horaLlegadaTrans").value,
+    canLlegada: +document.getElementById("canLlegadaTrans").value || 0,
+    observaciones: document.getElementById("obsTrans").value,
     usuario: usuarioActivo.nombre,
-    horaReg: new Date().toLocaleString("es-CO")
-  };
-  const id = document.getElementById("idEditarTrans").value;
-  if (id) await db.ref("movTrans/" + id).update(datos);
-  else await db.ref("movTrans").push(datos);
+    hora: new Date().toLocaleString("es-CO")
+  });
   e.target.reset(); cargarDatos();
 });
 
-function renderizarTrans() {
-  const tb = document.querySelector("#tablaTrans tbody");
+function renderizarMovTrans() {
+  const tb = document.querySelector("#tablaMovTrans tbody");
   tb.innerHTML = "";
   movimientosTrans.forEach(m => {
     tb.innerHTML += `
       <tr>
-        <td>${m.fecha}</td>
-        <td>${m.conductor}</td>
-        <td>${m.placa}</td>
-        <td>${m.horaSalida||"-"}</td>
-        <td>${m.canSalida}</td>
-        <td>${m.horaLlegada||"-"}</td>
-        <td>${m.canLlegada||0}</td>
-        <td>${m.usuario||"-"}</td>
-        <td>${usuarioActivo.rol==="admin"?`<button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick="db.ref('movTrans/${m.id}').remove();cargarDatos();">🗑️</button>`:""}</td>
+        <td>${m.fecha}</td><td>${m.conductor}</td><td>${m.placa}</td>
+        <td>${m.horaSalida||"-"}</td><td>${m.canSalida}</td>
+        <td>${m.horaLlegada||"-"}</td><td>${m.canLlegada}</td><td>${m.usuario||"-"}</td>
+      </tr>`;
+  });
+}
+
+// ==================================================
+// ===== COMBUSTIBLE =====
+// ===== Anclado a Vehículos de Canastillas =====
+// ==================================================
+document.getElementById("formCombustible").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (usuarioActivo.puedeEditar !== "si") { alert("Sin permiso"); return; }
+  const kmM = +document.getElementById("kmManana").value || 0;
+  const kmT = +document.getElementById("kmTarde").value || 0;
+  const recorrido = kmT > kmM ? kmT - kmM : 0;
+  const gal = +document.getElementById("galones").value || 0;
+  const rend = gal > 0 ? (recorrido / gal).toFixed(2) : "-";
+  await db.ref("combustible").push({
+    fecha: document.getElementById("fechaComb").value,
+    placa: document.getElementById("placaComb").value,
+    kmManana: kmM,
+    kmTarde: kmT,
+    recorrido,
+    galones: gal,
+    rendimiento: rend,
+    usuario: usuarioActivo.nombre,
+    hora: new Date().toLocaleString("es-CO")
+  });
+  e.target.reset(); cargarDatos();
+});
+
+function renderizarCombustible() {
+  const tb = document.querySelector("#tablaCombustible tbody");
+  tb.innerHTML = "";
+  registrosCombustible.forEach(r => {
+    tb.innerHTML += `
+      <tr>
+        <td>${r.fecha}</td><td>${r.placa}</td><td>${r.kmManana}</td><td>${r.kmTarde}</td><td>${r.recorrido}</td>
+        <td>${r.galones}</td><td>${r.rendimiento}</td><td>${r.usuario||"-"}</td>
       </tr>`;
   });
 }
@@ -717,25 +432,40 @@ function generarInforme() {
   const desde = document.getElementById("fechaIni").value;
   const hasta = document.getElementById("fechaFin").value;
   const tb = document.querySelector("#tablaInformes tbody");
-  tb.innerHTML = "";
+    tb.innerHTML = "";
   recogidas.filter(r => {
     if (!desde && !hasta) return true;
-    return r.fecha >= desde && r.fecha <= hasta;
+    const fecha = r.fecha;
+    if (desde && fecha < desde) return false;
+    if (hasta && fecha > hasta) return false;
+    return true;
   }).forEach(r => {
-    const nom = r.recogidas?.map(x=>x.colaborador).join(", ")||"-";
-    tb.innerHTML += `<tr><td>${r.fecha}</td><td>${r.conductor}</td><td>${nom}</td><td>${r.totalKilos}</td><td>${r.totalCanastillas}</td></tr>`;
+    const nombres = r.recogidas?.map(x => x.colaborador).join(", ") || "-";
+    tb.innerHTML += `
+      <tr>
+        <td>${r.fecha}</td>
+        <td>${r.placa}</td>
+        <td>${r.quienRecoge}</td>
+        <td>${nombres}</td>
+        <td>${r.totalKilos}</td>
+        <td>${r.totalCanastillas}</td>
+      </tr>`;
   });
 }
 
 function exportarExcel() {
-  let txt = "FECHA\tRECIBIDO POR\tCOLABORADORES\tKILOS\tCANASTILLAS\tOBSERVACIONES\n";
-  recogidas.forEach(r=>{
-    txt += `${r.fecha}\t${r.conductor}\t${r.recogidas?.map(x=>x.colaborador).join(", ")}\t${r.totalKilos}\t${r.totalCanastillas}\t${r.observaciones||""}\n`;
+  let contenido = "FECHA\tPLACA\tQUIEN RECIBE\tCOLABORADORES\tKILOS\tCANASTILLAS\tOBSERVACIONES\n";
+  recogidas.forEach(r => {
+    const nombres = r.recogidas?.map(x => x.colaborador).join(", ") || "-";
+    contenido += `${r.fecha}\t${r.placa}\t${r.quienRecoge}\t${nombres}\t${r.totalKilos}\t${r.totalCanastillas}\t${r.observaciones || ""}\n`;
   });
-  const blob = new Blob([txt], {type:"text/tab-separated-values;charset=utf-8"});
+  const blob = new Blob([contenido], { type: "text/tab-separated-values;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
-  a.href = url; a.download = "Informe_Recogidas.xls"; a.click();
+  a.href = url;
+  a.download = "Informe_Recogidas.xls";
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ==================================================
@@ -743,67 +473,78 @@ function exportarExcel() {
 // ==================================================
 document.getElementById("formUsuario").addEventListener("submit", async e => {
   e.preventDefault();
-  if (usuarioActivo.rol !== "admin") { alert("Sin permiso"); return; }
+  if (usuarioActivo.rol !== "admin") {
+    alert("🔒 Solo el administrador puede gestionar usuarios");
+    return;
+  }
   const idEd = document.getElementById("idUsuarioEditar").value;
-  const clave = document.getElementById("claveUsuarioNuevo").value.trim();
+  const claveNueva = document.getElementById("claveUsuarioNuevo").value.trim();
   const datos = {
     usuario: document.getElementById("nombreUsuarioNuevo").value.trim(),
-    clave: clave || undefined,
     rol: document.getElementById("rolUsuarioNuevo").value,
     permisos: {
-      movimientos: document.getElementById("permMovimientos").checked,
+      canastillas: document.getElementById("permCanastillas").checked,
       transportadora: document.getElementById("permTransportadora").checked,
+      combustible: document.getElementById("permCombustible").checked,
       informes: document.getElementById("permInformes").checked
     },
     puedeEditar: document.getElementById("puedeEditar").value
   };
-  if (!clave) delete datos.clave;
-  if (idEd) await db.ref("usuarios/"+idEd).update(datos);
-  else {
-    if (!clave) { alert("Escriba contraseña"); return; }
+  if (claveNueva) datos.clave = claveNueva;
+
+  if (idEd) {
+    await db.ref("usuarios/" + idEd).update(datos);
+  } else {
+    if (!claveNueva) {
+      alert("Escriba una contraseña para crear el usuario");
+      return;
+    }
     await db.ref("usuarios").push(datos);
   }
-  e.target.reset(); document.getElementById("idUsuarioEditar").value = "";
+  e.target.reset();
+  document.getElementById("idUsuarioEditar").value = "";
   cargarDatos();
+  alert("✅ Usuario guardado correctamente");
 });
 
 function editarUsuario(id) {
-  const todos = usuariosRegistrados.concat(usuariosFijos.map(u=>({...u,id:"FIJO_"+u.usuario})));
-  const u = todos.find(x=>x.id===id); if(!u)return;
+  const todos = usuariosRegistrados.concat(usuariosFijos.map(u => ({ ...u, id: "FIJO_" + u.usuario })));
+  const u = todos.find(x => x.id === id);
+  if (!u) return;
   document.getElementById("idUsuarioEditar").value = u.id;
   document.getElementById("nombreUsuarioNuevo").value = u.usuario;
-  document.getElementById("claveUsuarioNuevo").value = u.clave||"";
-  document.getElementById("rolUsuarioNuevo").value = u.rol;
-  document.getElementById("permMovimientos").checked = u.permisos?.movimientos!==false;
-  document.getElementById("permTransportadora").checked = u.permisos?.transportadora!==false;
-  document.getElementById("permInformes").checked = u.permisos?.informes!==false;
-  document.getElementById("puedeEditar").value = u.puedeEditar||"si";
+  document.getElementById("claveUsuarioNuevo").value = u.clave || "";
+  document.getElementById("rolUsuarioNuevo").value = u.rol || "usuario";
+  document.getElementById("permCanastillas").checked = u.permisos?.canastillas !== false;
+  document.getElementById("permTransportadora").checked = u.permisos?.transportadora !== false;
+  document.getElementById("permCombustible").checked = u.permisos?.combustible !== false;
+  document.getElementById("permInformes").checked = u.permisos?.informes !== false;
+  document.getElementById("puedeEditar").value = u.puedeEditar || "si";
 }
 
 function renderizarUsuarios() {
   const tb = document.querySelector("#tablaUsuarios tbody");
   tb.innerHTML = "";
-  const todos = usuariosRegistrados.concat(usuariosFijos.map(u=>({...u,id:"FIJO_"+u.usuario})));
-  todos.forEach(u=>{
+  const todos = usuariosRegistrados.concat(usuariosFijos.map(u => ({ ...u, id: "FIJO_" + u.usuario })));
+  todos.forEach(u => {
     let ve = [];
-    if(u.permisos?.movimientos!==false)ve.push("Canastillas");
-    if(u.permisos?.transportadora!==false)ve.push("Transporte");
-    if(u.permisos?.informes!==false)ve.push("Informes");
+    if (u.permisos?.canastillas !== false) ve.push("Canastillas");
+    if (u.permisos?.transportadora !== false) ve.push("Transporte");
+    if (u.permisos?.combustible !== false) ve.push("Combustible");
+    if (u.permisos?.informes !== false) ve.push("Informes");
     tb.innerHTML += `
       <tr>
         <td>${u.usuario}</td>
-        <td>${u.clave||"••••••••"}</td>
-        <td>${u.rol==="admin"?"👑 Admin":"Usuario"}</td>
+        <td>${u.clave || "••••••••"}</td>
+        <td>${u.rol === "admin" ? "👑 Administrador" : "Usuario"}</td>
         <td>${ve.join(", ")}</td>
-        <td>${u.puedeEditar==="si"?"✅ Sí":"❌ Consulta"}</td>
-        <td><button class="btn-primario" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick='editarUsuario("${u.id}")'>✏️ Editar</button></td>
+        <td>${u.puedeEditar === "si" ? "✅ Sí" : "❌ Solo consulta"}</td>
+        <td>
+          <button class="btn-primario" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick='editarUsuario("${u.id}")'>✏️ Editar</button>
+        </td>
       </tr>`;
   });
 }
-
-// ===== FECHA DE HOY =====
-document.getElementById("fechaRecogida").valueAsDate = new Date();
-document.getElementById("fechaTrans").valueAsDate = new Date();
 
 </script>
 </body>
