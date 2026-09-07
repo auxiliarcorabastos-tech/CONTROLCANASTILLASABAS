@@ -1,3 +1,470 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Ingresos y Canastillas</title>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- Estilos -->
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+    :root { --azul:#1a73e8; --verde:#0f9d58; --rojo:#d93025; --gris:#f1f3f4; --texto:#202124; --naranja:#fa7b17; --amarillo:#fbbc05; }
+    body { background: #f8f9fa; color: var(--texto); padding-bottom: 60px; }
+
+    /* --- LOGIN --- */
+    #pantallaLogin {
+      position: fixed; inset:0; background: linear-gradient(135deg, #1a73e8, #4285f4);
+      display:flex; align-items:center; justify-content:center; z-index:999;
+    }
+    .caja-login {
+      background:#fff; padding:2rem; border-radius:12px; box-shadow:0 4px 20px #0003;
+      width: 90%; max-width:400px;
+    }
+    .caja-login h2 { text-align:center; margin-bottom:1.5rem; color:var(--azul); }
+    .caja-login input {
+      width:100%; padding:0.8rem; margin:0.5rem 0; border:1px solid #ddd;
+      border-radius:8px; font-size:1rem;
+    }
+    .caja-login button {
+      width:100%; padding:0.8rem; background:var(--azul); color:#fff;
+      border:none; border-radius:8px; font-size:1rem; cursor:pointer; margin-top:0.5rem;
+    }
+    .caja-login button:hover { background:#1557b0; }
+    .mensaje { margin-top:0.8rem; font-size:0.9rem; text-align:center; min-height:1.5rem; }
+    .error { color:var(--rojo); }
+    .enlace { background:none; color:var(--azul); text-decoration:underline; font-size:0.9rem; }
+
+    /* --- CABECERA Y NAV --- */
+    .cabecera {
+      background:var(--azul); color:#fff; padding:1rem; display:flex;
+      justify-content:space-between; align-items:center; position:sticky; top:0; z-index:90;
+    }
+    .navegacion {
+      display:flex; flex-wrap:wrap; background:#fff; border-bottom:1px solid #ddd;
+      position:sticky; top:60px; z-index:80;
+    }
+    .pestaña {
+      padding:0.8rem 1rem; cursor:pointer; border-bottom:3px solid transparent;
+      white-space:nowrap; font-size:0.95rem;
+    }
+    .pestaña.activa { border-bottom:3px solid var(--azul); color:var(--azul); font-weight:bold; }
+    .pestaña:hover { background:var(--gris); }
+
+    /* --- CONTENIDO --- */
+    .pagina { display:none; padding:1rem; max-width:1200px; margin:0 auto; }
+    .pagina.visible { display:block; }
+    h2 { margin:1rem 0; color:var(--azul); }
+    h3 { margin:0.8rem 0; color:#444; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:0.3rem; }
+
+    /* --- FORMULARIOS Y TABLAS --- */
+    form { background:#fff; padding:1.2rem; border-radius:10px; box-shadow:0 2px 8px #0001; margin-bottom:1.5rem; }
+    label { display:block; margin-top:0.6rem; font-weight:600; font-size:0.9rem; }
+    input, select {
+      width:100%; padding:0.5rem; margin-top:0.2rem; border:1px solid #ccc;
+      border-radius:5px; font-size:0.9rem;
+    }
+    button {
+      padding:0.5rem 1rem; border:none; border-radius:5px; cursor:pointer; font-size:0.9rem;
+      margin:0.2rem;
+    }
+    .btn-primario { background:var(--azul); color:#fff; }
+    .btn-exito { background:var(--verde); color:#fff; }
+    .btn-peligro { background:var(--rojo); color:#fff; }
+    .btn-naranja { background:var(--naranja); color:#fff; }
+    .btn-amarillo { background:var(--amarillo); color:#202124; }
+    .btn-primario:hover { background:#1557b0; }
+    .btn-exito:hover { background:#0b8047; }
+    .btn-peligro:hover { background:#b02018; }
+    .btn-naranja:hover { background:#d66a0f; }
+
+    .tabla-contenedor { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; margin-top:0.8rem; }
+    th, td { padding:0.5rem; text-align:left; border-bottom:1px solid #eee; font-size:0.85rem; }
+    th { background:var(--gris); }
+    tr:hover { background:#f9f9f9; }
+    .recogida { border:1px solid #e0e0e0; padding:0.8rem; border-radius:8px; margin-top:0.8rem; background:#fafafa; }
+    .total-acum { background:#e8f0fe; padding:0.8rem; border-radius:8px; margin-top:1rem; font-weight:bold; }
+    .sub-seccion { margin-bottom:1.5rem; border-left:3px solid var(--azul); padding-left:1rem; }
+
+    /* --- RESPONSIVE --- */
+    @media(max-width:768px) {
+      th, td { padding:0.3rem 0.2rem; font-size:0.8rem; }
+      .pestaña { padding:0.5rem 0.6rem; font-size:0.85rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== PANTALLA DE LOGIN ===== -->
+<div id="pantallaLogin">
+  <div class="caja-login">
+    <h2>🔐 Iniciar Sesión</h2>
+    <input type="text" id="usuario" placeholder="Nombre de usuario">
+    <input type="password" id="clave" placeholder="Contraseña">
+    <button onclick="iniciarSesion()">Ingresar</button>
+    <div class="mensaje" id="mensajeLogin"></div>
+    <button class="enlace" onclick="recuperarClave()">¿Olvidé mi contraseña?</button>
+  </div>
+</div>
+
+<!-- ===== CABECERA ===== -->
+<header class="cabecera" id="cabecera" style="display:none;">
+  <h1>🚚 Control de Ingresos y Canastillas</h1>
+  <div>
+    <span id="nombreUsuario"></span>
+    <button onclick="cerrarSesion()" style="background:#fff3; color:#fff; padding:0.4rem 0.8rem; border-radius:6px; margin-left:0.5rem;">Salir</button>
+  </div>
+</header>
+
+<!-- ===== NAVEGACIÓN / PESTAÑAS ===== -->
+<nav class="navegacion" id="menuPestanas" style="display:none;">
+  <div class="pestaña activa" data-pagina="movimientos">📋 Canastillas</div>
+  <div class="pestaña" data-pagina="transportadora">🚛 Transportadora</div>
+  <div class="pestaña" data-pagina="combustible">⛽ Combustible</div>
+  <div class="pestaña" data-pagina="informes">📊 Informes</div>
+  <div class="pestaña" data-pagina="admin" id="pestanaAdmin" style="display:none;">⚙️ Administración</div>
+</nav>
+
+<!-- ===== PÁGINAS / MÓDULOS ===== -->
+<main id="contenidoPrincipal" style="display:none;">
+
+<!-- ================================================== -->
+<!-- ===== PESTAÑA 1: MOVIMIENTOS DE CANASTILLAS ===== -->
+<!-- ================================================== -->
+<section class="pagina visible" id="pag-movimientos">
+  <h2>📋 Movimientos de Canastillas</h2>
+
+  <!-- --- VEHÍCULOS DE CANASTILLAS --- -->
+  <div class="sub-seccion">
+    <form id="formVehiculoCanastilla">
+      <h3>🚗 Registrar Vehículo</h3>
+      <label>Placa <input type="text" id="placaCanast" required style="text-transform:uppercase" maxlength="10"></label>
+      <label>Marca <input type="text" id="marcaCanast" required></label>
+      <label>Modelo <input type="text" id="modeloCanast"></label>
+      <label>Tipo de Vehículo
+        <select id="tipoVehCanast" required>
+          <option value="">Seleccione</option>
+          <option value="Liviano">Liviano</option>
+          <option value="Camioneta">Camioneta</option>
+          <option value="Camión">Camión</option>
+          <option value="Moto">Moto</option>
+          <option value="VTH">Vehículo de Tracción Humana (VTH)</option>
+          <option value="Otro">Otro (especificar)</option>
+        </select>
+      </label>
+      <label>Tipo Personalizado <input type="text" id="tipoPersonalizado" placeholder="Sí eligió Otro, escriba aquí"></label>
+      <button type="submit" class="btn-primario">Guardar Vehículo</button>
+    </form>
+
+    <h4>Lista de Vehículos</h4>
+    <div class="tabla-contenedor">
+      <table id="tablaVehCanast">
+        <thead><tr><th>Placa</th><th>Marca</th><th>Modelo</th><th>Tipo</th><th>Acciones</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- --- COLABORADORES --- -->
+  <div class="sub-seccion">
+    <form id="formColaborador">
+      <h3>👤 Registrar Colaborador</h3>
+      <label>Nombre del Colaborador <input type="text" id="nombreColaborador" required></label>
+      <button type="submit" class="btn-primario">Guardar Colaborador</button>
+    </form>
+  </div>
+
+  <!-- --- REGISTRO DE RECOGIDAS --- -->
+  <form id="formRecogida">
+    <input type="hidden" id="idEditar">
+    <h3>📦 Registrar Recogida de Canastillas</h3>
+    <label>Fecha <input type="date" id="fechaRecogida" required></label>
+    <label>Vehículo que Recoge
+      <select id="vehiculoRecolector" required>
+        <option value="">Seleccione vehículo</option>
+      </select>
+    </label>
+    <label>Quien Recoge <input type="text" id="quienRecoge" placeholder="Nombre del conductor o encargado" required></label>
+
+    <!-- RECOGIDAS DINÁMICAS -->
+    <div id="listaRecogidas">
+      <div class="recogida" data-indice="1">
+        <h4>Recogida #1</h4>
+        <label>Recoge a:
+          <select class="colaboradorRecogido" required>
+            <option value="">Seleccione colaborador</option>
+          </select>
+        </label>
+        <label>Kilos <input type="number" class="kilosRecogidos" min="0" step="0.01" oninput="actualizarTotal()"></label>
+        <label>Canastillas <input type="number" class="canastRecogidas" min="0" oninput="actualizarTotal()"></label>
+      </div>
+    </div>
+
+    <button type="button" class="btn-naranja" onclick="agregarRecogida()">➕ Añadir otra recogida</button>
+
+    <!-- TOTALES -->
+    <div class="total-acum">
+      🔢 Total Kilos: <span id="totalKilos">0</span> kg &nbsp;|&nbsp;
+      📦 Total Canastillas: <span id="totalCanastillas">0</span>
+    </div>
+
+    <label>Observaciones <input type="text" id="obsRecogida"></label>
+    <button type="submit" class="btn-exito">💾 Guardar Todo</button>
+    <button type="reset" class="btn-peligro" onclick="resetFormRecogida()">🗑️ Limpiar</button>
+  </form>
+
+  <!-- HISTORIAL -->
+  <h3>📋 Historial de Recogidas</h3>
+  <div class="tabla-contenedor">
+    <table id="tablaRecogidas">
+      <thead>
+        <tr>
+          <th>Fecha</th><th>Vehículo</th><th>Quien Recoge</th><th>Colaboradores</th>
+          <th>Total Kilos</th><th>Total Canast.</th><th>Registrado por</th><th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================================================== -->
+<!-- ===== PESTAÑA 2: TRANSPORTADORA ===== -->
+<!-- ================================================== -->
+<section class="pagina" id="pag-transportadora">
+  <h2>🚛 Transportadora</h2>
+  <p style="color:#666; font-size:0.9rem; margin-bottom:1rem;">Los conductores y vehículos de esta sección son independientes de Canastillas</p>
+
+  <!-- --- CONDUCTORES DE TRANSPORTADORA --- -->
+  <form id="formConductorTrans">
+    <h3>👤 Registrar Conductor</h3>
+    <label>Nombre del Conductor <input type="text" id="nombreConductorTrans" required></label>
+    <label>Cédula / Identificación <input type="text" id="cedulaConductorTrans"></label>
+    <button type="submit" class="btn-primario">Guardar Conductor</button>
+  </form>
+
+  <h4>Lista de Conductores</h4>
+  <div class="tabla-contenedor">
+    <table id="tablaConductoresTrans">
+      <thead><tr><th>Nombre</th><th>Identificación</th><th>Registrado por</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- --- VEHÍCULOS DE TRANSPORTADORA --- -->
+  <form id="formVehiculoTrans">
+    <h3>🚗 Registrar Vehículo</h3>
+    <label>Placa <input type="text" id="placaTrans" required style="text-transform:uppercase" maxlength="10"></label>
+    <label>Marca <input type="text" id="marcaTrans" required></label>
+    <label>Modelo <input type="text" id="modeloTrans"></label>
+    <label>Tipo de Vehículo
+      <select id="tipoVehTrans" required>
+        <option value="">Seleccione</option>
+        <option value="Camioneta">Camioneta</option>
+        <option value="Camión">Camión</option>
+        <option value="Furgón">Furgón</option>
+        <option value="Otro">Otro</option>
+      </select>
+    </label>
+    <button type="submit" class="btn-primario">Guardar Vehículo</button>
+  </form>
+
+  <h4>Lista de Vehículos</h4>
+  <div class="tabla-contenedor">
+    <table id="tablaVehTrans">
+      <thead><tr><th>Placa</th><th>Marca</th><th>Modelo</th><th>Tipo</th><th>Registrado por</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <!-- --- MOVIMIENTOS DE SALIDA Y LLEGADA --- -->
+  <form id="formMovTrans">
+    <h3>📤 Salida y 📥 Llegada</h3>
+    <label>Fecha <input type="date" id="fechaMovTrans" required></label>
+    <label>Conductor <select id="selConductorTrans" required><option value="">Seleccione</option></select></label>
+    <label>Vehículo <select id="selVehTrans" required><option value="">Seleccione</option></select></label>
+    <h4>Salida</h4>
+    <label>Hora de Salida <input type="time" id="horaSalidaTrans"></label>
+    <label>Canastillas que salen <input type="number" id="canSalidaTrans" min="0"></label>
+    <h4>Regreso</h4>
+    <label>Hora de Llegada <input type="time" id="horaLlegadaTrans"></label>
+    <label>Canastillas que llegan <input type="number" id="canLlegadaTrans" min="0"></label>
+    <label>Observaciones <input type="text" id="obsTrans"></label>
+    <button type="submit" class="btn-exito">Guardar Movimiento</button>
+  </form>
+
+  <h4>Historial de Movimientos</h4>
+  <div class="tabla-contenedor">
+    <table id="tablaMovTrans">
+      <thead>
+        <tr>
+          <th>Fecha</th><th>Conductor</th><th>Vehículo</th><th>Hora Salida</th><th>Canast. Salen</th>
+          <th>Hora Llegada</th><th>Canast. Llegan</th><th>Registrado por</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================================================== -->
+<!-- ===== PESTAÑA 3: COMBUSTIBLE ===== -->
+<!-- ================================================== -->
+<section class="pagina" id="pag-combustible">
+  <h2>⛽ Combustible y Kilometraje</h2>
+  <p style="color:#666; font-size:0.9rem; margin-bottom:1rem;">Vehículos registrados en Canastillas</p>
+
+  <form id="formCombustible">
+    <h3>Registrar Consumo</h3>
+    <label>Fecha <input type="date" id="fechaComb" required></label>
+    <label>Vehículo (Placa)
+      <select id="placaComb" required>
+        <option value="">Seleccione vehículo</option>
+      </select>
+    </label>
+    <label>Kilometraje Mañana <input type="number" id="kmManana" min="0" step="1"></label>
+    <label>Kilometraje Tarde <input type="number" id="kmTarde" min="0" step="1"></label>
+    <label>Galones Cargados <input type="number" id="galones" min="0" step="0.01"></label>
+    <button type="submit" class="btn-primario">Guardar Registro</button>
+  </form>
+
+  <h3>Registros de Consumo</h3>
+  <div class="tabla-contenedor">
+    <table id="tablaCombustible">
+      <thead>
+        <tr>
+          <th>Fecha</th><th>Placa</th><th>KM Mañana</th><th>KM Tarde</th><th>Recorrido</th>
+          <th>Galones</th><th>Rendimiento km/gal</th><th>Registrado por</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ================================================== -->
+<!-- ===== PESTAÑA 4: INFORMES ===== -->
+<!-- ================================================== -->
+<section class="pagina" id="pag-informes">
+  <h2>📊 Informes y Consultas</h2>
+  <div style="background:#fff; padding:1rem; border-radius:10px; margin-bottom:1rem;">
+    <h4>Filtrar por rango de fechas</h4>
+    <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:0.5rem;">
+      <label>Desde <input type="date" id="fechaIni"></label>
+      <label>Hasta <input type="date" id="fechaFin"></label>
+      <button class="btn-primario" onclick="generarInforme()">Generar Reporte</button>
+    </div>
+  </div>
+  <h3>Resumen de Recogidas</h3>
+  <div class="tabla-contenedor">
+    <table id="tablaInformes">
+      <thead>
+        <tr>
+          <th>Fecha</th><th>Vehículo</th><th>Quien Recoge</th><th>Colaboradores</th><th>Total Kilos</th><th>Total Canast.</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <br>
+  <button class="btn-exito" onclick="exportarExcel()">📥 Exportar a Excel</button>
+</section>
+
+<!-- ================================================== -->
+<!-- ===== PESTAÑA 5: ADMINISTRACIÓN ===== -->
+<!-- ================================================== -->
+<section class="pagina" id="pag-admin">
+  <h2>⚙️ Administración del Sistema</h2>
+  <form id="formUsuario">
+    <h3>Gestión de Usuarios</h3>
+    <input type="hidden" id="idUsuarioEditar">
+    <label>Nombre de Usuario <input type="text" id="nombreUsuarioNuevo" required></label>
+    <label>Contraseña <input type="text" id="claveUsuarioNuevo" placeholder="Dejar vacío para no cambiar"></label>
+    <label>Rol
+      <select id="rolUsuarioNuevo">
+        <option value="usuario">Usuario</option>
+        <option value="admin">Administrador</option>
+      </select>
+    </label>
+    <h4>¿Qué pestañas puede ver?</h4>
+    <label style="display:flex; align-items:center; gap:0.3rem;">
+      <input type="checkbox" id="permCanastillas" checked> 📋 Canastillas
+    </label>
+    <label style="display:flex; align-items:center; gap:0.3rem;">
+      <input type="checkbox" id="permTransportadora" checked> 🚛 Transportadora
+    </label>
+    <label style="display:flex; align-items:center; gap:0.3rem;">
+      <input type="checkbox" id="permCombustible" checked> ⛽ Combustible
+    </label>
+    <label style="display:flex; align-items:center; gap:0.3rem;">
+      <input type="checkbox" id="permInformes" checked> 📊 Informes
+    </label>
+    <label>¿Puede Editar Información?
+      <select id="puedeEditar">
+        <option value="si">✅ Sí</option>
+        <option value="no">❌ Solo Consulta</option>
+      </select>
+    </label>
+    <button type="submit" class="btn-primario">💾 Guardar Usuario</button>
+  </form>
+
+  <h3>Lista de Usuarios</h3>
+  <div class="tabla-contenedor">
+    <table id="tablaUsuarios">
+      <thead>
+        <tr>
+          <th>Usuario</th><th>Contraseña</th><th>Rol</th><th>Puede Ver</th><th>Puede Editar</th><th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+</main>
+
+<script>
+// ==================================================
+// ===== USUARIOS PREDETERMINADOS =====
+// ==================================================
+const usuariosFijos = [
+  { usuario: "jgarnica", clave: "123456", nombre: "jgarnica", rol: "admin",
+    permisos: { canastillas: true, transportadora: true, combustible: true, informes: true }, puedeEditar: "si" },
+  { usuario: "jfigueroa", clave: "3134630773", nombre: "jfigueroa", rol: "admin",
+    permisos: { canastillas: true, transportadora: true, combustible: true, informes: true }, puedeEditar: "si" },
+  { usuario: "estudiante", clave: "123456", nombre: "estudiante", rol: "usuario",
+    permisos: { canastillas: true, transportadora: true, combustible: true, informes: true }, puedeEditar: "si" }
+];
+
+// ===== VARIABLES GLOBALES =====
+let usuarioActivo = null;
+let vehiculosCanast = [];
+let colaboradores = [];
+let recogidas = [];
+let conductoresTrans = [];
+let vehiculosTrans = [];
+let movimientosTrans = [];
+let registrosCombustible = [];
+let usuariosRegistrados = [];
+let db = null;
+
+// ===== FIREBASE CONFIG =====
+const firebaseConfig = {
+  apiKey: "AIzaSyBruMDqyExColkMwy7XyqDSBsF8XcvsFoY",
+  authDomain: "control-ingresos-y-canastillas.firebaseapp.com",
+  projectId: "control-ingresos-y-canastillas",
+  storageBucket: "control-ingresos-y-canastillas.firebasestorage.app",
+  messagingSenderId: "372736670308",
+  appId: "1:372736670308:web:14c2e2614c14ff3dc2bd71",
+  measurementId: "G-N3YMQ2JKZM"
+};
+
+firebase.initializeApp(firebaseConfig);
+db = firebase.database();
 // ==================================================
 // ===== INICIAR SESIÓN =====
 // ==================================================
