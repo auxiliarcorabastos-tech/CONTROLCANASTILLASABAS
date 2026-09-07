@@ -3,673 +3,155 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Movimientos y Canastillas</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Control de Canastillas</title>
+    <link rel="stylesheet" href="estilos.css">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: system-ui, -apple-system, sans-serif; background: #f0f4f8; }
-
-        /* === MENÚ LATERAL RESPONSIVE === */
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 260px;
-            height: 100vh;
-            background: #1e40af;
-            color: white;
-            padding-top: 1rem;
-            z-index: 999;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease-in-out;
-            overflow-y: auto;
-        }
-        .sidebar.visible { transform: translateX(0); }
-
-        .overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.4);
-            z-index: 998;
-            display: none;
-        }
-        .overlay.activo { display: block; }
-
-        .btn-menu {
-            position: fixed;
-            top: 0.5rem;
-            left: 0.5rem;
-            z-index: 997;
-            background: #2563eb;
-            color: white;
-            border: none;
-            padding: 0.5rem 0.75rem;
-            border-radius: 0.375rem;
-            font-size: 1.25rem;
-            cursor: pointer;
-        }
-
-        .contenido {
-            margin-left: 0;
-            padding: 1rem;
-            padding-top: 3rem;
-            min-height: 100vh;
-        }
-
-        .btn-pestaña {
-            display: block;
-            width: 100%;
-            text-align: left;
-            padding: 0.85rem 1.25rem;
-            background: transparent;
-            border: none;
-            color: white;
-            cursor: pointer;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            font-size: 0.95rem;
-        }
-        .btn-pestaña:hover, .btn-pestaña.activa {
-            background: #3b82f6;
-        }
-
-        .pestaña { display: none; }
-        .pestaña.activa { display: block; }
-
-        .tarjeta {
-            background: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            padding: 1.25rem;
-            margin-bottom: 1rem;
-        }
-
-        input, select, button {
-            padding: 0.5rem;
-            border: 1px solid #cbd5e1;
-            border-radius: 0.375rem;
-            margin: 0.25rem 0;
-            width: 100%;
-        }
-        button {
-            background: #2563eb;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: 500;
-        }
-        button:hover { opacity: 0.9; }
-        button.exito { background: #16a34a; }
-        button.peligro { background: #dc2626; }
-
-        .barra-superior {
-            position: fixed;
-            top: 0;
-            right: 0;
-            left: 0;
-            height: 3rem;
-            background: white;
-            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            padding: 0 1rem;
-            gap: 0.75rem;
-            z-index: 996;
-        }
-
-        /* En pantallas grandes el menú siempre visible */
-        @media (min-width: 768px) {
-            .sidebar { transform: translateX(0); }
-            .overlay { display: none !important; }
-            .btn-menu { display: none; }
-            .contenido { margin-left: 260px; }
-        }
-    </style>
 </head>
 <body>
 
-<!-- Botón abrir menú -->
+<!-- Botón menú (solo visible en celular) -->
 <button class="btn-menu" onclick="alternarMenu()">☰</button>
 
-<!-- Capa oscura al abrir menú en celular -->
+<!-- Capa oscura al abrir menú -->
 <div class="overlay" onclick="alternarMenu()"></div>
 
 <!-- Menú Lateral -->
 <nav class="sidebar">
-    <div style="padding: 0.75rem 1.25rem; font-weight: bold; font-size: 1.05rem; border-bottom: 1px solid rgba(255,255,255,0.2); margin-bottom: 0.5rem;">
-        📋 Control Canastillas
-    </div>
+    <div class="logo">📋 Control Canastillas</div>
     <button class="btn-pestaña activa" onclick="cambiarPestaña('movimientos')">📝 Movimientos</button>
     <button class="btn-pestaña" onclick="cambiarPestaña('transportadora')">🚛 Transportadora</button>
     <button class="btn-pestaña" onclick="cambiarPestaña('combustible')">⛽ Combustible</button>
     <button class="btn-pestaña" onclick="cambiarPestaña('informes')">📊 Informes</button>
-    <button class="btn-pestaña" onclick="cambiarPestaña('admin')" id="btnAdmin" style="display:none;">⚙️ Administración</button>
+    <button class="btn-pestaña" id="btnAdmin" onclick="cambiarPestaña('admin')">⚙️ Administración</button>
 </nav>
 
-<!-- Barra Superior -->
-<div class="barra-superior">
-    <button onclick="location.reload()" style="background:#16a34a; padding:0.35rem 0.75rem; border-radius:0.375rem; font-size:0.85rem;">🔄 Actualizar</button>
-    <span id="usuarioActual" style="font-size:0.9rem;"></span>
-    <button onclick="cerrarSesion()" style="background:#dc2626; padding:0.35rem 0.75rem; border-radius:0.375rem; font-size:0.85rem;">Salir</button>
-</div>
+<!-- Barra Superior Fija -->
+<header class="barra-superior">
+    <button class="btn-actualizar" onclick="location.reload()">🔄 Actualizar</button>
+    <span id="usuarioActual"></span>
+    <button class="btn-salir" onclick="cerrarSesion()">🚪 Salir</button>
+</header>
 
 <!-- Contenido Principal -->
 <main class="contenido">
 
-<!-- Pestaña MOVIMIENTOS -->
-<div id="pest-movimientos" class="pestaña activa">
-    <h2 class="text-xl font-bold mb-4">Movimientos de Canastillas</h2>
-    <div class="tarjeta">
-        <h3 class="font-bold mb-3">Registrar Salida / Llegada</h3>
-        <input type="date" id="fecha">
-        <select id="vehiculo"><option value="">Seleccione vehículo</option></select>
-        <select id="quienRecoge"><option value="">Seleccione colaborador</option></select>
-        <input type="time" id="horaSalida" placeholder="Hora de Salida">
-        <input type="time" id="horaLlegada" placeholder="Hora de Llegada">
-        <input type="number" id="canSalida" placeholder="Canastillas que Salen">
-        <input type="number" id="canLlegada" placeholder="Canastillas que Llegan">
-        <input type="text" id="observaciones" placeholder="Observaciones">
-        <input type="hidden" id="idEditar">
-        <button class="exito mt-2" onclick="guardarMovimiento()">✅ Guardar Movimiento</button>
-    </div>
-    <div class="tarjeta">
-        <h3 class="font-bold mb-3">Historial de Movimientos</h3>
-        <input type="text" id="buscarMov" placeholder="Buscar por placa o nombre..." oninput="filtrarMovimientos()">
-        <div id="listaMovimientos"></div>
-    </div>
-</div>
+    <!-- Pestaña MOVIMIENTOS -->
+    <section id="pest-movimientos" class="pestaña activa">
+        <h2>Movimientos de Canastillas</h2>
+        <div class="tarjeta">
+            <h3>Registrar Salida / Llegada</h3>
+            <input type="date" id="fecha">
+            <select id="vehiculo"><option value="">Seleccione vehículo</option></select>
+            <select id="quienRecoge"><option value="">Seleccione colaborador</option></select>
+            <input type="time" id="horaSalida" placeholder="Hora de Salida">
+            <input type="time" id="horaLlegada" placeholder="Hora de Llegada">
+            <input type="number" id="canSalida" placeholder="Canastillas que Salen">
+            <input type="number" id="canLlegada" placeholder="Canastillas que Llegan">
+            <input type="text" id="observaciones" placeholder="Observaciones">
+            <input type="hidden" id="idEditar">
+            <button class="btn-exito" onclick="guardarMovimiento()">✅ Guardar Movimiento</button>
+        </div>
+        <div class="tarjeta">
+            <h3>Historial de Movimientos</h3>
+            <input type="text" id="buscarMov" placeholder="Buscar por placa o nombre..." oninput="filtrarMovimientos()">
+            <div id="listaMovimientos"></div>
+        </div>
+    </section>
 
-<!-- Pestaña TRANSPORTADORA -->
-<div id="pest-transportadora" class="pestaña">
-    <h2 class="text-xl font-bold mb-4">🚛 Transportadora</h2>
+    <!-- Pestaña TRANSPORTADORA -->
+    <section id="pest-transportadora" class="pestaña">
+        <h2>🚛 Transportadora</h2>
+        <div class="tarjeta">
+            <h3>➕ Agregar Conductor</h3>
+            <input type="text" id="nombreConductor" placeholder="Nombre del conductor">
+            <button class="btn-exito" onclick="agregarConductor()">Guardar Conductor</button>
+        </div>
+        <div class="tarjeta">
+            <h3>🚗 Agregar Vehículo</h3>
+            <input type="text" id="placaVehiculo" placeholder="Placa del vehículo">
+            <select id="tipoVehiculo">
+                <option value="">Seleccione tipo</option>
+                <option value="Moto">Moto</option>
+                <option value="Camioneta">Camioneta</option>
+                <option value="Camión">Camión</option>
+                <option value="VTH">Vehículo de Tracción Humana (VTH)</option>
+            </select>
+            <button class="btn-exito" onclick="agregarVehiculo()">Guardar Vehículo</button>
+        </div>
+        <div class="tarjeta">
+            <h3>📦 Registrar Movimiento</h3>
+            <input type="date" id="fechaTransp">
+            <select id="vehiculoTransp"><option value="">Seleccione vehículo</option></select>
+            <select id="conductorTransp"><option value="">Seleccione conductor</option></select>
+            <input type="number" id="canSalidaTransp" placeholder="Canastillas que salen">
+            <input type="number" id="canLlegadaTransp" placeholder="Canastillas que llegan">
+            <input type="time" id="horaSalidaTransp" placeholder="Hora de Salida">
+            <input type="time" id="horaLlegadaTransp" placeholder="Hora de Llegada">
+            <button class="btn-exito" onclick="guardarMovimientoTransp()">✅ Registrar Movimiento</button>
+        </div>
+    </section>
 
-    <div class="tarjeta">
-        <h3 class="font-bold mb-2">➕ Agregar Conductor</h3>
-        <input type="text" id="nombreConductor" placeholder="Nombre del conductor">
-        <button class="exito" onclick="agregarConductor()">Guardar Conductor</button>
-        <div id="listaConductores" class="mt-2"></div>
-    </div>
+    <!-- Pestaña COMBUSTIBLE -->
+    <section id="pest-combustible" class="pestaña">
+        <h2>⛽ Control de Combustible</h2>
+        <div class="tarjeta">
+            <select id="vehiculoComb"><option value="">Seleccione vehículo</option></select>
+            <input type="number" id="kma" placeholder="Kilometraje Mañana">
+            <input type="number" id="kmt" placeholder="Kilometraje Tarde">
+            <input type="number" id="galones" placeholder="Galones cargados">
+            <button class="btn-exito" onclick="guardarCombustible()">Guardar</button>
+        </div>
+    </section>
 
-    <div class="tarjeta">
-        <h3 class="font-bold mb-2">🚗 Agregar Vehículo</h3>
-        <input type="text" id="placaVehiculo" placeholder="Placa del vehículo">
-        <select id="tipoVehiculo">
-            <option value="">Seleccione tipo</option>
-            <option value="Moto">Moto</option>
-            <option value="Camioneta">Camioneta</option>
-            <option value="Camión">Camión</option>
-            <option value="VTH">Vehículo de Tracción Humana (VTH)</option>
-        </select>
-        <button class="exito mt-2" onclick="agregarVehiculo()">Guardar Vehículo</button>
-        <div id="listaVehiculos" class="mt-2"></div>
-    </div>
+    <!-- Pestaña INFORMES -->
+    <section id="pest-informes" class="pestaña">
+        <h2>📊 Informes y Consultas</h2>
+        <div class="tarjeta">
+            <input type="date" id="fechaInicio" placeholder="Fecha inicio">
+            <input type="date" id="fechaFin" placeholder="Fecha fin">
+            <button onclick="generarInforme()">🔍 Consultar</button>
+            <button class="btn-exito" onclick="exportarExcel()">📥 Exportar Excel</button>
+        </div>
+        <div id="resultadoInforme" class="tarjeta"></div>
+    </section>
 
-    <div class="tarjeta">
-        <h3 class="font-bold mb-2">📦 Movimientos de Canastillas</h3>
-        <input type="date" id="fechaTransp">
-        <select id="vehiculoTransp"><option value="">Seleccione vehículo</option></select>
-        <select id="conductorTransp"><option value="">Seleccione conductor</option></select>
-        <input type="number" id="canSalidaTransp" placeholder="Canastillas que salen">
-        <input type="number" id="canLlegadaTransp" placeholder="Canastillas que llegan">
-        <input type="time" id="horaSalidaTransp" placeholder="Hora de Salida">
-        <input type="time" id="horaLlegadaTransp" placeholder="Hora de Llegada">
-        <button class="exito mt-2" onclick="guardarMovimientoTransp()">✅ Registrar Movimiento</button>
-    </div>
-</div>
-
-<!-- Pestaña COMBUSTIBLE -->
-<div id="pest-combustible" class="pestaña">
-    <h2 class="text-xl font-bold mb-4">⛽ Control de Combustible</h2>
-    <div class="tarjeta">
-        <select id="vehiculoComb"><option value="">Seleccione vehículo</option></select>
-        <input type="number" id="kma" placeholder="Kilometraje Mañana">
-        <input type="number" id="kmt" placeholder="Kilometraje Tarde">
-        <input type="number" id="galones" placeholder="Galones cargados">
-        <button class="exito" onclick="guardarCombustible()">Guardar</button>
-    </div>
-</div>
-
-<!-- Pestaña INFORMES -->
-<div id="pest-informes" class="pestaña">
-    <h2 class="text-xl font-bold mb-4">📊 Informes y Consultas</h2>
-    <div class="tarjeta">
-        <input type="date" id="fechaInicio">
-        <input type="date" id="fechaFin">
-        <button onclick="generarInforme()">🔍 Consultar</button>
-        <button class="exito" onclick="exportarExcel()">📥 Exportar Excel</button>
-    </div>
-    <div id="resultadoInforme" class="tarjeta"></div>
-</div>
-
-<!-- Pestaña ADMINISTRACIÓN -->
-<div id="pest-admin" class="pestaña">
-    <h2 class="text-xl font-bold mb-4">⚙️ Administración</h2>
-    <div class="tarjeta">
-        <h3 class="font-bold mb-2">👤 Crear Usuario</h3>
-        <input type="email" id="correoNuevo" placeholder="Correo">
-        <input type="password" id="passNuevo" placeholder="Contraseña">
-        <select id="rolNuevo">
-            <option value="usuario">Usuario</option>
-            <option value="admin">Administrador</option>
-        </select>
-        <button class="exito" onclick="crearUsuario()">Crear Usuario</button>
-    </div>
-    <div class="tarjeta">
-        <h3 class="font-bold mb-2">Colaboradores</h3>
-        <input type="text" id="nombreColab" placeholder="Nombre colaborador">
-        <button class="exito" onclick="agregarColaborador()">Agregar</button>
-        <div id="listaColaboradores"></div>
-    </div>
-    <div class="tarjeta">
-        <h3 class="font-bold mb-2">Registro de Acciones</h3>
-        <div id="bitacora"></div>
-    </div>
-</div>
-
+    <!-- Pestaña ADMINISTRACIÓN -->
+    <section id="pest-admin" class="pestaña">
+        <h2>⚙️ Administración</h2>
+        <div class="tarjeta">
+            <h3>👤 Crear Usuario</h3>
+            <input type="email" id="correoNuevo" placeholder="Correo">
+            <input type="password" id="passNuevo" placeholder="Contraseña">
+            <select id="rolNuevo">
+                <option value="usuario">Usuario</option>
+                <option value="admin">Administrador</option>
+            </select>
+            <button class="btn-exito" onclick="crearUsuario()">Crear Usuario</button>
+        </div>
+        <div class="tarjeta">
+            <h3>Colaboradores</h3>
+            <input type="text" id="nombreColab" placeholder="Nombre colaborador">
+            <button class="btn-exito" onclick="agregarColaborador()">Agregar</button>
+            <div id="listaColaboradores"></div>
+        </div>
+    </section>
 </main>
 
-<!-- === INICIO DE SESIÓN === -->
-<div id="pantallaLogin" style="position:fixed;inset:0;background:white;display:flex;align-items:center;justify-content:center;z-index:9999;">
-    <div class="tarjeta" style="width:90%;max-width:400px;">
-        <h2 class="text-xl font-bold text-center mb-4">🔐 Iniciar Sesión</h2>
+<!-- PANTALLA DE LOGIN -->
+<div id="pantallaLogin">
+    <div class="login-caja">
+        <h2>🔐 Iniciar Sesión</h2>
         <input type="email" id="correoLogin" placeholder="Correo electrónico">
         <input type="password" id="passLogin" placeholder="Contraseña">
-        <p id="mensajeError" style="color:red; font-size:0.9rem; margin:0.5rem 0;"></p>
+        <p id="mensajeError"></p>
         <button onclick="ingresar()">Ingresar</button>
-        <p class="text-center mt-3 text-sm">
-            <a href="#" onclick="recuperarClave()">¿Olvidó su contraseña?</a>
-        </p>
+        <p class="recuperar"><a href="#" onclick="recuperarClave()">¿Olvidó su contraseña?</a></p>
     </div>
 </div>
 
-<script>
-// ===== CONFIGURACIÓN FIREBASE =====
-const firebaseConfig = {
-  apiKey: "AIzaSyBruMDqyExColkMwy7XyqDSBsF8XcvsFoY",
-  authDomain: "control-ingresos-y-canastillas.firebaseapp.com",
-  projectId: "control-ingresos-y-canastillas",
-  storageBucket: "control-ingresos-y-canastillas.firebasestorage.app",
-  messagingSenderId: "372736670308",
-  appId: "1:372736670308:web:14c2e2614c14ff3dc2bd71",
-  measurementId: "G-N3YMQ2JKZM"
-};
-
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.firestore();
-
-// ===== USUARIOS PREDETERMINADOS =====
-const usuariosFijos = {
-    "jgarnica@correo.com": { pass: "123456", rol: "admin", nombre: "jgarnica" },
-    "jfigueroa@correo.com": { pass: "3134630773", rol: "admin", nombre: "jfigueroa" },
-    "estudiante@correo.com": { pass: "123456", rol: "usuario", nombre: "estudiante", permisos: ["movimientos", "transportadora"] }
-};
-
-// ===== VARIABLES GLOBALES =====
-let usuarioConectado = null;
-let idEdicion = null;
-let movimientos = [];
-let conductores = [];
-let vehiculos = [];
-let colaboradores = [];
-let tiempoSesion = null;
-
-// ===== ALTERNAR MENÚ EN CELULAR =====
-function alternarMenu() {
-    document.querySelector('.sidebar').classList.toggle('visible');
-    document.querySelector('.overlay').classList.toggle('activo');
-}
-
-// ===== CAMBIAR PESTAÑA =====
-function cambiarPestaña(nombre) {
-    document.querySelectorAll('.btn-pestaña').forEach(b=>b.classList.remove('activa'));
-    event.target.classList.add('activa');
-    document.querySelectorAll('.pestaña').forEach(p=>p.classList.remove('activa'));
-    document.getElementById('pest-'+nombre).classList.add('activa');
-    if(window.innerWidth < 768) alternarMenu();
-}
-
-// ===== INICIAR SESIÓN =====
-async function ingresar() {
-    let correo = document.getElementById('correoLogin').value.trim();
-    let pass = document.getElementById('passLogin').value;
-    let error = document.getElementById('mensajeError');
-    error.textContent = '';
-
-    // Normalizar correo
-    if(!correo.includes('@')) correo = correo + '@correo.com';
-
-    try {
-        // Buscar en usuarios fijos
-        if(usuariosFijos[correo]) {
-            if(usuariosFijos[correo].pass === pass) {
-                usuarioConectado = { email: correo, ...usuariosFijos[correo] };
-                await finalizarLogin();
-                return;
-            } else {
-                error.textContent = '🔒 Contraseña errada';
-                return;
-            }
-        }
-
-        // Ingresar por Firebase
-        await auth.signInWithEmailAndPassword(correo, pass);
-        const usuario = auth.currentUser;
-        const doc = await db.doc(`usuarios/${usuario.uid}`).get();
-        usuarioConectado = { email: usuario.email, uid: usuario.uid, ...doc.data() };
-        await finalizarLogin();
-
-    } catch(e) {
-        if(e.code === 'auth/user-not-found') {
-            error.textContent = '❌ Usuario no registrado';
-        } else if(e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') {
-            error.textContent = '🔒 Contraseña errada';
-        } else {
-            error.textContent = '⚠️ ' + e.message;
-        }
-    }
-}
-
-async function finalizarLogin() {
-    document.getElementById('pantallaLogin').style.display = 'none';
-    document.getElementById('usuarioActual').textContent = usuarioConectado.nombre || usuarioConectado.email;
-    if(usuarioConectado.rol === 'admin') {
-        document.getElementById('btnAdmin').style.display = 'block';
-    }
-    await cargarDatos();
-    iniciarTiempoSesion();
-    registrarAccion('Inicio de Sesión', 'Sistema', 'Ingreso exitoso');
-}
-
-// ===== TIEMPO DE SESIÓN (1 hora) =====
-function iniciarTiempoSesion() {
-    reiniciarTiempoSesion();
-    window.onmousemove = reiniciarTiempoSesion;
-    window.onkeypress = reiniciarTiempoSesion;
-}
-function reiniciarTiempoSesion() {
-    clearTimeout(tiempoSesion);
-    tiempoSesion = setTimeout(() => {
-        alert('⏰ Cierre de sesión por inactividad');
-        cerrarSesion();
-    }, 60 * 60 * 1000); // 1 hora
-}
-
-function cerrarSesion() {
-    auth.signOut();
-    location.reload();
-}
-
-function recuperarClave() {
-    alert('Solicita recuperación desde Firebase Console o ingresa con tu correo y contraseña');
-}
-
-// ===== CARGAR DATOS INICIALES =====
-async function cargarDatos() {
-    const hoy = new Date().toISOString().split('T')[0];
-    document.getElementById('fecha').value = hoy;
-    document.getElementById('fechaTransp').value = hoy;
-
-    // Cargar vehículos
-    const vh = await db.collection('vehiculos').get();
-    vehiculos = vh.docs.map(d=>({id:d.id, ...d.data()}));
-    actualizarSelectVehiculos();
-
-    // Cargar conductores
-    const cd = await db.collection('conductores').get();
-    conductores = cd.docs.map(d=>({id:d.id, ...d.data()}));
-    actualizarSelectConductores();
-
-    // Cargar colaboradores
-    const cl = await db.collection('colaboradores').get();
-    colaboradores = cl.docs.map(d=>({id:d.id, ...d.data()}));
-    actualizarSelectColaboradores();
-
-    // Cargar movimientos
-    const mv = await db.collection('movimientos').orderBy('fecha', 'desc').limit(50).get();
-    movimientos = mv.docs.map(d=>({id:d.id, ...d.data()}));
-    dibujarMovimientos();
-}
-
-function actualizarSelectVehiculos() {
-    let opts = '<option value="">Seleccione vehículo</option>';
-    vehiculos.forEach(v=> opts += `<option value="${v.placa}">${v.placa} - ${v.tipo}</option>`);
-    document.getElementById('vehiculo').innerHTML = opts;
-    document.getElementById('vehiculoTransp').innerHTML = opts;
-    document.getElementById('vehiculoComb').innerHTML = opts;
-}
-
-function actualizarSelectConductores() {
-    let opts = '<option value="">Seleccione conductor</option>';
-    conductores.forEach(c=> opts += `<option value="${c.nombre}">${c.nombre}</option>`);
-    document.getElementById('conductorTransp').innerHTML = opts;
-}
-
-function actualizarSelectColaboradores() {
-    let opts = '<option value="">Seleccione colaborador</option>';
-    colaboradores.forEach(c=> opts += `<option value="${c.nombre}">${c.nombre}</option>`);
-    document.getElementById('quienRecoge').innerHTML = opts;
-}
-
-// ===== FIN DE LA PARTE 1 =====
-</script>
+<script src="funciones.js"></script>
 </body>
-</html>
-// ===== CONDUTORES =====
-async function agregarConductor() {
-    const nombre = document.getElementById('nombreConductor').value.trim();
-    if(!nombre) return alert('Escriba el nombre');
-    await db.collection('conductores').add({ nombre, fechaCreacion: new Date() });
-    document.getElementById('nombreConductor').value = '';
-    cargarDatos();
-    registrarAccion('Agregar Conductor', 'Transportadora', nombre);
-}
-
-// ===== VEHÍCULOS =====
-async function agregarVehiculo() {
-    const placa = document.getElementById('placaVehiculo').value.trim().toUpperCase();
-    const tipo = document.getElementById('tipoVehiculo').value;
-    if(!placa || !tipo) return alert('Complete placa y tipo');
-    await db.collection('vehiculos').add({ placa, tipo, fechaCreacion: new Date() });
-    document.getElementById('placaVehiculo').value = '';
-    cargarDatos();
-    registrarAccion('Agregar Vehículo', 'Transportadora', `${placa} - ${tipo}`);
-}
-
-// ===== COLABORADORES =====
-async function agregarColaborador() {
-    const nombre = document.getElementById('nombreColab').value.trim();
-    if(!nombre) return alert('Escriba el nombre');
-    await db.collection('colaboradores').add({ nombre, fechaCreacion: new Date() });
-    document.getElementById('nombreColab').value = '';
-    cargarDatos();
-    registrarAccion('Agregar Colaborador', 'Administración', nombre);
-}
-
-// ===== GUARDAR MOVIMIENTO =====
-async function guardarMovimiento() {
-    const datos = {
-        fecha: document.getElementById('fecha').value,
-        placa: document.getElementById('vehiculo').value,
-        colaborador: document.getElementById('quienRecoge').value,
-        horaSalida: document.getElementById('horaSalida').value,
-        horaLlegada: document.getElementById('horaLlegada').value,
-        canastSalida: document.getElementById('canSalida').value,
-        canastLlegada: document.getElementById('canLlegada').value,
-        observaciones: document.getElementById('observaciones').value,
-        usuario: usuarioConectado.nombre || usuarioConectado.email,
-        horaRegistro: new Date()
-    };
-
-    if(idEdicion) {
-        await db.collection('movimientos').doc(idEdicion).update(datos);
-        registrarAccion('Editar Movimiento', 'Movimientos', `ID: ${idEdicion}`);
-    } else {
-        await db.collection('movimientos').add(datos);
-        registrarAccion('Nuevo Movimiento', 'Movimientos', `Placa: ${datos.placa}`);
-    }
-
-    idEdicion = null;
-    limpiarFormulario();
-    cargarDatos();
-    alert('✅ Movimiento guardado');
-}
-
-async function guardarMovimientoTransp() {
-    const datos = {
-        fecha: document.getElementById('fechaTransp').value,
-        placa: document.getElementById('vehiculoTransp').value,
-        conductor: document.getElementById('conductorTransp').value,
-        horaSalida: document.getElementById('horaSalidaTransp').value,
-        horaLlegada: document.getElementById('horaLlegadaTransp').value,
-        canastSalida: document.getElementById('canSalidaTransp').value,
-        canastLlegada: document.getElementById('canLlegadaTransp').value,
-        usuario: usuarioConectado.nombre || usuarioConectado.email,
-        horaRegistro: new Date()
-    };
-    await db.collection('movimientos').add(datos);
-    registrarAccion('Movimiento Transportadora', 'Transportadora', `Placa: ${datos.placa}`);
-    cargarDatos();
-    alert('✅ Movimiento registrado');
-}
-
-function limpiarFormulario() {
-    document.getElementById('fecha').value = new Date().toISOString().split('T')[0];
-    document.getElementById('vehiculo').value = '';
-    document.getElementById('quienRecoge').value = '';
-    document.getElementById('horaSalida').value = '';
-    document.getElementById('horaLlegada').value = '';
-    document.getElementById('canSalida').value = '';
-    document.getElementById('canLlegada').value = '';
-    document.getElementById('observaciones').value = '';
-    document.getElementById('idEditar').value = '';
-}
-
-function dibujarMovimientos(lista = movimientos) {
-    const contenedor = document.getElementById('listaMovimientos');
-    contenedor.innerHTML = lista.map(m=>`
-        <div style="border-bottom:1px solid #ddd; padding:0.5rem; font-size:0.9rem;">
-            <strong>${m.fecha}</strong> | ${m.placa} | ${m.colaborador || m.conductor || 'Sin conductor'}<br>
-            Salida: ${m.horaSalida || '--'} | Llegada: ${m.horaLlegada || '--'} | 📤${m.canastSalida || 0} 📥${m.canastLlegada || 0}
-            ${usuarioConectado.rol === 'admin' ? `
-                <div style="margin-top:0.25rem;">
-                    <button onclick="editarMovimiento('${m.id}')" style="padding:0.25rem 0.5rem; font-size:0.8rem;">✏️ Editar</button>
-                    <button onclick="eliminarMovimiento('${m.id}')" style="padding:0.25rem 0.5rem; font-size:0.8rem; background:#dc2626;">🗑️ Eliminar</button>
-                </div>` : ''}
-        </div>
-    `).join('');
-}
-
-function filtrarMovimientos() {
-    const b = document.getElementById('buscarMov').value.toLowerCase();
-    dibujarMovimientos(movimientos.filter(m=>
-        (m.placa && m.placa.toLowerCase().includes(b)) ||
-        (m.colaborador && m.colaborador.toLowerCase().includes(b)) ||
-        (m.conductor && m.conductor.toLowerCase().includes(b))
-    ));
-}
-
-async function editarMovimiento(id) {
-    const m = movimientos.find(x=>x.id === id);
-    if(!m) return;
-    idEdicion = id;
-    document.getElementById('fecha').value = m.fecha;
-    document.getElementById('vehiculo').value = m.placa;
-    document.getElementById('quienRecoge').value = m.colaborador || '';
-    document.getElementById('horaSalida').value = m.horaSalida || '';
-    document.getElementById('horaLlegada').value = m.horaLlegada || '';
-    document.getElementById('canSalida').value = m.canastSalida || '';
-    document.getElementById('canLlegada').value = m.canastLlegada || '';
-    document.getElementById('observaciones').value = m.observaciones || '';
-    window.scrollTo({top:0, behavior:'smooth'});
-}
-
-async function eliminarMovimiento(id) {
-    if(usuarioConectado.rol !== 'admin') {
-        return alert('🔒 Solo el administrador puede eliminar');
-    }
-    if(!confirm('¿Eliminar este movimiento?')) return;
-    await db.collection('movimientos').doc(id).delete();
-    registrarAccion('Eliminar Movimiento', 'Movimientos', `ID: ${id}`);
-    cargarDatos();
-}
-
-// ===== COMBUSTIBLE =====
-async function guardarCombustible() {
-    const datos = {
-        fecha: new Date().toISOString().split('T')[0],
-        placa: document.getElementById('vehiculoComb').value,
-        kmManana: document.getElementById('kma').value,
-        kmTarde: document.getElementById('kmt').value,
-        galones: document.getElementById('galones').value,
-        usuario: usuarioConectado.nombre,
-        horaRegistro: new Date()
-    };
-    await db.collection('combustible').add(datos);
-    registrarAccion('Registro Combustible', 'Combustible', datos.placa);
-    alert('✅ Guardado');
-}
-
-// ===== INFORMES Y EXPORTAR =====
-function generarInforme() {
-    const inicio = document.getElementById('fechaInicio').value;
-    const fin = document.getElementById('fechaFin').value;
-    const filtrados = movimientos.filter(m=> m.fecha >= inicio && m.fecha <= fin);
-    document.getElementById('resultadoInforme').innerHTML = `<p>Se encontraron ${filtrados.length} movimientos</p>`;
-    dibujarMovimientos(filtrados);
-}
-
-function exportarExcel() {
-    const hoja = XLSX.utils.json_to_sheet(movimientos.map(m=>({
-        Fecha: m.fecha,
-        Placa: m.placa,
-        Colaborador: m.colaborador || m.conductor,
-        HoraSalida: m.horaSalida,
-        HoraLlegada: m.horaLlegada,
-        CanastillasSalida: m.canastSalida,
-        CanastillasLlegada: m.canastLlegada,
-        RegistradoPor: m.usuario
-    })));
-    const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, 'Movimientos');
-    XLSX.writeFile(libro, `Movimientos-${new Date().toLocaleDateString()}.xlsx`);
-    registrarAccion('Exportar Excel', 'Informes', 'Descarga generada');
-}
-
-// ===== ADMINISTRACIÓN =====
-async function crearUsuario() {
-    if(usuarioConectado.rol !== 'admin') return alert('🔒 Acceso denegado');
-    let correo = document.getElementById('correoNuevo').value.trim();
-    if(!correo.includes('@')) correo += '@correo.com';
-    const pass = document.getElementById('passNuevo').value;
-    const rol = document.getElementById('rolNuevo').value;
-
-    try {
-        const cred = await auth.createUserWithEmailAndPassword(correo, pass);
-        await db.collection('usuarios').doc(cred.user.uid).set({
-            email: correo, rol, nombre: correo.split('@')[0], fechaCreacion: new Date()
-        });
-        alert('✅ Usuario creado');
-        registrarAccion('Crear Usuario', 'Administración', correo);
-    } catch(e) {
-        alert('Error: ' + e.message);
-    }
-}
-
-// ===== BITÁCORA / REGISTRO DE ACCIONES =====
-async function registrarAccion(accion, modulo, detalle) {
-    await db.collection('bitacora').add({
-        accion, modulo, detalle,
-        usuario: usuarioConectado?.nombre || usuarioConectado?.email || 'Anónimo',
-        fechaHora: new Date()
-    });
-}
-
-// ===== FIN DEL CÓDIGO =====
-</script>
-</body>
-</html>
+</html>			
