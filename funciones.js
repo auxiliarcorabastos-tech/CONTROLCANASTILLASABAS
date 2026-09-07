@@ -460,4 +460,176 @@ function exportarExcel() {
         Placa: m.placa,
         Conductor: m.colaboradorConductor,
         HoraSalida: m.horaSalida || '',
-        HoraLlegada:
+        HoraLlegada:m.horaLlegada || '',
+        CanastillasSalida: m.totalCanastillasSalida || 0,
+        CanastillasLlegada: m.totalCanastillasLlegada || 0,
+        KilosTotales: m.kilosTotales || 0,
+        Recogidas: m.recogidas?.map(r => `${r.recogio || 'Sin nombre'}: ${r.kilos}kg / ${r.canastillas} can`).join(' | ') || '',
+        Observaciones: m.observaciones || '',
+        Usuario: m.usuario || '',
+        HoraRegistro: m.horaRegistro ? new Date(m.horaRegistro.seconds * 1000).toLocaleString('es-CO') : ''
+    }));
+
+    const hoja = XLSX.utils.json_to_sheet(datos);
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, "Movimientos");
+    XLSX.writeFile(libro, `Movimientos_${new Date().toLocaleDateString('es-CO').replace(/\//g,'-')}.xlsx`);
+    alert('✅ Archivo Excel generado correctamente');
+}
+
+// ===== ADMINISTRACIÓN: CARGAR LISTAS =====
+async function cargarListasAdmin() {
+    try {
+        // Colaboradores
+        const col = await db.collection('colaboradores').orderBy('nombre').get();
+        colaboradores = col.docs.map(d => ({ id: d.id, ...d.data() }));
+        const listaCol = document.getElementById('listaColaboradoresAdmin');
+        if (listaCol) {
+            listaCol.innerHTML = colaboradores.map(c => `
+                <div class="fila-lista ${c.activo === false ? 'inactivo' : ''}">
+                    <span>${c.nombre}</span>
+                    <div>
+                        <button class="btn-inactivar" onclick="cambiarEstadoColaborador('${c.id}', ${c.activo === false})">
+                            ${c.activo === false ? '✅ Activar' : '⏸️ Inactivar'}
+                        </button>
+                    </div>
+                </div>`).join('');
+        }
+
+        // Conductores
+        const cond = await db.collection('conductores').orderBy('nombre').get();
+        conductores = cond.docs.map(d => ({ id: d.id, ...d.data() }));
+        const listaCond = document.getElementById('listaConductoresAdmin');
+        if (listaCond) {
+            listaCond.innerHTML = conductores.map(c => `
+                <div class="fila-lista ${c.activo === false ? 'inactivo' : ''}">
+                    <span>${c.nombre}</span>
+                    <div>
+                        <button class="btn-inactivar" onclick="cambiarEstadoConductor('${c.id}', ${c.activo === false})">
+                            ${c.activo === false ? '✅ Activar' : '⏸️ Inactivar'}
+                        </button>
+                    </div>
+                </div>`).join('');
+        }
+
+        // Vehículos Movimientos
+        const vm = await db.collection('vehiculos_movimientos').orderBy('placa').get();
+        vehiculosMov = vm.docs.map(d => ({ id: d.id, ...d.data() }));
+        const listaVM = document.getElementById('listaVehiculosMovAdmin');
+        if (listaVM) {
+            listaVM.innerHTML = vehiculosMov.map(v => `
+                <div class="fila-lista">
+                    <span>${v.placa} — ${v.tipo}</span>
+                </div>`).join('');
+        }
+
+        // Vehículos Transportadora
+        const vt = await db.collection('vehiculos_transportadora').orderBy('placa').get();
+        vehiculosTransp = vt.docs.map(d => ({ id: d.id, ...d.data() }));
+        const listaVT = document.getElementById('listaVehiculosTranspAdmin');
+        if (listaVT) {
+            listaVT.innerHTML = vehiculosTransp.map(v => `
+                <div class="fila-lista">
+                    <span>${v.placa} — ${v.tipo}</span>
+                </div>`).join('');
+        }
+
+        // Actualizar selects
+        actualizarSelectColaboradoresConductores();
+        actualizarSelectVehiculosMov();
+        actualizarSelectVehiculosTransp();
+        actualizarSelectConductores();
+
+    } catch (e) {
+        console.log('Error cargando listas admin:', e.message);
+    }
+}
+
+// ===== ADMIN: AGREGAR COLABORADOR =====
+async function agregarColaboradorAdmin() {
+    const nombre = document.getElementById('nombreColabAdmin').value.trim();
+    if (!nombre) return alert('Escribe el nombre');
+    await db.collection('colaboradores').add({ nombre, activo: true, fechaCreacion: new Date() });
+    document.getElementById('nombreColabAdmin').value = '';
+    alert('✅ Colaborador agregado');
+    registrarAccion('Agregar Colaborador', 'Administración', nombre);
+    await cargarListasAdmin();
+}
+
+async function cambiarEstadoColaborador(id, activar) {
+    await db.collection('colaboradores').doc(id).update({ activo: activar });
+    registrarAccion(activar ? 'Activar Colaborador' : 'Inactivar Colaborador', 'Administración', `ID: ${id}`);
+    await cargarListasAdmin();
+}
+
+// ===== ADMIN: AGREGAR CONDUCTOR =====
+async function agregarConductorAdmin() {
+    const nombre = document.getElementById('nombreConductorAdmin').value.trim();
+    if (!nombre) return alert('Escribe el nombre');
+    await db.collection('conductores').add({ nombre, activo: true, fechaCreacion: new Date() });
+    document.getElementById('nombreConductorAdmin').value = '';
+    alert('✅ Conductor agregado');
+    registrarAccion('Agregar Conductor', 'Administración', nombre);
+    await cargarListasAdmin();
+}
+
+async function cambiarEstadoConductor(id, activar) {
+    await db.collection('conductores').doc(id).update({ activo: activar });
+    registrarAccion(activar ? 'Activar Conductor' : 'Inactivar Conductor', 'Administración', `ID: ${id}`);
+    await cargarListasAdmin();
+}
+
+// ===== ADMIN: AGREGAR VEHÍCULO =====
+async function agregarVehiculoMovAdmin() {
+    const placa = document.getElementById('placaVehiculoMovAdmin').value.trim().toUpperCase();
+    const tipo = document.getElementById('tipoVehiculoMovAdmin').value;
+    if (!placa || !tipo) return alert('Complete placa y tipo');
+    await db.collection('vehiculos_movimientos').add({ placa, tipo, fechaCreacion: new Date() });
+    document.getElementById('placaVehiculoMovAdmin').value = '';
+    document.getElementById('tipoVehiculoMovAdmin').value = '';
+    alert('✅ Vehículo agregado');
+    registrarAccion('Agregar Vehículo', 'Administración', `${placa} — ${tipo}`);
+    await cargarListasAdmin();
+}
+
+// ===== CREAR USUARIO EN FIREBASE =====
+async function crearUsuario() {
+    let correo = document.getElementById('correoNuevo').value.trim();
+    const pass = document.getElementById('passNuevo').value;
+    const rol = document.getElementById('rolNuevo').value;
+
+    if (!correo || !pass) return alert('Complete todos los campos');
+    if (pass.length < 6) return alert('La contraseña debe tener al menos 6 caracteres');
+    if (!correo.includes('@')) correo += '@correo.com';
+
+    try {
+        const cred = await auth.createUserWithEmailAndPassword(correo, pass);
+        await db.collection('usuarios').doc(cred.user.uid).set({
+            correo: correo,
+            rol: rol,
+            nombre: correo.split('@')[0],
+            fechaCreacion: new Date()
+        });
+        alert('✅ Usuario creado exitosamente');
+        document.getElementById('correoNuevo').value = '';
+        document.getElementById('passNuevo').value = '';
+        registrarAccion('Crear Usuario', 'Administración', `${correo} — ${rol}`);
+    } catch (e) {
+        alert('❌ Error: ' + e.message);
+    }
+}
+
+// ===== REGISTRAR ACCIONES / AUDITORÍA =====
+async function registrarAccion(accion, modulo, detalle) {
+    try {
+        await db.collection('auditoria').add({
+            accion: accion,
+            modulo: modulo,
+            detalle: detalle,
+            usuario: usuarioConectado?.nombre || usuarioConectado?.email || 'Anónimo',
+            fechaHora: new Date()
+        });
+    } catch (e) {
+        console.log('Error registrando acción:', e.message);
+    }
+}
