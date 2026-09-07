@@ -12,14 +12,14 @@
 </head>
 <body>
 
-<!-- Botón menú (solo visible en celular) -->
-<button class="btn-menu" onclick="alternarMenu()">☰</button>
+<!-- Botón menú -->
+<button class="btn-menu" id="btnMenu" onclick="alternarMenu()">☰</button>
 
-<!-- Capa oscura al abrir menú -->
-<div class="overlay" onclick="alternarMenu()"></div>
+<!-- Capa oscura -->
+<div class="overlay" id="capaOscura" onclick="alternarMenu()"></div>
 
 <!-- Menú Lateral -->
-<nav class="sidebar">
+<nav class="sidebar" id="menuLateral">
     <div class="logo">📋 Control Canastillas</div>
     <button class="btn-pestaña activa" onclick="cambiarPestaña('movimientos')">📝 Movimientos</button>
     <button class="btn-pestaña" onclick="cambiarPestaña('transportadora')">🚛 Transportadora</button>
@@ -28,9 +28,9 @@
     <button class="btn-pestaña" id="btnAdmin" onclick="cambiarPestaña('admin')">⚙️ Administración</button>
 </nav>
 
-<!-- Barra Superior Fija -->
+<!-- Barra Superior -->
 <header class="barra-superior">
-    <button class="btn-actualizar" onclick="location.reload()">🔄 Actualizar</button>
+    <button class="btn-actualizar" onclick="refrescarDatos()">🔄 Actualizar</button>
     <span id="usuarioActual"></span>
     <button class="btn-salir" onclick="cerrarSesion()">🚪 Salir</button>
 </header>
@@ -38,9 +38,8 @@
 <!-- Contenido Principal -->
 <main class="contenido">
 
-    <!-- Pestaña MOVIMIENTOS -->
     <section id="pest-movimientos" class="pestaña activa">
-        <h2>Movimientos de Canastillas</h2>
+        <h2>📝 Movimientos de Canastillas</h2>
         <div class="tarjeta">
             <h3>Registrar Salida / Llegada</h3>
             <input type="date" id="fecha">
@@ -56,12 +55,11 @@
         </div>
         <div class="tarjeta">
             <h3>Historial de Movimientos</h3>
-            <input type="text" id="buscarMov" placeholder="Buscar por placa o nombre..." oninput="filtrarMovimientos()">
+            <input type="text" id="buscarMov" placeholder="🔍 Buscar por placa o nombre..." oninput="filtrarMovimientos()">
             <div id="listaMovimientos"></div>
         </div>
     </section>
 
-    <!-- Pestaña TRANSPORTADORA -->
     <section id="pest-transportadora" class="pestaña">
         <h2>🚛 Transportadora</h2>
         <div class="tarjeta">
@@ -94,7 +92,6 @@
         </div>
     </section>
 
-    <!-- Pestaña COMBUSTIBLE -->
     <section id="pest-combustible" class="pestaña">
         <h2>⛽ Control de Combustible</h2>
         <div class="tarjeta">
@@ -106,7 +103,6 @@
         </div>
     </section>
 
-    <!-- Pestaña INFORMES -->
     <section id="pest-informes" class="pestaña">
         <h2>📊 Informes y Consultas</h2>
         <div class="tarjeta">
@@ -118,7 +114,6 @@
         <div id="resultadoInforme" class="tarjeta"></div>
     </section>
 
-    <!-- Pestaña ADMINISTRACIÓN -->
     <section id="pest-admin" class="pestaña">
         <h2>⚙️ Administración</h2>
         <div class="tarjeta">
@@ -154,4 +149,4 @@
 
 <script src="funciones.js"></script>
 </body>
-</html>			
+</html>
