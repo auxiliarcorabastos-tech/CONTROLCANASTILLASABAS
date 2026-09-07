@@ -407,44 +407,108 @@ function alternarMenu() {
   if (menuVisible) { menu.classList.remove("oculto"); contenido.style.marginLeft = "240px"; }
   else { menu.classList.add("oculto"); contenido.style.marginLeft = "0"; }
 }
-
+// ==================================================
+// ===== INICIAR SESIÓN =====
+// ==================================================
 async function iniciarSesion() {
   const usu = document.getElementById("usuario").value.trim();
   const clave = document.getElementById("clave").value;
   const msj = document.getElementById("mensajeLogin");
+
+  // Buscar en usuarios fijos
   const fijo = usuariosFijos.find(u => u.usuario === usu && u.clave === clave);
-  if (fijo) { usuarioActivo = { ...fijo, uid: "FIJO_" + fijo.usuario }; ingresarApp(); return; }
+  if (fijo) {
+    usuarioActivo = { 
+      ...fijo, 
+      uid: "FIJO_" + fijo.usuario 
+    };
+    ingresarApp();
+    return;
+  }
+
+  // Buscar en Firebase
   try {
     const snap = await db.ref("usuarios").once("value");
-    const lista = []; snap.forEach(c => { lista.push({ id: c.key, ...c.val() }); });
+    const lista = [];
+    snap.forEach(c => {
+      lista.push({ id: c.key, ...c.val() });
+    });
     const enc = lista.find(u => u.usuario === usu && u.clave === clave);
+    
     if (enc) {
-      usuarioActivo = { uid: enc.id, usuario: enc.usuario, nombre: enc.usuario, clave: enc.clave,
-        rol: enc.rol || "usuario", permisos: enc.permisos || { canastillas:true, transportadora:true, combustible:true, informes:true },
-        puedeEditar: enc.puedeEditar || "si" };
+      usuarioActivo = {
+        uid: enc.id,
+        usuario: enc.usuario,
+        nombre: enc.usuario,
+        clave: enc.clave,
+        rol: enc.rol || "usuario",
+        permisos: enc.permisos || { 
+          canastillas: true, 
+          transportadora: true, 
+          combustible: true, 
+          informes: true 
+        },
+        puedeEditar: enc.puedeEditar || "si"
+      };
       ingresarApp();
-    } else { msj.textContent = "❌ Usuario o contraseña incorrectos"; msj.className = "mensaje error"; }
-  } catch { msj.textContent = "❌ Error de conexión"; msj.className = "mensaje error"; }
+    } else {
+      // Verificar si el usuario existe pero la contraseña es incorrecta
+      const existeUsuario = lista.find(u => u.usuario === usu);
+      if (existeUsuario) {
+        msj.textContent = "❌ Contraseña errada";
+      } else {
+        msj.textContent = "❌ Usuario no registrado";
+      }
+      msj.className = "mensaje error";
+    }
+  } catch (error) {
+    msj.textContent = "❌ Error de conexión: " + error.message;
+    msj.className = "mensaje error";
+  }
 }
-function recuperarClave() { alert("Comuníquese con el administrador"); }
 
+// ==================================================
+// ===== OLVIDÉ MI CONTRASEÑA =====
+// ==================================================
+function recuperarClave() {
+  alert("🔑 Comuníquese con el administrador para recuperar su contraseña");
+}
+
+// ==================================================
+// ===== INGRESAR A LA APLICACIÓN =====
+// ==================================================
 function ingresarApp() {
+  // Ocultar pantalla de login
   document.getElementById("pantallaLogin").style.display = "none";
+  // Mostrar aplicación
   document.getElementById("cabecera").style.display = "flex";
   document.getElementById("contenedorApp").style.display = "flex";
+  // Mostrar nombre y rol del usuario
   document.getElementById("nombreUsuario").textContent = usuarioActivo.nombre + (usuarioActivo.rol === "admin" ? " 👑" : "");
-  if (usuarioActivo.rol === "admin") document.getElementById("pestanaAdmin").style.display = "block";
+  // Mostrar pestaña de admin solo si es administrador
+  if (usuarioActivo.rol === "admin") {
+    document.getElementById("pestanaAdmin").style.display = "block";
+  }
+  // Ocultar pestañas según permisos
   if (!usuarioActivo.permisos.canastillas) document.querySelector('[data-pagina="movimientos"]').style.display = "none";
   if (!usuarioActivo.permisos.transportadora) document.querySelector('[data-pagina="transportadora"]').style.display = "none";
   if (!usuarioActivo.permisos.combustible) document.querySelector('[data-pagina="combustible"]').style.display = "none";
   if (!usuarioActivo.permisos.informes) document.querySelector('[data-pagina="informes"]').style.display = "none";
-  cargarDatos(); configurarPestanas();
+  // Cargar datos y configurar pestañas
+  cargarDatos();
+  configurarPestanas();
+  // Establecer fechas de hoy en los formularios
   document.getElementById("fechaSalida").valueAsDate = new Date();
   document.getElementById("fechaMovTrans").valueAsDate = new Date();
   document.getElementById("fechaComb").valueAsDate = new Date();
 }
-function cerrarSesion() { location.reload(); }
 
+// ==================================================
+// ===== CERRAR SESIÓN =====
+// ==================================================
+function cerrarSesion() {
+  location.reload();
+}
 function configurarPestanas() {
   document.querySelectorAll(".pestaña").forEach(tab => {
     tab.addEventListener("click", () => {
