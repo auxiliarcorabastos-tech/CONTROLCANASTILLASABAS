@@ -3,250 +3,444 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Canastillas y Movimientos</title>
-    <link rel="stylesheet" href="estilos.css">
+    <title>Control de Movimientos y Canastillas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primario: #2563eb;
+            --exito: #16a34a;
+            --advertencia: #f59e0b;
+            --peligro: #dc2626;
+            --gris: #6b7280;
+            --fondo: #f8fafc;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+        body { background: var(--fondo); }
+
+        /* ===== LOGIN ===== */
+        #modalLogin {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+            display: flex; align-items: center; justify-content: center; z-index: 9999;
+        }
+        .caja-login {
+            background: white; padding: 2rem; border-radius: 1rem; width: 90%; max-width: 400px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .caja-login h1 { text-align: center; margin-bottom: 1.5rem; color: var(--primario); }
+
+        /* ===== ESTRUCTURA ===== */
+        .barra-superior {
+            background: var(--primario); color: white; padding: 0.75rem 1rem;
+            display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;
+        }
+        .btn-menu { background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        .btn-salir { background: rgba(255,255,255,0.2); color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; cursor: pointer; display: none; }
+
+        /* ===== SIDEBAR ===== */
+        #sidebar {
+            position: fixed; top: 0; left: 0; width: 260px; height: 100vh; background: white;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1); transform: translateX(-100%);
+            transition: transform 0.3s ease; z-index: 50; padding-top: 4rem; overflow-y: auto;
+        }
+        #sidebar.mostrar { transform: translateX(0); }
+        .btn-pestaña {
+            display: block; width: 100%; text-align: left; border: none; background: none;
+            padding: 0.85rem 1.25rem; font-size: 0.95rem; cursor: pointer;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .btn-pestaña.activa { background: #dbeafe; color: var(--primario); font-weight: bold; }
+        .btn-subpestaña { padding-left: 2.5rem; font-size: 0.9rem; }
+
+        /* ===== CONTENIDO ===== */
+        .contenido { padding: 1rem; max-width: 900px; margin: 0 auto; }
+        .pestaña { display: none; animation: aparecer 0.2s ease; }
+        .pestaña.activa { display: block; }
+        @keyframes aparecer { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ===== FORMULARIOS ===== */
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.35rem; font-weight: 500; color: #374151; }
+        .form-control {
+            width: 100%; padding: 0.65rem 0.85rem; border: 1px solid #d1d5db;
+            border-radius: 0.5rem; font-size: 0.95rem;
+        }
+        .form-control:focus { outline: none; border-color: var(--primario); box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .btn {
+            padding: 0.75rem 1rem; border: none; border-radius: 0.5rem; font-weight: 500;
+            cursor: pointer; font-size: 0.95rem; transition: all 0.2s;
+        }
+        .btn:hover { transform: translateY(-1px); }
+        .btn-primary { background: var(--primario); color: white; }
+        .btn-success { background: var(--exito); color: white; }
+        .btn-danger { background: var(--peligro); color: white; }
+        .btn-sm { padding: 0.4rem 0.75rem; font-size: 0.85rem; }
+        .btn-editar { background: var(--advertencia); color: #1f2937; padding: 0.3rem 0.6rem; font-size: 0.85rem; border: none; border-radius: 0.35rem; cursor: pointer; margin-right: 0.4rem; }
+        .btn-eliminar { background: var(--peligro); color: white; padding: 0.3rem 0.6rem; font-size: 0.85rem; border: none; border-radius: 0.35rem; cursor: pointer; }
+        .btn-inactivar { background: #e5e7eb; color: #374151; padding: 0.3rem 0.6rem; font-size: 0.85rem; border: none; border-radius: 0.35rem; cursor: pointer; margin-right: 0.4rem; }
+        .w-full { width: 100%; }
+        .mb-2 { margin-bottom: 0.5rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mt-4 { margin-top: 1rem; }
+        .text-center { text-align: center; }
+        .font-bold { font-weight: bold; }
+        .text-xl { font-size: 1.25rem; }
+        .inactivo { opacity: 0.6; }
+        .fila-lista {
+            padding: 0.75rem; border-bottom: 1px solid #e5e7eb;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;
+        }
+
+        /* ===== RECOGIDAS ===== */
+        .fila-recogida {
+            display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 0.5rem;
+            align-items: center; margin-bottom: 0.5rem; padding: 0.5rem;
+            background: #f1f5f9; border-radius: 0.4rem;
+        }
+        .btn-quitar {
+            background: var(--peligro); color: white; border: none; width: 28px; height: 28px;
+            border-radius: 50%; cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center;
+        }
+        input[readonly] { background: #eef2ff; font-weight: 500; color: #1e40af; }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 768px) {
+            .form-row { grid-template-columns: 1fr; }
+            .fila-recogida { grid-template-columns: 1fr; }
+            #sidebar { width: 85%; }
+        }
+        .oculto { display: none !important; }
+    </style>
 </head>
 <body>
 
-<!-- Botón menú -->
-<button class="btn-menu" id="btnMenu" onclick="alternarMenu()">☰</button>
+<!-- ===== MODAL DE LOGIN ===== -->
+<div id="modalLogin">
+    <div class="caja-login">
+        <h1>🔐 Iniciar Sesión</h1>
+        <div class="form-group">
+            <label>Correo / Usuario:</label>
+            <input type="text" id="correoLogin" class="form-control" placeholder="ejemplo o ejemplo@correo.com">
+        </div>
+        <div class="form-group">
+            <label>Contraseña:</label>
+            <input type="password" id="passLogin" class="form-control" placeholder="Escribe tu contraseña" onkeypress="if(event.key==='Enter')ingresar()">
+        </div>
+        <div id="mensajeError" style="color: var(--peligro); margin: 0.5rem 0; min-height: 1.5rem;"></div>
+        <button onclick="ingresar()" class="btn btn-primary w-full mb-2">Ingresar</button>
+        <button onclick="recuperarClave()" class="btn w-full" style="background: #e5e7eb;">Olvidé mi contraseña</button>
+    </div>
+</div>
 
-<!-- Menú Lateral -->
-<nav class="sidebar" id="sidebar">
-    <div class="logo">📋 Control Canastillas</div>
-    <button class="btn-pestaña activa" onclick="cambiarPestaña('movimientos')">📝 Movimientos</button>
+<!-- ===== BARRA SUPERIOR ===== -->
+<div class="barra-superior">
+    <button class="btn-menu" onclick="alternarMenu()">☰</button>
+    <span id="tituloPestaña">Control de Canastillas</span>
+    <button class="btn-salir" onclick="cerrarSesion()">Cerrar Sesión</button>
+</div>
+
+<!-- ===== SIDEBAR / MENÚ LATERAL ===== -->
+<div id="sidebar">
+    <button class="btn-pestaña activa" onclick="cambiarPestaña('movimientos')">📋 Movimientos</button>
     <button class="btn-pestaña" onclick="cambiarPestaña('transportadora')">🚛 Transportadora</button>
     <button class="btn-pestaña" onclick="cambiarPestaña('combustible')">⛽ Combustible</button>
     <button class="btn-pestaña" onclick="cambiarPestaña('informes')">📊 Informes</button>
-    <button class="btn-pestaña" id="btnAdmin" style="display:none;" onclick="cambiarPestaña('admin')">⚙️ Administración</button>
-    <div class="espacio"></div>
-    <button class="btn-salir" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
-</nav>
+    <button id="btnAdmin" class="btn-pestaña oculto" onclick="cambiarPestaña('admin')">⚙️ Administración</button>
+</div>
 
-<!-- Contenido Principal -->
-<main class="contenido">
+<!-- ===== CONTENIDO PRINCIPAL ===== -->
+<div class="contenido">
 
-    <!-- Pestaña MOVIMIENTOS -->
-    <section id="pest-movimientos" class="pestaña activa">
-        <h2>📝 Movimientos</h2>
-        <div class="tarjeta">
-            <h3>Registrar Salida / Llegada</h3>
-            <input type="date" id="fecha">
-            <select id="vehiculoMov"><option value="">Seleccione vehículo</option></select>
-            <select id="colaboradorConductor"><option value="">Colaborador que conduce</option></select>
-            <input type="time" id="horaSalida" placeholder="Hora de Salida">
-            <input type="time" id="horaLlegada" placeholder="Hora de Llegada">
+    <!-- ================================== -->
+    <!-- PESTAÑA: MOVIMIENTOS -->
+    <!-- ================================== -->
+    <div id="pest-movimientos" class="pestaña activa">
+        <h2 class="text-xl font-bold mb-4">📋 Registro de Movimientos</h2>
 
-            <div class="caja-recogidas">
-                <h4>🧺 Recogidas</h4>
-                <div id="listaRecogidas"></div>
-                <button type="button" class="btn-agregar-fila" onclick="agregarFilaRecogida()">➕ Agregar otra recogida</button>
+        <div class="form-group">
+            <label>Fecha:</label>
+            <input type="date" id="fecha" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label>Placa / Vehículo:</label>
+            <select id="vehiculoMov" class="form-control">
+                <option value="">Seleccione vehículo</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Colaborador que conduce:</label>
+            <select id="colaboradorConductor" class="form-control">
+                <option value="">Seleccione colaborador</option>
+            </select>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>Hora de Salida:</label>
+                <input type="time" id="horaSalida" class="form-control">
             </div>
-
-            <input type="number" id="canSalidaTotal" placeholder="Total Canastillas Salida" readonly>
-            <input type="number" id="canLlegadaTotal" placeholder="Total Canastillas Llegada" readonly>
-            <input type="text" id="observaciones" placeholder="Observaciones">
-            <input type="hidden" id="idEditar">
-            <button class="btn-guardar" onclick="guardarMovimiento()">✅ Guardar Movimiento</button>
+            <div class="form-group">
+                <label>Hora de Llegada:</label>
+                <input type="time" id="horaLlegada" class="form-control">
+            </div>
         </div>
 
-        <div class="tarjeta">
-            <h3>🚗 Agregar Vehículo (Movimientos)</h3>
-            <input type="text" id="placaVehiculoMov" placeholder="Placa del vehículo">
-            <select id="tipoVehiculoMov">
-                <option value="">Seleccione tipo</option>
-                <option value="Moto">Moto</option>
-                <option value="Camioneta">Camioneta</option>
-                <option value="Camión">Camión</option>
-                <option value="Carguero">Carguero</option>
-                <option value="VTH">Vehículo de Tracción Humana (VTH)</option>
+        <!-- 📤 CANASTILLAS DE SALIDA → SE QUEDA FIJA -->
+        <div class="form-group">
+            <label>📤 Canastillas al SALIR:</label>
+            <input type="number" id="canSalidaTotal" class="form-control" placeholder="Se registra al salir y queda fija">
+        </div>
+
+        <!-- 📥 CANASTILLAS DE LLEGADA → SE SUMA SOLA -->
+        <div class="form-row">
+            <div class="form-group">
+                <label>📥 Canastillas al LLEGAR:</label>
+                <input type="number" id="canLlegadaTotal" class="form-control" placeholder="Se suma automáticamente" readonly>
+            </div>
+            <div class="form-group">
+                <label>⚖️ Kilos Totales:</label>
+                <input type="number" id="kilosTotales" class="form-control" placeholder="Se suma automáticamente" readonly>
+            </div>
+        </div>
+
+        <!-- 👥 RECOGIDAS → SE AGREGAN Y SE SUMAN SOLAS -->
+        <div class="form-group">
+            <label>👥 Personas recogidas:</label>
+            <button type="button" onclick="agregarFilaRecogida()" class="btn btn-sm btn-success mb-2">+ Agregar recogida</button>
+            <div id="listaRecogidas"></div>
+        </div>
+
+        <div class="form-group">
+            <label>Observaciones:</label>
+            <textarea id="observaciones" class="form-control" rows="2" placeholder="Notas adicionales"></textarea>
+        </div>
+
+        <input type="hidden" id="idEditar">
+        <button onclick="guardarMovimiento()" class="btn btn-primary w-full mb-4">💾 Guardar Movimiento</button>
+
+        <!-- 🔍 BUSCADOR Y LISTA -->
+        <div class="form-group">
+            <label>Buscar movimiento:</label>
+            <input type="text" id="buscarMov" class="form-control" placeholder="Buscar por placa o conductor..." oninput="filtrarMovimientos()">
+        </div>
+        <h3 class="font-bold mt-4 mb-2">📋 Movimientos Registrados</h3>
+        <div id="listaMovimientos"></div>
+    </div>
+
+    <!-- ================================== -->
+    <!-- PESTAÑA: TRANSPORTADORA -->
+    <!-- ================================== -->
+    <div id="pest-transportadora" class="pestaña">
+        <h2 class="text-xl font-bold mb-4">🚛 Transportadora</h2>
+
+        <div class="form-group">
+            <label>Fecha:</label>
+            <input type="date" id="fechaTransp" class="form-control">
+        </div>
+
+        <div class="form-group">
+            <label>Vehículo / Placa:</label>
+            <select id="vehiculoTransp" class="form-control">
+                <option value="">Seleccione vehículo</option>
             </select>
-            <button class="btn-guardar" onclick="agregarVehiculoMov()">✅ Guardar Vehículo</button>
         </div>
 
-        <div class="tarjeta">
-            <h3>📋 Historial</h3>
-            <input type="text" id="buscarMov" placeholder="🔍 Buscar por placa o nombre..." oninput="filtrarMovimientos()">
-            <div id="listaMovimientos"></div>
-        </div>
-    </section>
-
-    <!-- Pestaña TRANSPORTADORA -->
-    <section id="pest-transportadora" class="pestaña">
-        <h2>🚛 Transportadora</h2>
-        <div class="tarjeta">
-            <h3>➕ Agregar Conductor</h3>
-            <input type="text" id="nombreConductor" placeholder="Nombre del conductor">
-            <button class="btn-guardar" onclick="agregarConductor()">✅ Guardar</button>
-        </div>
-
-        <div class="tarjeta">
-            <h3>🚛 Agregar Vehículo (Transportadora)</h3>
-            <input type="text" id="placaVehiculoTransp" placeholder="Placa del vehículo">
-            <select id="tipoVehiculoTransp">
-                <option value="">Seleccione tipo</option>
-                <option value="Moto">Moto</option>
-                <option value="Camioneta">Camioneta</option>
-                <option value="Camión">Camión</option>
-                <option value="Carguero">Carguero</option>
-                <option value="VTH">Vehículo de Tracción Humana (VTH)</option>
+        <div class="form-group">
+            <label>Conductor:</label>
+            <select id="conductorTransp" class="form-control">
+                <option value="">Seleccione conductor</option>
             </select>
-            <button class="btn-guardar" onclick="agregarVehiculoTransp()">✅ Guardar Vehículo</button>
         </div>
 
-        <div class="tarjeta">
-            <h3>📦 Movimiento de Canastillas</h3>
-            <input type="date" id="fechaTransp">
-            <select id="vehiculoTransp"><option value="">Seleccione vehículo</option></select>
-            <select id="conductorTransp"><option value="">Seleccione conductor</option></select>
-            <input type="number" id="canSalidaTransp" placeholder="Canastillas que salen">
-            <input type="number" id="canLlegadaTransp" placeholder="Canastillas que llegan">
-            <input type="time" id="horaSalidaTransp">
-            <input type="time" id="horaLlegadaTransp">
-            <button class="btn-guardar" onclick="guardarMovimientoTransp()">✅ Registrar Movimiento</button>
-        </div>
-    </section>
-
-    <!-- Pestaña COMBUSTIBLE -->
-    <section id="pest-combustible" class="pestaña">
-        <h2>⛽ Control de Combustible</h2>
-        <div class="tarjeta">
-            <h3>Registrar Consumo</h3>
-            <select id="vehiculoComb"><option value="">Seleccione vehículo</option></select>
-            <input type="number" id="kma" placeholder="Kilometraje mañana">
-            <input type="number" id="kmt" placeholder="Kilometraje tarde">
-            <input type="number" id="galones" placeholder="Galones cargados">
-            <button class="btn-guardar" onclick="guardarCombustible()">✅ Guardar</button>
-        </div>
-    </section>
-
-    <!-- Pestaña INFORMES -->
-    <section id="pest-informes" class="pestaña">
-        <h2>📊 Informes y Consultas</h2>
-        <div class="tarjeta">
-            <h3>Filtrar por Fechas</h3>
-            <input type="date" id="fechaInicio">
-            <input type="date" id="fechaFin">
-            <button onclick="generarInforme()">🔍 Consultar</button>
-            <button class="btn-exito" onclick="exportarExcel()">📥 Exportar Excel</button>
-        </div>
-        <div class="tarjeta" id="resultadoInforme"></div>
-    </section>
-
-    <!-- Pestaña ADMINISTRACIÓN -->
-    <section id="pest-admin" class="pestaña">
-        <h2>⚙️ Administración</h2>
-        <div class="barra-subpestañas">
-            <button class="btn-subpestaña activa" onclick="cambiarSubpestañaAdmin('usuarios')">👤 Usuarios</button>
-            <button class="btn-subpestaña" onclick="cambiarSubpestañaAdmin('colaboradores')">🧑 Colaboradores</button>
-            <button class="btn-subpestaña" onclick="cambiarSubpestañaAdmin('conductores')">🚛 Conductores</button>
-            <button class="btn-subpestaña" onclick="cambiarSubpestañaAdmin('vehiculos-mov')">🚗 Vehículos Mov</button>
-            <button class="btn-subpestaña" onclick="cambiarSubpestañaAdmin('vehiculos-transp')">🚛 Vehículos Transp</button>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Hora de Salida:</label>
+                <input type="time" id="horaSalidaTransp" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Hora de Llegada:</label>
+                <input type="time" id="horaLlegadaTransp" class="form-control">
+            </div>
         </div>
 
-        <!-- Subpestaña: Usuarios -->
-        <div id="sub-admin-usuarios" class="subpestaña-admin activa">
-            <div class="tarjeta">
-                <h3>➕ Crear Usuario</h3>
-                <input type="email" id="correoNuevo" placeholder="Correo">
-                <input type="password" id="passNuevo" placeholder="Contraseña (mínimo 6 caracteres)">
-                <select id="rolNuevo">
+        <div class="form-row">
+            <div class="form-group">
+                <label>📤 Canastillas Salida:</label>
+                <input type="number" id="canSalidaTransp" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>📥 Canastillas Llegada:</label>
+                <input type="number" id="canLlegadaTransp" class="form-control">
+            </div>
+        </div>
+
+        <button onclick="guardarMovimientoTransp()" class="btn btn-primary w-full mb-4">💾 Registrar Movimiento</button>
+
+        <hr class="my-4">
+        <h3 class="font-bold mb-3">➕ Agregar Vehículo</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Placa:</label>
+                <input type="text" id="placaVehiculoTransp" class="form-control" placeholder="Ej: ABC-123">
+            </div>
+            <div class="form-group">
+                <label>Tipo de Vehículo:</label>
+                <select id="tipoVehiculoTransp" class="form-control">
+                    <option value="">Seleccione tipo</option>
+                    <option>Motocicleta</option>
+                    <option>Camioneta</option>
+                    <option>Camión</option>
+                    <option>Vehículo de Tracción Humana (VTH)</option>
+                </select>
+            </div>
+        </div>
+        <button onclick="agregarVehiculoTransp()" class="btn btn-success w-full mb-4">Agregar Vehículo</button>
+
+        <h3 class="font-bold mb-3">➕ Agregar Conductor</h3>
+        <div class="form-group">
+            <label>Nombre del Conductor:</label>
+            <input type="text" id="nombreConductor" class="form-control" placeholder="Nombre completo">
+        </div>
+        <button onclick="agregarConductor()" class="btn btn-success w-full">Agregar Conductor</button>
+    </div>
+
+    <!-- ================================== -->
+    <!-- PESTAÑA: COMBUSTIBLE -->
+    <!-- ================================== -->
+    <div id="pest-combustible" class="pestaña">
+        <h2 class="text-xl font-bold mb-4">⛽ Control de Combustible</h2>
+        <div class="form-group">
+            <label>Vehículo / Placa:</label>
+            <select id="vehiculoComb" class="form-control">
+                <option value="">Seleccione vehículo</option>
+            </select>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Kilometraje Mañana:</label>
+                <input type="number" id="kma" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Kilometraje Tarde:</label>
+                <input type="number" id="kmt" class="form-control">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Galones Cargados:</label>
+            <input type="number" step="0.01" id="galones" class="form-control">
+        </div>
+        <button onclick="guardarCombustible()" class="btn btn-primary w-full">💾 Guardar Registro</button>
+    </div>
+
+    <!-- ================================== -->
+    <!-- PESTAÑA: INFORMES -->
+    <!-- ================================== -->
+    <div id="pest-informes" class="pestaña">
+        <h2 class="text-xl font-bold mb-4">📊 Informes y Consultas</h2>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Fecha Inicio:</label>
+                <input type="date" id="fechaInicio" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Fecha Fin:</label>
+                <input type="date" id="fechaFin" class="form-control">
+            </div>
+        </div>
+        <button onclick="generarInforme()" class="btn btn-primary w-full mb-2">🔍 Generar Consulta</button>
+        <button onclick="exportarExcel()" class="btn btn-success w-full mb-4">📥 Exportar a Excel</button>
+        <div id="resultadoInforme"></div>
+    </div>
+
+    <!-- ================================== -->
+    <!-- PESTAÑA: ADMINISTRACIÓN -->
+    <!-- ================================== -->
+    <div id="pest-admin" class="pestaña">
+        <h2 class="text-xl font-bold mb-4">⚙️ Administración del Sistema</h2>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem;">
+            <button class="btn btn-sm btn-pestaña activa btn-subpestaña" onclick="cambiarSubpestañaAdmin('colaboradores')">👥 Colaboradores</button>
+            <button class="btn btn-sm btn-pestaña btn-subpestaña" onclick="cambiarSubpestañaAdmin('conductores')">🧑‍✈️ Conductores</button>
+            <button class="btn btn-sm btn-pestaña btn-subpestaña" onclick="cambiarSubpestañaAdmin('vehiculos')">🚗 Vehículos</button>
+            <button class="btn btn-sm btn-pestaña btn-subpestaña" onclick="cambiarSubpestañaAdmin('usuarios')">🔑 Usuarios</button>
+        </div>
+
+        <!-- COLABORADORES -->
+        <div id="sub-admin-colaboradores" class="subpestaña-admin">
+            <h3 class="font-bold mb-2">Gestión de Colaboradores</h3>
+            <div class="form-group">
+                <label>Nombre del Colaborador:</label>
+                <input type="text" id="nombreColabAdmin" class="form-control" placeholder="Nombre completo">
+            </div>
+            <button onclick="agregarColaboradorAdmin()" class="btn btn-success w-full mb-3">➕ Agregar Colaborador</button>
+            <div id="listaColaboradoresAdmin"></div>
+        </div>
+
+        <!-- CONDUCTORES -->
+        <div id="sub-admin-conductores" class="subpestaña-admin oculto">
+            <h3 class="font-bold mb-2">Gestión de Conductores</h3>
+            <div class="form-group">
+                <label>Nombre del Conductor:</label>
+                <input type="text" id="nombreConductorAdmin" class="form-control" placeholder="Nombre completo">
+            </div>
+            <button onclick="agregarConductorAdmin()" class="btn btn-success w-full mb-3">➕ Agregar Conductor</button>
+            <div id="listaConductoresAdmin"></div>
+        </div>
+
+        <!-- VEHÍCULOS -->
+        <div id="sub-admin-vehiculos" class="subpestaña-admin oculto">
+            <h3 class="font-bold mb-2">Gestión de Vehículos</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Placa:</label>
+                    <input type="text" id="placaVehiculoMovAdmin" class="form-control" placeholder="Ej: ABC-123">
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Vehículo:</label>
+                    <select id="tipoVehiculoMovAdmin" class="form-control">
+                        <option value="">Seleccione tipo</option>
+                        <option>Motocicleta</option>
+                        <option>Camioneta</option>
+                        <option>Camión</option>
+                        <option>Vehículo de Tracción Humana (VTH)</option>
+                    </select>
+                </div>
+            </div>
+            <button onclick="agregarVehiculoMovAdmin()" class="btn btn-success w-full mb-3">➕ Agregar Vehículo</button>
+            <h4 class="font-bold mb-2">Vehículos de Movimientos</h4>
+            <div id="listaVehiculosMovAdmin"></div>
+            <h4 class="font-bold mt-4 mb-2">Vehículos de Transportadora</h4>
+            <div id="listaVehiculosTranspAdmin"></div>
+        </div>
+
+        <!-- USUARIOS -->
+        <div id="sub-admin-usuarios" class="subpestaña-admin oculto">
+            <h3 class="font-bold mb-2">Crear Usuario del Sistema</h3>
+            <div class="form-group">
+                <label>Correo o Usuario:</label>
+                <input type="text" id="correoNuevo" class="form-control" placeholder="nuevo o nuevo@correo.com">
+            </div>
+            <div class="form-group">
+                <label>Contraseña (mínimo 6 caracteres):</label>
+                <input type="password" id="passNuevo" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Rol:</label>
+                <select id="rolNuevo" class="form-control">
                     <option value="usuario">Usuario</option>
                     <option value="admin">Administrador</option>
                 </select>
-                <button class="btn-guardar" onclick="crearUsuario()">✅ Crear Usuario</button>
             </div>
-            <div class="tarjeta">
-                <h3>👥 Lista de Usuarios</h3>
-                <div id="listaUsuarios"></div>
-            </div>
+            <button onclick="crearUsuario()" class="btn btn-primary w-full">🔑 Crear Usuario</button>
         </div>
-
-        <!-- Subpestaña: Colaboradores -->
-        <div id="sub-admin-colaboradores" class="subpestaña-admin">
-            <div class="tarjeta">
-                <h3>➕ Agregar Colaborador</h3>
-                <input type="text" id="nombreColabAdmin" placeholder="Nombre del colaborador">
-                <button class="btn-guardar" onclick="agregarColaboradorAdmin()">✅ Guardar</button>
-            </div>
-            <div class="tarjeta">
-                <h3>📋 Lista de Colaboradores</h3>
-                <div id="listaColaboradoresAdmin"></div>
-            </div>
-        </div>
-
-        <!-- Subpestaña: Conductores -->
-        <div id="sub-admin-conductores" class="subpestaña-admin">
-            <div class="tarjeta">
-                <h3>➕ Agregar Conductor</h3>
-                <input type="text" id="nombreConductorAdmin" placeholder="Nombre del conductor">
-                <button class="btn-guardar" onclick="agregarConductorAdmin()">✅ Guardar</button>
-            </div>
-            <div class="tarjeta">
-                <h3>📋 Lista de Conductores</h3>
-                <div id="listaConductoresAdmin"></div>
-            </div>
-        </div>
-
-        <!-- Subpestaña: Vehículos Movimientos -->
-        <div id="sub-admin-vehiculos-mov" class="subpestaña-admin">
-            <div class="tarjeta">
-                <h3>➕ Agregar Vehículo (Movimientos)</h3>
-                <input type="text" id="placaVehiculoMovAdmin" placeholder="Placa">
-                <select id="tipoVehiculoMovAdmin">
-                    <option value="">Seleccione tipo</option>
-                    <option value="Moto">Moto</option>
-                    <option value="Camioneta">Camioneta</option>
-                    <option value="Camión">Camión</option>
-                    <option value="Carguero">Carguero</option>
-                    <option value="VTH">VTH</option>
-                </select>
-                <button class="btn-guardar" onclick="agregarVehiculoMovAdmin()">✅ Guardar</button>
-            </div>
-            <div class="tarjeta">
-                <h3>🚗 Vehículos Registrados</h3>
-                <div id="listaVehiculosMovAdmin"></div>
-            </div>
-        </div>
-
-        <!-- Subpestaña: Vehículos Transportadora -->
-        <div id="sub-admin-vehiculos-transp" class="subpestaña-admin">
-            <div class="tarjeta">
-                <h3>➕ Agregar Vehículo (Transportadora)</h3>
-                <input type="text" id="placaVehiculoTranspAdmin" placeholder="Placa">
-                <select id="tipoVehiculoTranspAdmin">
-                    <option value="">Seleccione tipo</option>
-                    <option value="Moto">Moto</option>
-                    <option value="Camioneta">Camioneta</option>
-                    <option value="Camión">Camión</option>
-                    <option value="Carguero">Carguero</option>
-                    <option value="VTH">VTH</option>
-                </select>
-                <button class="btn-guardar" onclick="agregarVehiculoTranspAdmin()">✅ Guardar</button>
-            </div>
-            <div class="tarjeta">
-                <h3>🚛 Vehículos Registrados</h3>
-                <div id="listaVehiculosTranspAdmin"></div>
-            </div>
-        </div>
-    </section>
-
-</main>
-
-<!-- MODAL DE LOGIN -->
-<div id="modalLogin" class="modal-login">
-    <div class="caja-login">
-        <h2>🔐 Iniciar Sesión</h2>
-        <input type="email" id="correoLogin" placeholder="Correo electrónico">
-        <input type="password" id="passLogin" placeholder="Contraseña">
-        <p id="mensajeError"></p>
-        <button class="btn-guardar" onclick="ingresar()">✅ Ingresar</button>
-        <a href="#" onclick="recuperarClave()">¿Olvidó su contraseña?</a>
     </div>
+
 </div>
 
 <script src="funciones.js"></script>
