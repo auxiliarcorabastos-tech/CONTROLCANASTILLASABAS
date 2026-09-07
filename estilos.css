@@ -1,4 +1,3 @@
-/* === ESTILOS GENERALES === */
 * {
     margin: 0;
     padding: 0;
@@ -32,9 +31,9 @@ h4 {
     font-size: 0.95rem;
     font-weight: 600;
     color: #1e40af;
+    margin-bottom: 0.5rem;
 }
 
-/* === BOTÓN MENÚ === */
 .btn-menu {
     position: fixed;
     top: 0.75rem;
@@ -43,60 +42,37 @@ h4 {
     background: linear-gradient(135deg, #2563eb, #1d4ed8);
     color: white;
     border: none;
-    padding: 0.6rem 0.85rem;
+    width: 42px;
+    height: 42px;
     border-radius: 0.75rem;
     font-size: 1.25rem;
     cursor: pointer;
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
-    transition: all 0.3s ease;
-}
-.btn-menu:hover {
-    transform: scale(1.05);
-    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
 }
 
-/* === CAPA OSCURA === */
-.overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-.overlay.activo {
-    opacity: 1;
-    visibility: visible;
-}
-
-/* === MENÚ LATERAL === */
 .sidebar {
     position: fixed;
     left: 0;
     top: 0;
     width: 260px;
     height: 100vh;
-    background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%);
+    background: linear-gradient(180deg, #1e3a8a 0%, #1d4ed8 50%, #3b82f6 100%);
     color: white;
     z-index: 1001;
     transform: translateX(-100%);
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.3s ease;
     padding-top: 1.5rem;
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
-    border-radius: 0 1.25rem 1.25rem 0;
+    box-shadow: 4px 0 20px rgba(0,0,0,0.15);
 }
-.sidebar.visible {
-    transform: translateX(0);
-}
+
+.sidebar.mostrar { transform: translateX(0); }
 
 .logo {
     padding: 1rem 1.5rem;
     font-weight: 700;
     font-size: 1.1rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.18);
-    margin-bottom: 0.75rem;
-    letter-spacing: 0.5px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    margin-bottom: 0.5rem;
 }
 
 .btn-pestaña {
@@ -108,102 +84,46 @@ h4 {
     background: transparent;
     border: none;
     color: #e2e8f0;
-    cursor: pointer;
     border-radius: 0.75rem;
+    cursor: pointer;
     font-size: 0.95rem;
-    transition: all 0.25s ease;
-}
-.btn-pestaña:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: white;
-}
-.btn-pestaña.activa {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
-    font-weight: 600;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-#btnAdmin { display: none; }
-
-/* === BARRA SUPERIOR === */
-.barra-superior {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3.5rem;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(8px);
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    padding: 0 1.25rem;
-    gap: 0.85rem;
-    z-index: 999;
+    transition: all 0.2s;
 }
 
-.btn-actualizar {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.65rem;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 500;
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
-    transition: all 0.25s ease;
-}
-.btn-actualizar:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
-}
+.btn-pestaña:hover { background: rgba(255,255,255,0.1); color: white; }
+.btn-pestaña.activa { background: rgba(255,255,255,0.2); color: white; font-weight: 600; }
 
+.espacio { height: 2rem; }
 .btn-salir {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    color: white;
+    display: block;
+    width: calc(100% - 1.5rem);
+    margin: 0.25rem 0.75rem;
+    text-align: left;
+    padding: 0.9rem 1.25rem;
+    background: transparent;
     border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.65rem;
+    color: #fca5a5;
+    border-radius: 0.75rem;
     cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 500;
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
-    transition: all 0.25s ease;
+    font-size: 0.95rem;
 }
-.btn-salir:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.35);
-}
+.btn-salir:hover { background: rgba(239,68,68,0.2); color: white; }
 
-/* === CONTENIDO PRINCIPAL === */
 .contenido {
     margin-left: 0;
-    padding: 4.5rem 1.25rem 1.5rem;
-    min-height: 100vh;
-    transition: margin-left 0.35s ease;
+    padding: 4.5rem 1rem 1.5rem;
+    transition: margin-left 0.3s ease;
 }
 
-.pestaña { display: none; animation: aparecer 0.3s ease; }
+.pestaña { display: none; }
 .pestaña.activa { display: block; }
-
-@keyframes aparecer {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
 
 .tarjeta {
     background: white;
     border-radius: 1rem;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
     padding: 1.5rem;
     margin-bottom: 1.25rem;
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-.tarjeta:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
 }
 
 input, select {
@@ -214,14 +134,15 @@ input, select {
     margin-bottom: 0.75rem;
     font-size: 0.95rem;
     background: #fafbfc;
-    transition: all 0.25s ease;
+    transition: border 0.2s;
 }
+
 input:focus, select:focus {
     outline: none;
     border-color: #3b82f6;
     background: white;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
+
 input[readonly] {
     background: #f0fdf4;
     color: #166534;
@@ -232,23 +153,30 @@ button {
     padding: 0.75rem 1.25rem;
     border: none;
     border-radius: 0.65rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-guardar {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    width: 100%;
+    margin-top: 0.25rem;
+}
+.btn-guardar:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,0.3); }
+
+.btn-exito {
     background: linear-gradient(135deg, #3b82f6, #2563eb);
     color: white;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 0.95rem;
-    transition: all 0.25s ease;
 }
-button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-}
-.btn-exito {
-    background: linear-gradient(135deg, #10b981, #059669);
-    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
-}
-.btn-exito:hover {
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+
+.caja-recogidas {
+    background: #eff6ff;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    margin: 1rem 0;
 }
 
 .fila-recogida {
@@ -263,60 +191,110 @@ button:hover {
 }
 .fila-recogida select, .fila-recogida input {
     flex: 1;
-    min-width: 120px;
+    min-width: 110px;
     margin-bottom: 0;
 }
-.btn-quitar {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    padding: 0.5rem 0.75rem;
-    font-size: 0.85rem;
+
+.btn-agregar-fila {
+    background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+    color: #1e40af;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
 }
 
-/* === LOGIN === */
-#pantallaLogin {
+.btn-quitar {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+    width: auto;
+}
+
+.barra-subpestañas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.btn-subpestaña {
+    padding: 0.55rem 0.9rem;
+    font-size: 0.85rem;
+    background: #e2e8f0;
+    border-radius: 0.6rem;
+    color: #374151;
+}
+.btn-subpestaña.activa {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+}
+
+.subpestaña-admin { display: none; }
+.subpestaña-admin.activa { display: block; }
+
+.fila-lista {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.fila-lista span { font-weight: 500; }
+
+.btn-editar {
+    background: #fef3c7;
+    color: #92400e;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+    width: auto;
+    margin: 0;
+}
+.btn-eliminar {
+    background: #fee2e2;
+    color: #b91c1c;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+    width: auto;
+    margin: 0;
+}
+.btn-inactivar {
+    background: #e5e7eb;
+    color: #4b5563;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+    width: auto;
+    margin: 0;
+}
+
+.inactivo { opacity: 0.5; text-decoration: line-through; }
+
+.modal-login {
     position: fixed;
     inset: 0;
-    background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
+    background: rgba(0,0,0,0.6);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 2000;
 }
-.login-caja {
+
+.caja-login {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 1.25rem;
     width: 90%;
     max-width: 420px;
-    padding: 2.5rem;
-    background: white;
-    border-radius: 1.25rem;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
-    animation: aparecer 0.4s ease;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
 }
-.login-caja h2 { text-align: center; margin-bottom: 1.75rem; }
-#mensajeError {
-    color: #dc2626;
-    margin: 0.75rem 0;
-    font-size: 0.9rem;
-    min-height: 1.4rem;
-    text-align: center;
-}
-.recuperar {
-    text-align: center;
-    margin-top: 1.25rem;
-    font-size: 0.9rem;
-}
-.recuperar a {
-    color: #2563eb;
-    text-decoration: none;
-    transition: color 0.2s;
-}
-.recuperar a:hover { color: #1d4ed8; text-decoration: underline; }
 
-/* === PANTALLAS GRANDES === */
+.caja-login h2 { text-align: center; border: none; }
+.caja-login a { display: block; text-align: center; margin-top: 1rem; color: #2563eb; font-size: 0.9rem; text-decoration: none; }
+
 @media (min-width: 768px) {
-    .btn-menu { display: none; }
-    .overlay { display: none !important; }
-    .sidebar { transform: translateX(0); }
     .contenido { margin-left: 260px; }
-    .barra-superior { left: 260px; }
-    button { width: auto; }
+    .sidebar { transform: translateX(0); }
+    .btn-menu { display: none; }
 }
