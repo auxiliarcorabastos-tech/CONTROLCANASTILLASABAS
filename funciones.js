@@ -24,12 +24,15 @@ const usuariosFijos = {
 let usuarioConectado = null;
 let idEdicion = null;
 let movimientos = [];
+let movimientosTransporte = [];
+let registrosCombustible = [];
 let conductores = [];
 let vehiculosMov = [];
 let vehiculosTransp = [];
 let colaboradores = [];
 let tiempoSesion = null;
 let filasRecogida = [];
+let ultimosResultados = { movimientos: [], transporte: [], combustible: [] };
 
 // ===== INICIO =====
 document.addEventListener('DOMContentLoaded', () => {
@@ -54,6 +57,7 @@ function cambiarPestaña(nombre) {
     document.getElementById('tituloPestaña').textContent = event.target.textContent.trim();
     if (window.innerWidth < 768) document.getElementById('sidebar').classList.remove('mostrar');
     if (nombre === 'admin') cargarListasAdmin();
+    if (nombre === 'informes') cargarDatosParaInformes();
 }
 
 function cambiarSubpestañaAdmin(nombre) {
@@ -64,7 +68,15 @@ function cambiarSubpestañaAdmin(nombre) {
     cargarListasAdmin();
 }
 
-// ===== ✅ INICIO DE SESIÓN - FUNCIÓN INGRESAR =====
+// ===== CAMBIAR SUBINFORME =====
+function cambiarSubinforme(nombre) {
+    document.querySelectorAll('.btn-subinforme').forEach(b => b.classList.remove('activa'));
+    event.target.classList.add('activa');
+    document.querySelectorAll('.subinforme').forEach(p => p.classList.remove('activa'));
+    document.getElementById('subinf-' + nombre).classList.add('activa');
+}
+
+// ===== INICIO DE SESIÓN =====
 async function ingresar() {
     let correo = document.getElementById('correoLogin').value.trim();
     const pass = document.getElementById('passLogin').value;
@@ -132,7 +144,7 @@ function reiniciarTiempoSesion() {
     }, 60 * 60 * 1000);
 }
 
-// ===== ÚNICA LISTA DE COLABORADORES =====
+// ===== LISTA DE COLABORADORES =====
 function obtenerOpcionesColaboradoresActivos(valorSeleccionado = '') {
     const activos = colaboradores.filter(c => c.activo !== false);
     return '<option value="">Seleccione colaborador</option>' +
@@ -168,7 +180,6 @@ function actualizarFilaRecogida(id, campo, valor) {
     }
 }
 
-// ===== SUMA AUTOMÁTICA =====
 function calcularTotalesAutomaticos() {
     let totalKilos = 0;
     let totalCanastillas = 0;
@@ -201,7 +212,7 @@ function renderizarFilasRecogida() {
     calcularTotalesAutomaticos();
 }
 
-// ===== CARGA DE DATOS DESDE FIREBASE =====
+// ===== CARGA GENERAL DE DATOS =====
 async function cargarDatos() {
     try {
         const cl = await db.collection('colaboradores').orderBy('nombre').get();
@@ -220,6 +231,7 @@ async function cargarDatos() {
         const cd = await db.collection('conductores').orderBy('nombre').get();
         conductores = cd.docs.map(d => ({ id: d.id, ...d.data() }));
         actualizarSelectConductores();
+        dibujarListaConductoresTransp();
 
         const mv = await db.collection('movimientos').orderBy('fecha', 'desc').limit(50).get();
         movimientos = mv.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -229,6 +241,23 @@ async function cargarDatos() {
     }
 }
 
+// ===== CARGA ESPECÍFICA PARA INFORMES =====
+async function cargarDatosParaInformes() {
+    try {
+        const mv = await db.collection('movimientos').orderBy('fecha', 'desc').get();
+        movimientos = mv.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        const mt = await db.collection('movimientos_transportadora').orderBy('fecha', 'desc').get();
+        movimientosTransporte = mt.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        const cb = await db.collection('combustible').orderBy('fecha', 'desc').get();
+        registrosCombustible = cb.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+        console.log('Error cargando informes:', e.message);
+    }
+}
+
+// ===== VEHÍCULOS =====
 function actualizarSelectVehiculosMov() {
     const sel = document.getElementById('vehiculoMov');
     const sel2 = document.getElementById('vehiculoComb');
@@ -252,6 +281,23 @@ function actualizarSelectConductores() {
         conductores.filter(c => c.activo !== false).map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
 }
 
+// ✅ LISTA DE CONDUCTORES EN TRANSPORTADORA
+function dibujarListaConductoresTransp() {
+    const cont = document.getElementById('listaConductoresTransp');
+    if (!cont) return;
+    if (conductores.length === 0) {
+        cont.innerHTML = '<p class="text-center">No hay conductores registrados</p>';
+        return;
+    }
+    cont.innerHTML = conductores.map(c => `
+        <div class="fila-lista ${c.activo === false ? 'inactivo' : ''}">
+            <span><strong>${c.nombre}</strong></span>
+            <button class="btn-inactivar" onclick="cambiarEstadoConductor('${c.id}', ${c.activo === false})">
+                ${c.activo === false ? '✅ Activar' : '⏸️ Inactivar'}
+            </button>
+        </div>`).join('');
+}
+
 // ===== GUARDAR MOVIMIENTO =====
 async function guardarMovimiento() {
     const recogidasGuardar = filasRecogida.map(f => ({
@@ -260,10 +306,6 @@ async function guardarMovimiento() {
         canastillas: Number(f.canastillas) || 0
     }));
 
-    const canSalida = Number(document.getElementById('canSalidaTotal').value) || 0;
-    const canLlegada = Number(document.getElementById('canLlegadaTotal').value) || 0;
-    const kilosTotal = Number(document.getElementById('kilosTotales').value) || 0;
-
     const datos = {
         fecha: document.getElementById('fecha').value,
         placa: document.getElementById('vehiculoMov').value,
@@ -271,9 +313,9 @@ async function guardarMovimiento() {
         horaSalida: document.getElementById('horaSalida').value,
         horaLlegada: document.getElementById('horaLlegada').value,
         recogidas: recogidasGuardar,
-        kilosTotales: kilosTotal,
-        totalCanastillasSalida: canSalida,
-        totalCanastillasLlegada: canLlegada,
+        kilosTotales: Number(document.getElementById('kilosTotales').value) || 0,
+        totalCanastillasSalida: Number(document.getElementById('canSalidaTotal').value) || 0,
+        totalCanastillasLlegada: Number(document.getElementById('canLlegadaTotal').value) || 0,
         observaciones: document.getElementById('observaciones').value,
         usuario: usuarioConectado.nombre || usuarioConectado.email,
         horaRegistro: new Date()
@@ -327,116 +369,249 @@ async function guardarMovimientoTransp() {
     document.getElementById('horaLlegadaTransp').value = '';
     alert('✅ Movimiento registrado');
     registrarAccion('Movimiento Transp', 'Transportadora', datos.placa);
+    await cargarDatos();
 }
 
-// ===== LISTA MOVIMIENTOS =====
-function dibujarMovimientos(lista = movimientos) {
-    const cont = document.getElementById('listaMovimientos');
-    if (!cont) return;
-    cont.innerHTML = lista.map(m => {
-        const rec = m.recogidas?.length ?
-            m.recogidas.map(r => `• ${r.recogio || 'Sin nombre'}: ${r.kilos}kg / ${r.canastillas} can`).join('<br>')
-            : 'Sin recogidas';
-        return `<div style="border-bottom:1px solid #e5e7eb; padding:0.75rem 0;">
-            <strong>${m.fecha}</strong> | ${m.placa} | Conductor: ${m.colaboradorConductor || 'N/D'}<br>
-            Salida: ${m.horaSalida || '--'} | Llegada: ${m.horaLlegada || '--'}<br>
-            📤 Salida: ${m.totalCanastillasSalida || 0} canastillas<br>
-            📥 Llegada: ${m.totalCanastillasLlegada || 0} canastillas | ⚖️ ${m.kilosTotales || 0} kg<br>
-            <em>Recogidas:</em><br><small>${rec}</small>
-            <div style="margin-top:0.5rem;">
-                <button onclick="editarMovimiento('${m.id}')" class="btn-editar">✏️ Completar Llegada</button>
-                ${usuarioConectado?.rol === 'admin' ? `<button onclick="eliminarMovimiento('${m.id}')" class="btn-eliminar">🗑️ Eliminar</button>` : ''}
-            </div>
-        </div>`;
-    }).join('');
+async function agregarConductor() {
+    const nombre = document.getElementById('nombreConductor').value.trim();
+    if (!nombre) return alert('Escribe el nombre');
+    await db.collection('conductores').add({ nombre, activo: true, fechaCreacion: new Date() });
+    document.getElementById('nombreConductor').value = '';
+    alert('✅ Conductor agregado');
+    registrarAccion('Agregar Conductor', 'Transportadora', nombre);
+    await cargarDatos();
 }
 
-function filtrarMovimientos() {
-    const b = document.getElementById('buscarMov').value.toLowerCase();
-    dibujarMovimientos(movimientos.filter(m =>
-        (m.placa && m.placa.toLowerCase().includes(b)) ||
-        (m.colaboradorConductor && m.colaboradorConductor.toLowerCase().includes(b))
-    ));
-}
-
-// ===== EDITAR MOVIMIENTO =====
-async function editarMovimiento(id) {
-    const m = movimientos.find(x => x.id === id);
-    if (!m) return;
-    idEdicion = id;
-    document.getElementById('fecha').value = m.fecha;
-    document.getElementById('vehiculoMov').value = m.placa;
-    document.getElementById('colaboradorConductor').value = m.colaboradorConductor || '';
-    document.getElementById('horaSalida').value = m.horaSalida || '';
-    document.getElementById('canSalidaTotal').value = m.totalCanastillasSalida || '';
-    document.getElementById('horaLlegada').value = m.horaLlegada || '';
-    document.getElementById('canLlegadaTotal').value = m.totalCanastillasLlegada || '';
-    document.getElementById('kilosTotales').value = m.kilosTotales || '';
-    document.getElementById('observaciones').value = m.observaciones || '';
-    filasRecogida = (m.recogidas || []).map(r => ({
-        id: Date.now() + Math.random(),
-        recogio: r.recogio || '',
-        kilos: r.kilos || 0,
-        canastillas: r.canastillas || 0
-    }));
-    renderizarFilasRecogida();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-async function eliminarMovimiento(id) {
-    if (usuarioConectado?.rol !== 'admin') return alert('🔒 Acceso denegado');
-    if (!confirm('¿Eliminar este movimiento?')) return;
-    await db.collection('movimientos').doc(id).delete();
-    registrarAccion('Eliminar Movimiento', 'Movimientos', `ID: ${id}`);
+async function agregarVehiculoTransp() {
+    const placa = document.getElementById('placaVehiculoTransp').value.trim().toUpperCase();
+    const tipo = document.getElementById('tipoVehiculoTransp').value;
+    if (!placa || !tipo) return alert('Complete placa y tipo');
+    await db.collection('vehiculos_transportadora').add({ placa, tipo, fechaCreacion: new Date() });
+    document.getElementById('placaVehiculoTransp').value = '';
+    document.getElementById('tipoVehiculoTransp').value = '';
+    alert('✅ Vehículo agregado');
+    registrarAccion('Agregar Vehículo Transp', 'Transportadora', `${placa} - ${tipo}`);
     await cargarDatos();
 }
 
 // ===== COMBUSTIBLE =====
 async function guardarCombustible() {
+    const placa = document.getElementById('vehiculoComb').value;
+    const kma = Number(document.getElementById('kma').value) || 0;
+    const kmt = Number(document.getElementById('kmt').value) || 0;
+    const galones = Number(document.getElementById('galones').value) || 0;
+    const kmRecorridos = kmt > 0 && kma >= 0 ? kmt - kma : 0;
+    const rendimiento = galones > 0 && kmRecorridos > 0 ? (kmRecorridos / galones).toFixed(2) : '—';
+
     const datos = {
         fecha: new Date().toISOString().split('T')[0],
-        placa: document.getElementById('vehiculoComb').value,
-        kmManana: Number(document.getElementById('kma').value) || 0,
-        kmTarde: Number(document.getElementById('kmt').value) || 0,
-        galones: Number(document.getElementById('galones').value) || 0,
+        placa,
+        kmManana: kma,
+        kmTarde: kmt,
+        kmRecorridos,
+        galones,
+        rendimientoKmL: rendimiento,
         usuario: usuarioConectado.nombre,
         horaRegistro: new Date()
     };
+
     await db.collection('combustible').add(datos);
     document.getElementById('kma').value = '';
     document.getElementById('kmt').value = '';
     document.getElementById('galones').value = '';
-    alert('✅ Guardado');
-    registrarAccion('Registro Combustible', 'Combustible', datos.placa);
+    alert(`✅ Guardado\nKilómetros recorridos: ${kmRecorridos}\nRendimiento: ${rendimiento} km/gal`);
+    registrarAccion('Registro Combustible', 'Combustible', `${placa} — ${kmRecorridos} km`);
 }
 
-// ===== INFORMES =====
-function generarInforme() {
-    const inicio = document.getElementById('fechaInicio').value;
-    const fin = document.getElementById('fechaFin').value;
-    if (!inicio || !fin) return alert('Seleccione rango de fechas');
-    const filtro = movimientos.filter(m => m.fecha >= inicio && m.fecha <= fin);
-    const cont = document.getElementById('resultadoInforme');
-    if (filtro.length === 0) {
-        cont.innerHTML = '<p class="text-center">No hay registros en ese rango de fechas</p>';
+// ===== INFORMES / CONSULTAS =====
+
+// === CONSULTAR MOVIMIENTOS ===
+async function consultarMovimientos() {
+    const fi = document.getElementById('fechaInicioMov').value;
+    const ff = document.getElementById('fechaFinMov').value;
+    if (!fi || !ff) return alert('Seleccione ambas fechas');
+
+    const resultados = movimientos.filter(m => m.fecha >= fi && m.fecha <= ff);
+    ultimosResultados.movimientos = resultados;
+
+    const cont = document.getElementById('resultadoMov');
+    if (resultados.length === 0) {
+        cont.innerHTML = '<p class="text-center">📭 No hay movimientos en este rango de fechas</p>';
         return;
     }
-    const totalSalida = filtro.reduce((s, m) => s + (m.totalCanastillasSalida || 0), 0);
-    const totalLlegada = filtro.reduce((s, m) => s + (m.totalCanastillasLlegada || 0), 0);
-    const totalKilos = filtro.reduce((s, m) => s + (m.kilosTotales || 0), 0);
+
+    let totalCanSalida = 0, totalCanLlegada = 0, totalKilos = 0;
+    resultados.forEach(m => {
+        totalCanSalida += Number(m.totalCanastillasSalida) || 0;
+        totalCanLlegada += Number(m.totalCanastillasLlegada) || 0;
+        totalKilos += Number(m.kilosTotales) || 0;
+    });
+
     cont.innerHTML = `
-        <div style="background:#f1f5f9; padding:1rem; border-radius:0.5rem;">
-            <p><strong>Total registros:</strong> ${filtro.length}</p>
-            <p><strong>Total Canastillas Salida:</strong> ${totalSalida}</p>
-            <p><strong>Total Canastillas Llegada:</strong> ${totalLlegada}</p>
-            <p><strong>Total Kilos:</strong> ${totalKilos} kg</p>
+        <p class="font-bold mb-2">📋 Resultados: ${resultados.length} movimiento(s)</p>
+        <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+        <thead style="background:#dbeafe;">
+            <tr>
+                <th style="border:1px solid #ccc;padding:6px;">Fecha</th>
+                <th style="border:1px solid #ccc;padding:6px;">Placa</th>
+                <th style="border:1px solid #ccc;padding:6px;">Conductor</th>
+                <th style="border:1px solid #ccc;padding:6px;">Hora Salida</th>
+                <th style="border:1px solid #ccc;padding:6px;">Hora Llegada</th>
+                <th style="border:1px solid #ccc;padding:6px;">Can. Salida</th>
+                <th style="border:1px solid #ccc;padding:6px;">Can. Llegada</th>
+                <th style="border:1px solid #ccc;padding:6px;">Kilos</th>
+            </tr>
+        </thead>
+        <tbody>
+        ${resultados.map(m => `
+            <tr>
+                <td style="border:1px solid #ccc;padding:6px;">${m.fecha}</td>
+                <td style="border:1px solid #ccc;padding:6px;">${m.placa || ''}</td>
+                <td style="border:1px solid #ccc;padding:6px;">${m.colaboradorConductor || ''}</td>
+                <td style="border:1px solid #ccc;padding:6px;">${m.horaSalida || ''}</td>
+                <td style="border:1px solid #ccc;padding:6px;">${m.horaLlegada || ''}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${m.totalCanastillasSalida || 0}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${m.totalCanastillasLlegada || 0}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${m.kilosTotales || 0}</td>
+            </tr>`).join('')}
+        </tbody>
+        <tfoot style="background:#f1f5f9;font-weight:bold;">
+            <tr>
+                <td colspan="5" style="border:1px solid #ccc;padding:6px;">TOTALES</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${totalCanSalida}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${totalCanLlegada}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${totalKilos}</td>
+            </tr>
+        </tfoot>
+        </table>
         </div>`;
 }
 
-// ===== EXPORTAR EXCEL =====
-function exportarExcel() {
-    if (movimientos.length === 0) return alert('Sin datos para exportar');
-    const datos = movimientos.map(m => ({
+// === CONSULTAR TRANSPORTADORA ===
+async function consultarTransporte() {
+    const fi = document.getElementById('fechaInicioTransp').value;
+    const ff = document.getElementById('fechaFinTransp').value;
+    if (!fi || !ff) return alert('Seleccione ambas fechas');
+
+    const resultados = movimientosTransporte.filter(m => m.fecha >= fi && m.fecha <= ff);
+    ultimosResultados.transporte = resultados;
+
+    const cont = document.getElementById('resultadoTransp');
+    if (resultados.length === 0) {
+        cont.innerHTML = '<p class="text-center">📭 No hay registros en este rango de fechas</p>';
+        return;
+    }
+
+    let totalCanSalida = 0, totalCanLlegada = 0;
+    resultados.forEach(m => {
+        totalCanSalida += Number(m.canastillasSalida) || 0;
+        totalCanLlegada += Number(m.canastillasLlegada) || 0;
+    });
+
+    cont.innerHTML = `
+        <p class="font-bold mb-2">🚛 Resultados: ${resultados.length} registro(s)</p>
+        <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+        <thead style="background:#dbeafe;">
+            <tr>
+                <th style="border:1px solid #ccc;padding:6px;">Fecha</th>
+                <th style="border:1px solid #ccc;padding:6px;">Placa</th>
+                <th style="border:1px solid #ccc;padding:6px;">Conductor</th>
+                <th style="border:1px solid #ccc;padding:6px;">Hora Salida</th>
+                <th style="border:1px solid #ccc;padding:6px;">Hora Llegada</th>
+                <th style="border:1px solid #ccc;padding:6px;">Can. Salida</th>
+                <th style="border:1px solid #ccc;padding:6px;">Can. Llegada</th>
+            </tr>
+        </thead>
+        <tbody>
+        ${resultados.map(m => `
+            <tr>
+                <td style="border:1px solid #ccc;padding:6px;">${m.fecha}</td>
+                <td style="border:1px solid #ccc;padding:6px;">${m.placa || ''}</td>
+                <td style="border:1px solid #ccc;padding:6px;">${m.conductor || ''}</td>
+                <td style="border:1px solid #ccc;padding:6px;">${m.horaSalida || ''}</td>
+                <td style="border:1px solid #ccc;padding:6px;">${m.horaLlegada || ''}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${m.canastillasSalida || 0}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${m.canastillasLlegada || 0}</td>
+            </tr>`).join('')}
+        </tbody>
+        <tfoot style="background:#f1f5f9;font-weight:bold;">
+            <tr>
+                <td colspan="5" style="border:1px solid #ccc;padding:6px;">TOTALES</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${totalCanSalida}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${totalCanLlegada}</td>
+            </tr>
+        </tfoot>
+        </table>
+        </div>`;
+}
+
+// === CONSULTAR COMBUSTIBLE ===
+async function consultarCombustible() {
+    const fi = document.getElementById('fechaInicioComb').value;
+    const ff = document.getElementById('fechaFinComb').value;
+    if (!fi || !ff) return alert('Seleccione ambas fechas');
+
+    const resultados = registrosCombustible.filter(r => r.fecha >= fi && r.fecha <= ff);
+    ultimosResultados.combustible = resultados;
+
+    const cont = document.getElementById('resultadoComb');
+    if (resultados.length === 0) {
+        cont.innerHTML = '<p class="text-center">📭 No hay registros en este rango de fechas</p>';
+        return;
+    }
+
+    let totalKm = 0, totalGalones = 0;
+    resultados.forEach(r => {
+        totalKm += Number(r.kmRecorridos) || 0;
+        totalGalones += Number(r.galones) || 0;
+    });
+    const promRend = totalGalones > 0 ? (totalKm / totalGalones).toFixed(2) : '—';
+
+    cont.innerHTML = `
+        <p class="font-bold mb-2">⛽ Resultados: ${resultados.length} registro(s)</p>
+        <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+        <thead style="background:#dbeafe;">
+            <tr>
+                <th style="border:1px solid #ccc;padding:6px;">Fecha</th>
+                <th style="border:1px solid #ccc;padding:6px;">Placa</th>
+                <th style="border:1px solid #ccc;padding:6px;">Km Mañana</th>
+                <th style="border:1px solid #ccc;padding:6px;">Km Tarde</th>
+                <th style="border:1px solid #ccc;padding:6px;">Km Recorridos</th>
+                <th style="border:1px solid #ccc;padding:6px;">Galones</th>
+                <th style="border:1px solid #ccc;padding:6px;">Km/Galón</th>
+            </tr>
+        </thead>
+        <tbody>
+        ${resultados.map(r => `
+            <tr>
+                <td style="border:1px solid #ccc;padding:6px;">${r.fecha}</td>
+                <td style="border:1px solid #ccc;padding:6px;">${r.placa || ''}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${r.kmManana || 0}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${r.kmTarde || 0}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${r.kmRecorridos || 0}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${r.galones || 0}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${r.rendimientoKmL || '—'}</td>
+            </tr>`).join('')}
+        </tbody>
+        <tfoot style="background:#f1f5f9;font-weight:bold;">
+            <tr>
+                <td colspan="4" style="border:1px solid #ccc;padding:6px;">TOTALES / PROMEDIO</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${totalKm}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${totalGalones.toFixed(2)}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${promRend}</td>
+            </tr>
+        </tfoot>
+        </table>
+        </div>`;
+}
+
+// ===== EXPORTAR A EXCEL =====
+function exportarMovimientosExcel() {
+    if (ultimosResultados.movimientos.length === 0) return alert('Realice una consulta primero');
+    const datos = ultimosResultados.movimientos.map(m => ({
         Fecha: m.fecha,
         Placa: m.placa,
         Conductor: m.colaboradorConductor,
@@ -445,19 +620,55 @@ function exportarExcel() {
         CanastillasSalida: m.totalCanastillasSalida || 0,
         CanastillasLlegada: m.totalCanastillasLlegada || 0,
         KilosTotales: m.kilosTotales || 0,
-        Recogidas: m.recogidas?.map(r => `${r.recogio || 'Sin nombre'}: ${r.kilos}kg / ${r.canastillas} can`).join(' | ') || '',
         Observaciones: m.observaciones || '',
-        Usuario: m.usuario || '',
-        HoraRegistro: m.horaRegistro ? new Date(m.horaRegistro.seconds * 1000).toLocaleString('es-CO') : ''
+        Usuario: m.usuario || ''
     }));
     const hoja = XLSX.utils.json_to_sheet(datos);
     const libro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(libro, hoja, "Movimientos");
     XLSX.writeFile(libro, `Movimientos_${new Date().toLocaleDateString('es-CO').replace(/\//g,'-')}.xlsx`);
-    alert('✅ Archivo Excel generado correctamente');
+    alert('✅ Excel generado');
 }
 
-// ===== ADMINISTRACIÓN: CARGAR LISTAS =====
+function exportarTransporteExcel() {
+    if (ultimosResultados.transporte.length === 0) return alert('Realice una consulta primero');
+    const datos = ultimosResultados.transporte.map(m => ({
+        Fecha: m.fecha,
+        Placa: m.placa,
+        Conductor: m.conductor,
+        HoraSalida: m.horaSalida || '',
+        HoraLlegada: m.horaLlegada || '',
+        CanastillasSalida: m.canastillasSalida || 0,
+        CanastillasLlegada: m.canastillasLlegada || 0,
+        Usuario: m.usuario || ''
+    }));
+    const hoja = XLSX.utils.json_to_sheet(datos);
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, "Transporte");
+    XLSX.writeFile(libro, `Transporte_${new Date().toLocaleDateString('es-CO').replace(/\//g,'-')}.xlsx`);
+    alert('✅ Excel generado');
+}
+
+function exportarCombustibleExcel() {
+    if (ultimosResultados.combustible.length === 0) return alert('Realice una consulta primero');
+    const datos = ultimosResultados.combustible.map(r => ({
+        Fecha: r.fecha,
+        Placa: r.placa,
+        KilometrajeManana: r.kmManana || 0,
+        KilometrajeTarde: r.kmTarde || 0,
+        KilometrosRecorridos: r.kmRecorridos || 0,
+        GalonesCargados: r.galones || 0,
+        RendimientoKmPorGalon: r.rendimientoKmL || '—',
+        Usuario: r.usuario || ''
+    }));
+    const hoja = XLSX.utils.json_to_sheet(datos);
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, "Combustible");
+    XLSX.writeFile(libro, `Combustible_${new Date().toLocaleDateString('es-CO').replace(/\//g,'-')}.xlsx`);
+    alert('✅ Excel generado');
+}
+
+// ===== ADMINISTRACIÓN =====
 async function cargarListasAdmin() {
     try {
         const col = await db.collection('colaboradores').orderBy('nombre').get();
@@ -467,11 +678,9 @@ async function cargarListasAdmin() {
             listaCol.innerHTML = colaboradores.map(c => `
                 <div class="fila-lista ${c.activo === false ? 'inactivo' : ''}">
                     <span>${c.nombre}</span>
-                    <div>
-                        <button class="btn-inactivar" onclick="cambiarEstadoColaborador('${c.id}', ${c.activo === false})">
-                            ${c.activo === false ? '✅ Activar' : '⏸️ Inactivar'}
-                        </button>
-                    </div>
+                    <button class="btn-inactivar" onclick="cambiarEstadoColaborador('${c.id}', ${c.activo === false})">
+                        ${c.activo === false ? '✅ Activar' : '⏸️ Inactivar'}
+                    </button>
                 </div>`).join('');
         }
 
@@ -482,11 +691,9 @@ async function cargarListasAdmin() {
             listaCond.innerHTML = conductores.map(c => `
                 <div class="fila-lista ${c.activo === false ? 'inactivo' : ''}">
                     <span>${c.nombre}</span>
-                    <div>
-                        <button class="btn-inactivar" onclick="cambiarEstadoConductor('${c.id}', ${c.activo === false})">
-                            ${c.activo === false ? '✅ Activar' : '⏸️ Inactivar'}
-                        </button>
-                    </div>
+                    <button class="btn-inactivar" onclick="cambiarEstadoConductor('${c.id}', ${c.activo === false})">
+                        ${c.activo === false ? '✅ Activar' : '⏸️ Inactivar'}
+                    </button>
                 </div>`).join('');
         }
 
@@ -547,18 +754,6 @@ async function cambiarEstadoConductor(id, activar) {
     await cargarListasAdmin();
 }
 
-async function agregarVehiculoTransp() {
-    const placa = document.getElementById('placaVehiculoTransp').value.trim().toUpperCase();
-    const tipo = document.getElementById('tipoVehiculoTransp').value;
-    if (!placa || !tipo) return alert('Complete placa y tipo');
-    await db.collection('vehiculos_transportadora').add({ placa, tipo, fechaCreacion: new Date() });
-    document.getElementById('placaVehiculoTransp').value = '';
-    document.getElementById('tipoVehiculoTransp').value = '';
-    alert('✅ Vehículo agregado');
-    registrarAccion('Agregar Vehículo Transp', 'Transportadora', `${placa} - ${tipo}`);
-    await cargarDatos();
-}
-
 async function agregarVehiculoMovAdmin() {
     const placa = document.getElementById('placaVehiculoMovAdmin').value.trim().toUpperCase();
     const tipo = document.getElementById('tipoVehiculoMovAdmin').value;
@@ -607,4 +802,84 @@ async function registrarAccion(accion, modulo, detalle) {
     } catch (e) {
         console.log('Error registrando acción:', e.message);
     }
+}
+
+function dibujarMovimientos() {
+    const cont = document.getElementById('listaMovimientos');
+    if (!cont) return;
+    if (movimientos.length === 0) {
+        cont.innerHTML = '<p class="text-center">No hay movimientos registrados</p>';
+        return;
+    }
+    cont.innerHTML = movimientos.map(m => `
+        <div class="fila-lista">
+            <div>
+                <strong>${m.fecha}</strong> — ${m.placa || 'Sin placa'} — ${m.colaboradorConductor || 'Sin conductor'}<br>
+                📤 Salida: ${m.totalCanastillasSalida || 0} | 📥 Llegada: ${m.totalCanastillasLlegada || 0} | ⚖️ ${m.kilosTotales || 0} kg
+                ${m.observaciones ? `<br><small>📝 ${m.observaciones}</small>` : ''}
+            </div>
+            <div>
+                <button class="btn-editar" onclick="editarMovimiento('${m.id}')">✏️ Editar</button>
+                ${usuarioConectado?.rol === 'admin' ? `<button class="btn-eliminar" onclick="eliminarMovimiento('${m.id}')">🗑️</button>` : ''}
+            </div>
+        </div>`).join('');
+}
+
+async function editarMovimiento(id) {
+    const m = movimientos.find(x => x.id === id);
+    if (!m) return;
+    idEdicion = id;
+    document.getElementById('fecha').value = m.fecha;
+    document.getElementById('vehiculoMov').value = m.placa;
+    document.getElementById('colaboradorConductor').value = m.colaboradorConductor || '';
+    document.getElementById('horaSalida').value = m.horaSalida || '';
+    document.getElementById('horaLlegada').value = m.horaLlegada || '';
+    document.getElementById('canSalidaTotal').value = m.totalCanastillasSalida || '';
+    document.getElementById('canLlegadaTotal').value = m.totalCanastillasLlegada || '';
+    document.getElementById('kilosTotales').value = m.kilosTotales || '';
+    document.getElementById('observaciones').value = m.observaciones || '';
+    filasRecogida = [];
+    if (m.recogidas && m.recogidas.length > 0) {
+        m.recogidas.forEach(r => agregarFilaRecogida(r));
+    } else {
+        agregarFilaRecogida();
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function eliminarMovimiento(id) {
+    if (usuarioConectado?.rol !== 'admin') return alert('🔒 Solo el administrador puede eliminar');
+    if (!confirm('¿Eliminar este movimiento?')) return;
+    await db.collection('movimientos').doc(id).delete();
+    registrarAccion('Eliminar Movimiento', 'Movimientos', `ID: ${id}`);
+    alert('✅ Eliminado');
+    await cargarDatos();
+}
+
+function filtrarMovimientos() {
+    const texto = document.getElementById('buscarMov').value.toLowerCase();
+    const cont = document.getElementById('listaMovimientos');
+    if (!texto) {
+        dibujarMovimientos();
+        return;
+    }
+    const filtrados = movimientos.filter(m =>
+        (m.placa && m.placa.toLowerCase().includes(texto)) ||
+        (m.colaboradorConductor && m.colaboradorConductor.toLowerCase().includes(texto))
+    );
+    if (filtrados.length === 0) {
+        cont.innerHTML = '<p class="text-center">No se encontraron coincidencias</p>';
+        return;
+    }
+    cont.innerHTML = filtrados.map(m => `
+        <div class="fila-lista">
+            <div>
+                <strong>${m.fecha}</strong> — ${m.placa || 'Sin placa'} — ${m.colaboradorConductor || 'Sin conductor'}<br>
+                📤 Salida: ${m.totalCanastillasSalida || 0} | 📥 Llegada: ${m.totalCanastillasLlegada || 0} | ⚖️ ${m.kilosTotales || 0} kg
+            </div>
+            <div>
+                <button class="btn-editar" onclick="editarMovimiento('${m.id}')">✏️ Editar</button>
+                ${usuarioConectado?.rol === 'admin' ? `<button class="btn-eliminar" onclick="eliminarMovimiento('${m.id}')">🗑️</button>` : ''}
+            </div>
+        </div>`).join('');
 }
