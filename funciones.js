@@ -27,7 +27,7 @@ let movimientos = [];
 let conductores = [];
 let vehiculosMov = [];
 let vehiculosTransp = [];
-let colaboradores = [];
+let colaboradores = []; // ✅ ÚNICA lista compartida de colaboradores
 let tiempoSesion = null;
 let filasRecogida = [];
 
@@ -131,6 +131,13 @@ function reiniciarTiempoSesion() {
     }, 60 * 60 * 1000);
 }
 
+// ===== ✅ ÚNICA LISTA DE COLABORADORES - COMPARTIDA EN TODO EL SISTEMA =====
+function obtenerOpcionesColaboradoresActivos(valorSeleccionado = '') {
+    const activos = colaboradores.filter(c => c.activo !== false);
+    return '<option value="">Seleccione colaborador</option>' +
+        activos.map(c => `<option value="${c.nombre}" ${valorSeleccionado === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('');
+}
+
 // ===== GESTIÓN DE RECOGIDAS =====
 function agregarFilaRecogida(datos = null) {
     const id = Date.now() + Math.random();
@@ -168,12 +175,11 @@ function calcularTotalesRecogidas() {
 function renderizarFilasRecogida() {
     const cont = document.getElementById('listaRecogidas');
     if (!cont) return;
-    const opts = colaboradores.filter(c => c.activo !== false).map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
+    // ✅ MISMA lista de colaboradores para las recogidas
     cont.innerHTML = filasRecogida.map(f => `
         <div class="fila-recogida">
             <select onchange="actualizarFilaRecogida(${f.id}, 'recogio', this.value)">
-                <option value="">¿A quién recoge?</option>${opts}
-                ${f.recogio ? `<option selected>${f.recogio}</option>` : ''}
+                ${obtenerOpcionesColaboradoresActivos(f.recogio)}
             </select>
             <input type="number" placeholder="Kilos" value="${f.kilos || ''}"
                    oninput="actualizarFilaRecogida(${f.id}, 'kilos', this.value)">
@@ -184,9 +190,25 @@ function renderizarFilasRecogida() {
     calcularTotalesRecogidas();
 }
 
+// ===== ✅ ACTUALIZAR SELECT DE COLABORADORES CONDUCTORES =====
+function actualizarSelectColaboradoresConductores() {
+    const sel = document.getElementById('colaboradorConductor');
+    if (sel) {
+        sel.innerHTML = obtenerOpcionesColaboradoresActivos();
+    }
+}
+
 // ===== CARGA DE DATOS DESDE FIREBASE =====
 async function cargarDatos() {
     try {
+        // ✅ CARGAR ÚNICA LISTA DE COLABORADORES
+        const cl = await db.collection('colaboradores').orderBy('nombre').get();
+        colaboradores = cl.docs.map(d => ({ id: d.id, ...d.data() }));
+        
+        // ✅ ACTUALIZAR TODOS LOS SELECT QUE USAN COLABORADORES
+        actualizarSelectColaboradoresConductores();
+        renderizarFilasRecogida();
+
         const vm = await db.collection('vehiculos_movimientos').get();
         vehiculosMov = vm.docs.map(d => ({ id: d.id, ...d.data() }));
         actualizarSelectVehiculosMov();
@@ -198,10 +220,6 @@ async function cargarDatos() {
         const cd = await db.collection('conductores').get();
         conductores = cd.docs.map(d => ({ id: d.id, ...d.data() }));
         actualizarSelectConductores();
-
-        const cl = await db.collection('colaboradores').get();
-        colaboradores = cl.docs.map(d => ({ id: d.id, ...d.data() }));
-        renderizarFilasRecogida();
 
         const mv = await db.collection('movimientos').orderBy('fecha', 'desc').limit(50).get();
         movimientos = mv.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -279,10 +297,10 @@ async function guardarMovimiento() {
     const datos = {
         fecha: document.getElementById('fecha').value,
         placa: document.getElementById('vehiculoMov').value,
-        colaboradorConductor: document.getElementById('colaboradorConductor').value,
+        colaboradorConductor: document.getElementById('colaboradorConductor').value, // ✅ De la MISMA lista
         horaSalida: document.getElementById('horaSalida').value,
         horaLlegada: document.getElementById('horaLlegada').value,
-        recogidas: recogidasGuardar,
+        recogidas: recogidasGuardar, // ✅ Recogidos también de la MISMA lista
         totalCanastillasSalida: Number(document.getElementById('canSalidaTotal').value) || 0,
         totalCanastillasLlegada: Number(document.getElementById('canLlegadaTotal').value) || 0,
         observaciones: document.getElementById('observaciones').value,
@@ -442,9 +460,10 @@ function exportarExcel() {
 
 // ===== ADMINISTRACIÓN: CARGAR LISTAS =====
 async function cargarListasAdmin() {
-    // Colaboradores
+    // ✅ COLABORADORES - ÚNICA LISTA PARA TODO EL SISTEMA
     const cl = await db.collection('colaboradores').orderBy('nombre').get();
     colaboradores = cl.docs.map(d => ({ id: d.id, ...d.data() }));
+    
     const listaColab = document.getElementById('listaColaboradoresAdmin');
     if (listaColab) {
         listaColab.innerHTML = colaboradores.map(c => `
@@ -459,6 +478,9 @@ async function cargarListasAdmin() {
                 </div>
             </div>`).join('');
     }
+
+    // ✅ ACTUALIZAR AUTOMÁTICAMENTE EN TODA LA APP
+    actualizarSelectColaboradoresConductores();
     renderizarFilasRecogida();
 
     // Conductores
@@ -513,13 +535,13 @@ async function cargarListasAdmin() {
     actualizarSelectVehiculosTransp();
 }
 
-// ===== COLABORADORES =====
+// ===== ✅ GESTIÓN DE COLABORADORES - ÚNICA FUENTE =====
 async function agregarColaboradorAdmin() {
     const nombre = document.getElementById('nombreColabAdmin').value.trim();
     if (!nombre) return alert('Escriba el nombre');
     await db.collection('colaboradores').add({ nombre, activo: true, fechaCreacion: new Date() });
     document.getElementById('nombreColabAdmin').value = '';
-    await cargarListasAdmin();
+    await cargarListasAdmin(); // ✅ Se actualiza en TODA la app automáticamente
     registrarAccion('Agregar Colaborador', 'Administración', nombre);
 }
 
@@ -527,13 +549,13 @@ async function editarColaborador(id, nombreActual) {
     const nuevoNombre = prompt('Editar nombre:', nombreActual);
     if (!nuevoNombre || nuevoNombre.trim() === '') return;
     await db.collection('colaboradores').doc(id).update({ nombre: nuevoNombre.trim() });
-    await cargarListasAdmin();
+    await cargarListasAdmin(); // ✅ Se actualiza en TODA la app automáticamente
     registrarAccion('Editar Colaborador', 'Administración', `${nombreActual} ➔ ${nuevoNombre}`);
 }
 
 async function inactivarColaborador(id, estado) {
     await db.collection('colaboradores').doc(id).update({ activo: !estado });
-    await cargarListasAdmin();
+    await cargarListasAdmin(); // ✅ Deja de aparecer en las listas pero NO se borra
     registrarAccion(estado ? 'Inactivar Colaborador' : 'Activar Colaborador', 'Administración', '');
 }
 
