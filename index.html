@@ -4,18 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Control de Ingresos y Canastillas</title>
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <!-- Estilos -->
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
     :root { --azul:#1a73e8; --verde:#0f9d58; --rojo:#d93025; --gris:#f1f3f4; --texto:#202124; --naranja:#fa7b17; --amarillo:#fbbc05; }
     body { background: #f8f9fa; color: var(--texto); }
 
-    /* --- LOGIN --- */
     #pantallaLogin {
       position: fixed; inset:0; background: linear-gradient(135deg, #1a73e8, #4285f4);
       display:flex; align-items:center; justify-content:center; z-index:999;
@@ -38,7 +35,6 @@
     .error { color:var(--rojo); }
     .enlace { background:none; color:var(--azul); text-decoration:underline; font-size:0.9rem; }
 
-    /* --- CABECERA SUPERIOR --- */
     .cabecera {
       background:var(--azul); color:#fff; padding:0.7rem 1rem;
       display:flex; justify-content:space-between; align-items:center;
@@ -56,7 +52,6 @@
     }
     .btn-actualizar:hover { background:#0b8047; }
 
-    /* --- MENÚ LATERAL IZQUIERDA --- */
     .contenedor-app { display:flex; margin-top:56px; min-height:calc(100vh - 56px); }
     .menu-lateral {
       width:240px; background:#fff; border-right:1px solid #e0e0e0;
@@ -73,7 +68,6 @@
     .pestaña.activa { border-left:3px solid var(--azul); background:#e8f0fe; color:var(--azul); font-weight:bold; }
     .pestaña:hover { background:var(--gris); }
 
-    /* --- CONTENIDO DE PÁGINAS --- */
     .contenido-paginas {
       flex:1; margin-left:240px; padding:1rem; transition: margin-left 0.3s ease;
     }
@@ -82,7 +76,6 @@
     h2 { margin:0.5rem 0 1rem; color:var(--azul); font-size:1.3rem; }
     h3 { margin:0.8rem 0; color:#444; font-size:1rem; border-bottom:1px solid #eee; padding-bottom:0.3rem; }
 
-    /* --- FORMULARIOS Y TABLAS --- */
     form { background:#fff; padding:1.2rem; border-radius:10px; box-shadow:0 2px 8px #0001; margin-bottom:1.5rem; }
     label { display:block; margin-top:0.6rem; font-weight:600; font-size:0.9rem; }
     input, select {
@@ -111,7 +104,6 @@
     .total-acum { background:#e8f0fe; padding:0.8rem; border-radius:8px; margin-top:1rem; font-weight:bold; }
     .sub-seccion { margin-bottom:1.5rem; border-left:3px solid var(--azul); padding-left:1rem; }
 
-    /* --- RESPONSIVE --- */
     @media(max-width:768px) {
       .menu-lateral { transform: translateX(-100%); }
       .contenido-paginas { margin-left:0; }
@@ -123,7 +115,6 @@
 </head>
 <body>
 
-<!-- ===== PANTALLA DE LOGIN ===== -->
 <div id="pantallaLogin">
   <div class="caja-login">
     <h2>🔐 Iniciar Sesión</h2>
@@ -135,7 +126,6 @@
   </div>
 </div>
 
-<!-- ===== CABECERA SUPERIOR ===== -->
 <header class="cabecera" id="cabecera" style="display:none;">
   <div style="display:flex; align-items:center;">
     <button class="btn-menu" onclick="alternarMenu()">☰</button>
@@ -148,7 +138,6 @@
   </div>
 </header>
 
-<!-- ===== MENÚ LATERAL + CONTENIDO ===== -->
 <div class="contenedor-app" id="contenedorApp" style="display:none;">
   <nav class="menu-lateral" id="menuLateral">
     <div class="pestaña activa" data-pagina="movimientos">📋 Canastillas</div>
@@ -160,13 +149,8 @@
 
   <main class="contenido-paginas" id="contenidoPrincipal">
 
-<!-- ================================================== -->
-<!-- ===== PESTAÑA 1: MOVIMIENTOS DE CANASTILLAS ===== -->
-<!-- ================================================== -->
 <section class="pagina visible" id="pag-movimientos">
   <h2>📋 Movimientos de Canastillas</h2>
-
-  <!-- --- VEHÍCULOS DE CANASTILLAS --- -->
   <div class="sub-seccion">
     <form id="formVehiculoCanastilla">
       <h3>🚗 Registrar Vehículo</h3>
@@ -184,10 +168,9 @@
           <option value="Otro">Otro (especificar)</option>
         </select>
       </label>
-      <label>Tipo Personalizado <input type="text" id="tipoPersonalizado" placeholder="Si eligió Otro, escriba aquí"></label>
+      <label>Tipo Personalizado <input type="text" id="tipoPersonalizado" placeholder="Si eligió Otro"></label>
       <button type="submit" class="btn-primario">Guardar Vehículo</button>
     </form>
-
     <h4>Lista de Vehículos</h4>
     <div class="tabla-contenedor">
       <table id="tablaVehCanast">
@@ -197,12 +180,11 @@
     </div>
   </div>
 
-  <!-- --- COLABORADORES --- -->
   <div class="sub-seccion">
     <form id="formColaborador">
       <input type="hidden" id="idColaboradorEditar">
       <h3>👤 Registrar / Editar Colaborador</h3>
-      <label>Nombre del Colaborador <input type="text" id="nombreColaborador" required style="text-transform:capitalize;"></label>
+      <label>Nombre <input type="text" id="nombreColaborador" required style="text-transform:capitalize;"></label>
       <label>Estado
         <select id="estadoColaborador">
           <option value="activo">✅ Activo</option>
@@ -212,7 +194,6 @@
       <button type="submit" class="btn-primario">💾 Guardar</button>
       <button type="button" class="btn-naranja" onclick="limpiarFormColaborador()">🆕 Nuevo</button>
     </form>
-
     <h4>Lista de Colaboradores</h4>
     <div class="tabla-contenedor">
       <table id="tablaColaboradores">
@@ -222,114 +203,57 @@
     </div>
   </div>
 
-  <!-- --- REGISTRO DE RECOGIDAS --- -->
   <form id="formRecogida">
     <input type="hidden" id="idEditar">
-    <h3>📦 Registrar Recogida de Canastillas</h3>
+    <h3>📦 Registrar Recogida</h3>
     <label>Fecha <input type="date" id="fechaRecogida" required></label>
-    <label>Vehículo que Recoge
-      <select id="vehiculoRecolector" required>
-        <option value="">Seleccione vehículo</option>
-      </select>
-    </label>
-    <label>Quien Recoge
-      <select id="quienRecoge" required>
-        <option value="">Seleccione colaborador</option>
-      </select>
-    </label>
-
-    <!-- RECOGIDAS DINÁMICAS -->
+    <label>Vehículo <select id="vehiculoRecolector" required><option value="">Seleccione</option></select></label>
+    <label>Quien Recoge <select id="quienRecoge" required><option value="">Seleccione colaborador</option></select></label>
     <div id="listaRecogidas">
-      <div class="recogida" data-indice="1">
-        <h4>Recogida #1</h4>
-        <label>Recoge a:
-          <select class="colaboradorRecogido" required>
-            <option value="">Seleccione colaborador</option>
-          </select>
-        </label>
+      <div class="recogida"><h4>Recogida #1</h4>
+        <label>Recoge a: <select class="colaboradorRecogido" required><option value="">Seleccione</option></select></label>
         <label>Kilos <input type="number" class="kilosRecogidos" min="0" step="0.01" oninput="actualizarTotal()"></label>
         <label>Canastillas <input type="number" class="canastRecogidas" min="0" oninput="actualizarTotal()"></label>
       </div>
     </div>
-
     <button type="button" class="btn-naranja" onclick="agregarRecogida()">➕ Añadir otra recogida</button>
-
-    <!-- TOTALES -->
-    <div class="total-acum">
-      🔢 Total Kilos: <span id="totalKilos">0</span> kg &nbsp;|&nbsp;
-      📦 Total Canastillas: <span id="totalCanastillas">0</span>
-    </div>
-
+    <div class="total-acum">🔢 Total Kilos: <span id="totalKilos">0</span> kg &nbsp;|&nbsp; 📦 Total Canastillas: <span id="totalCanastillas">0</span></div>
     <label>Observaciones <input type="text" id="obsRecogida"></label>
-    <button type="submit" class="btn-exito">💾 Guardar Todo</button>
+    <button type="submit" class="btn-exito">💾 Guardar</button>
     <button type="reset" class="btn-peligro" onclick="resetFormRecogida()">🗑️ Limpiar</button>
   </form>
 
-  <!-- HISTORIAL -->
-  <h3>📋 Historial de Recogidas</h3>
+  <h3>📋 Historial</h3>
   <div class="tabla-contenedor">
     <table id="tablaRecogidas">
-      <thead>
-        <tr>
-          <th>Fecha</th><th>Vehículo</th><th>Quien Recoge</th><th>Colaboradores</th>
-          <th>Total Kilos</th><th>Total Canast.</th><th>Registrado por</th><th>Acciones</th>
-        </tr>
-      </thead>
+      <thead><tr><th>Fecha</th><th>Vehículo</th><th>Quien Recoge</th><th>Colaboradores</th><th>Kilos</th><th>Canast.</th><th>Registrado por</th><th>Acción</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
 </section>
 
-<!-- ================================================== -->
-<!-- ===== PESTAÑA 2: TRANSPORTADORA ===== -->
-<!-- ================================================== -->
 <section class="pagina" id="pag-transportadora">
   <h2>🚛 Transportadora</h2>
-  <p style="color:#666; font-size:0.9rem; margin-bottom:1rem;">Los conductores y vehículos de esta sección son independientes de Canastillas</p>
-
-  <!-- --- CONDUCTORES DE TRANSPORTADORA --- -->
   <form id="formConductorTrans">
     <h3>👤 Registrar Conductor</h3>
-    <label>Nombre del Conductor <input type="text" id="nombreConductorTrans" required></label>
-    <label>Cédula / Identificación <input type="text" id="cedulaConductorTrans"></label>
-    <button type="submit" class="btn-primario">Guardar Conductor</button>
+    <label>Nombre <input type="text" id="nombreConductorTrans" required></label>
+    <label>Cédula <input type="text" id="cedulaConductorTrans"></label>
+    <button type="submit" class="btn-primario">Guardar</button>
   </form>
-
   <h4>Lista de Conductores</h4>
-  <div class="tabla-contenedor">
-    <table id="tablaConductoresTrans">
-      <thead><tr><th>Nombre</th><th>Identificación</th><th>Registrado por</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  <div class="tabla-contenedor"><table id="tablaConductoresTrans"><thead><tr><th>Nombre</th><th>Identificación</th><th>Registrado por</th></tr></thead><tbody></tbody></table></div>
 
-  <!-- --- VEHÍCULOS DE TRANSPORTADORA --- -->
   <form id="formVehiculoTrans">
     <h3>🚗 Registrar Vehículo</h3>
     <label>Placa <input type="text" id="placaTrans" required style="text-transform:uppercase" maxlength="10"></label>
     <label>Marca <input type="text" id="marcaTrans" required></label>
     <label>Modelo <input type="text" id="modeloTrans"></label>
-    <label>Tipo de Vehículo
-      <select id="tipoVehTrans" required>
-        <option value="">Seleccione</option>
-        <option value="Camioneta">Camioneta</option>
-        <option value="Camión">Camión</option>
-        <option value="Furgón">Furgón</option>
-        <option value="Otro">Otro</option>
-      </select>
-    </label>
-    <button type="submit" class="btn-primario">Guardar Vehículo</button>
+    <label>Tipo <select id="tipoVehTrans" required><option value="">Seleccione</option><option value="Camioneta">Camioneta</option><option value="Camión">Camión</option><option value="Furgón">Furgón</option><option value="Otro">Otro</option></select></label>
+    <button type="submit" class="btn-primario">Guardar</button>
   </form>
-
   <h4>Lista de Vehículos</h4>
-  <div class="tabla-contenedor">
-    <table id="tablaVehTrans">
-      <thead><tr><th>Placa</th><th>Marca</th><th>Modelo</th><th>Tipo</th><th>Registrado por</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  <div class="tabla-contenedor"><table id="tablaVehTrans"><thead><tr><th>Placa</th><th>Marca</th><th>Modelo</th><th>Tipo</th><th>Registrado por</th></tr></thead><tbody></tbody></table></div>
 
-  <!-- --- MOVIMIENTOS DE SALIDA Y LLEGADA --- -->
   <form id="formMovTrans">
     <h3>📤 Salida y 📥 Llegada</h3>
     <label>Fecha <input type="date" id="fechaMovTrans" required></label>
@@ -342,135 +266,60 @@
     <label>Hora de Llegada <input type="time" id="horaLlegadaTrans"></label>
     <label>Canastillas que llegan <input type="number" id="canLlegadaTrans" min="0"></label>
     <label>Observaciones <input type="text" id="obsTrans"></label>
-    <button type="submit" class="btn-exito">Guardar Movimiento</button>
+    <button type="submit" class="btn-exito">Guardar</button>
   </form>
-
-  <h4>Historial de Movimientos</h4>
-  <div class="tabla-contenedor">
-    <table id="tablaMovTrans">
-      <thead>
-        <tr>
-          <th>Fecha</th><th>Conductor</th><th>Vehículo</th><th>Hora Salida</th><th>Canast. Salen</th>
-          <th>Hora Llegada</th><th>Canast. Llegan</th><th>Registrado por</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  <h4>Historial</h4>
+  <div class="tabla-contenedor"><table id="tablaMovTrans"><thead><tr><th>Fecha</th><th>Conductor</th><th>Vehículo</th><th>Hora Salida</th><th>Canast. Salen</th><th>Hora Llegada</th><th>Canast. Llegan</th><th>Registrado por</th></tr></thead><tbody></tbody></table></div>
 </section>
 
-<!-- ================================================== -->
-<!-- ===== PESTAÑA 3: COMBUSTIBLE ===== -->
-<!-- ================================================== -->
 <section class="pagina" id="pag-combustible">
   <h2>⛽ Combustible y Kilometraje</h2>
-  <p style="color:#666; font-size:0.9rem; margin-bottom:1rem;">Vehículos registrados en Canastillas (sin VTH)</p>
-
   <form id="formCombustible">
     <h3>Registrar Consumo</h3>
     <label>Fecha <input type="date" id="fechaComb" required></label>
-    <label>Vehículo (Placa)
-      <select id="placaComb" required>
-        <option value="">Seleccione vehículo</option>
-      </select>
-    </label>
-    <label>Kilometraje Mañana <input type="number" id="kmManana" min="0" step="1"></label>
-    <label>Kilometraje Tarde <input type="number" id="kmTarde" min="0" step="1"></label>
-    <label>Galones Cargados <input type="number" id="galones" min="0" step="0.01"></label>
-    <button type="submit" class="btn-primario">Guardar Registro</button>
+    <label>Vehículo <select id="placaComb" required><option value="">Seleccione</option></select></label>
+    <label>KM Mañana <input type="number" id="kmManana" min="0" step="1"></label>
+    <label>KM Tarde <input type="number" id="kmTarde" min="0" step="1"></label>
+    <label>Galones <input type="number" id="galones" min="0" step="0.01"></label>
+    <button type="submit" class="btn-primario">Guardar</button>
   </form>
-
-  <h3>Registros de Consumo</h3>
-  <div class="tabla-contenedor">
-    <table id="tablaCombustible">
-      <thead>
-        <tr>
-          <th>Fecha</th><th>Placa</th><th>KM Mañana</th><th>KM Tarde</th><th>Recorrido</th>
-          <th>Galones</th><th>Rendimiento km/gal</th><th>Registrado por</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  <h3>Registros</h3>
+  <div class="tabla-contenedor"><table id="tablaCombustible"><thead><tr><th>Fecha</th><th>Placa</th><th>KM Mañana</th><th>KM Tarde</th><th>Recorrido</th><th>Galones</th><th>Rendimiento km/gal</th><th>Registrado por</th></tr></thead><tbody></tbody></table></div>
 </section>
 
-<!-- ================================================== -->
-<!-- ===== PESTAÑA 4: INFORMES ===== -->
-<!-- ================================================== -->
 <section class="pagina" id="pag-informes">
-  <h2>📊 Informes y Consultas</h2>
+  <h2>📊 Informes</h2>
   <div style="background:#fff; padding:1rem; border-radius:10px; margin-bottom:1rem;">
-    <h4>Filtrar por rango de fechas</h4>
+    <h4>Filtrar por fechas</h4>
     <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:0.5rem;">
       <label>Desde <input type="date" id="fechaIni"></label>
       <label>Hasta <input type="date" id="fechaFin"></label>
-      <button class="btn-primario" onclick="generarInforme()">Generar Reporte</button>
+      <button class="btn-primario" onclick="generarInforme()">Generar</button>
     </div>
   </div>
-  <h3>Resumen de Recogidas</h3>
-  <div class="tabla-contenedor">
-    <table id="tablaInformes">
-      <thead>
-        <tr>
-          <th>Fecha</th><th>Placa</th><th>Quien Recoge</th><th>Colaboradores</th><th>Total Kilos</th><th>Total Canast.</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-  <br>
-  <button class="btn-exito" onclick="exportarExcel()">📥 Exportar a Excel</button>
+  <h3>Resumen</h3>
+  <div class="tabla-contenedor"><table id="tablaInformes"><thead><tr><th>Fecha</th><th>Placa</th><th>Quien Recoge</th><th>Colaboradores</th><th>Kilos</th><th>Canast.</th></tr></thead><tbody></tbody></table></div>
+  <br><button class="btn-exito" onclick="exportarExcel()">📥 Exportar Excel</button>
 </section>
 
-<!-- ================================================== -->
-<!-- ===== PESTAÑA 5: ADMINISTRACIÓN ===== -->
-<!-- ================================================== -->
 <section class="pagina" id="pag-admin">
-  <h2>⚙️ Administración del Sistema</h2>
+  <h2>⚙️ Administración</h2>
   <form id="formUsuario">
     <h3>Gestión de Usuarios</h3>
     <input type="hidden" id="idUsuarioEditar">
-    <label>Nombre de Usuario <input type="text" id="nombreUsuarioNuevo" required></label>
-    <label>Contraseña <input type="text" id="claveUsuarioNuevo" placeholder="Dejar vacío para no cambiar"></label>
-    <label>Rol
-      <select id="rolUsuarioNuevo">
-        <option value="usuario">Usuario</option>
-        <option value="admin">Administrador</option>
-      </select>
-    </label>
-    <h4>¿Qué pestañas puede ver?</h4>
-    <label style="display:flex; align-items:center; gap:0.3rem;">
-      <input type="checkbox" id="permCanastillas" checked> 📋 Canastillas
-    </label>
-    <label style="display:flex; align-items:center; gap:0.3rem;">
-      <input type="checkbox" id="permTransportadora" checked> 🚛 Transportadora
-    </label>
-    <label style="display:flex; align-items:center; gap:0.3rem;">
-      <input type="checkbox" id="permCombustible" checked> ⛽ Combustible
-    </label>
-    <label style="display:flex; align-items:center; gap:0.3rem;">
-      <input type="checkbox" id="permInformes" checked> 📊 Informes
-    </label>
-    <label>¿Puede Editar Información?
-      <select id="puedeEditar">
-        <option value="si">✅ Sí</option>
-        <option value="no">❌ Solo Consulta</option>
-      </select>
-    </label>
-    <button type="submit" class="btn-primario">💾 Guardar Usuario</button>
+    <label>Usuario <input type="text" id="nombreUsuarioNuevo" required></label>
+    <label>Contraseña <input type="text" id="claveUsuarioNuevo" placeholder="Vacío = no cambia"></label>
+    <label>Rol <select id="rolUsuarioNuevo"><option value="usuario">Usuario</option><option value="admin">Administrador</option></select></label>
+    <h4>Permisos</h4>
+    <label><input type="checkbox" id="permCanastillas" checked> 📋 Canastillas</label>
+    <label><input type="checkbox" id="permTransportadora" checked> 🚛 Transportadora</label>
+    <label><input type="checkbox" id="permCombustible" checked> ⛽ Combustible</label>
+    <label><input type="checkbox" id="permInformes" checked> 📊 Informes</label>
+    <label>¿Puede Editar? <select id="puedeEditar"><option value="si">✅ Sí</option><option value="no">❌ Solo Consulta</option></select></label>
+    <button type="submit" class="btn-primario">💾 Guardar</button>
   </form>
-
   <h3>Lista de Usuarios</h3>
-  <div class="tabla-contenedor">
-    <table id="tablaUsuarios">
-      <thead>
-        <tr>
-          <th>Usuario</th><th>Contraseña</th><th>Rol</th><th>Puede Ver</th><th>Puede Editar</th><th>Acciones</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  <div class="tabla-contenedor"><table id="tablaUsuarios"><thead><tr><th>Usuario</th><th>Clave</th><th>Rol</th><th>Puede Ver</th><th>Puede Editar</th><th>Acciones</th></tr></thead><tbody></tbody></table></div>
 </section>
 
   </main>
@@ -489,7 +338,6 @@ const usuariosFijos = [
     permisos: { canastillas: true, transportadora: true, combustible: true, informes: true }, puedeEditar: "si" }
 ];
 
-// ===== VARIABLES GLOBALES =====
 let usuarioActivo = null;
 let vehiculosCanast = [];
 let colaboradores = [];
@@ -501,10 +349,12 @@ let registrosCombustible = [];
 let usuariosRegistrados = [];
 let db = null;
 let menuVisible = true;
+let contRecog = 1;
 
-// ===== FIREBASE CONFIG =====
+// ==================================================
+// ===== 🔴 PEGA TUS DATOS DE FIREBASE ABAJO =====
+// ==================================================
 const firebaseConfig = {
- const firebaseConfig = {
   apiKey: "AIzaSyBruMDqyExColkMwy7XyqDSBsF8XcvsFoY",
   authDomain: "control-ingresos-y-canastillas.firebaseapp.com",
   projectId: "control-ingresos-y-canastillas",
@@ -518,124 +368,70 @@ firebase.initializeApp(firebaseConfig);
 db = firebase.database();
 
 // ==================================================
-// ===== BOTÓN ACTUALIZAR APP =====
+// ===== FUNCIONES =====
 // ==================================================
-function actualizarApp() {
-  cargarDatos();
-  alert("✅ Datos actualizados correctamente");
-}
-
-// ==================================================
-// ===== MOSTRAR / OCULTAR MENÚ LATERAL =====
-// ==================================================
+function actualizarApp() { cargarDatos(); alert("✅ Datos actualizados"); }
 function alternarMenu() {
   const menu = document.getElementById("menuLateral");
   const contenido = document.querySelector(".contenido-paginas");
   menuVisible = !menuVisible;
-  if (menuVisible) {
-    menu.classList.remove("oculto");
-    contenido.style.marginLeft = "240px";
-  } else {
-    menu.classList.add("oculto");
-    contenido.style.marginLeft = "0";
-  }
+  if (menuVisible) { menu.classList.remove("oculto"); contenido.style.marginLeft = "240px"; }
+  else { menu.classList.add("oculto"); contenido.style.marginLeft = "0"; }
 }
 
-// ==================================================
-// ===== INICIAR SESIÓN =====
-// ==================================================
 async function iniciarSesion() {
   const usu = document.getElementById("usuario").value.trim();
   const clave = document.getElementById("clave").value;
   const msj = document.getElementById("mensajeLogin");
-
   const fijo = usuariosFijos.find(u => u.usuario === usu && u.clave === clave);
-  if (fijo) {
-    usuarioActivo = { ...fijo, uid: "FIJO_" + fijo.usuario };
-    ingresarApp();
-    return;
-  }
-
+  if (fijo) { usuarioActivo = { ...fijo, uid: "FIJO_" + fijo.usuario }; ingresarApp(); return; }
   try {
     const snap = await db.ref("usuarios").once("value");
-    const lista = [];
-    snap.forEach(c => { lista.push({ id: c.key, ...c.val() }); });
+    const lista = []; snap.forEach(c => { lista.push({ id: c.key, ...c.val() }); });
     const enc = lista.find(u => u.usuario === usu && u.clave === clave);
     if (enc) {
-      usuarioActivo = {
-        uid: enc.id,
-        usuario: enc.usuario,
-        nombre: enc.usuario,
-        clave: enc.clave,
-        rol: enc.rol || "usuario",
-        permisos: enc.permisos || { canastillas:true, transportadora:true, combustible:true, informes:true },
-        puedeEditar: enc.puedeEditar || "si"
-      };
+      usuarioActivo = { uid: enc.id, usuario: enc.usuario, nombre: enc.usuario, clave: enc.clave,
+        rol: enc.rol || "usuario", permisos: enc.permisos || { canastillas:true, transportadora:true, combustible:true, informes:true },
+        puedeEditar: enc.puedeEditar || "si" };
       ingresarApp();
-    } else {
-      msj.textContent = "❌ Usuario o contraseña incorrectos";
-      msj.className = "mensaje error";
-    }
-  } catch {
-    msj.textContent = "❌ Error de conexión";
-    msj.className = "mensaje error";
-  }
+    } else { msj.textContent = "❌ Usuario o contraseña incorrectos"; msj.className = "mensaje error"; }
+  } catch { msj.textContent = "❌ Error de conexión"; msj.className = "mensaje error"; }
 }
+function recuperarClave() { alert("Comuníquese con el administrador"); }
 
-function recuperarClave() {
-  alert("Comuníquese con el administrador");
-}
-
-// ==================================================
-// ===== ENTRAR A LA APLICACIÓN =====
-// ==================================================
 function ingresarApp() {
   document.getElementById("pantallaLogin").style.display = "none";
   document.getElementById("cabecera").style.display = "flex";
   document.getElementById("contenedorApp").style.display = "flex";
   document.getElementById("nombreUsuario").textContent = usuarioActivo.nombre + (usuarioActivo.rol === "admin" ? " 👑" : "");
-
   if (usuarioActivo.rol === "admin") document.getElementById("pestanaAdmin").style.display = "block";
-
   if (!usuarioActivo.permisos.canastillas) document.querySelector('[data-pagina="movimientos"]').style.display = "none";
   if (!usuarioActivo.permisos.transportadora) document.querySelector('[data-pagina="transportadora"]').style.display = "none";
   if (!usuarioActivo.permisos.combustible) document.querySelector('[data-pagina="combustible"]').style.display = "none";
   if (!usuarioActivo.permisos.informes) document.querySelector('[data-pagina="informes"]').style.display = "none";
-
-  cargarDatos();
-  configurarPestanas();
-
+  cargarDatos(); configurarPestanas();
   document.getElementById("fechaRecogida").valueAsDate = new Date();
   document.getElementById("fechaMovTrans").valueAsDate = new Date();
   document.getElementById("fechaComb").valueAsDate = new Date();
 }
-
 function cerrarSesion() { location.reload(); }
 
-// ==================================================
-// ===== NAVEGACIÓN POR PESTAÑAS LATERALES =====
-// ==================================================
 function configurarPestanas() {
   document.querySelectorAll(".pestaña").forEach(tab => {
     tab.addEventListener("click", () => {
       const pag = tab.dataset.pagina;
       const perm = usuarioActivo.permisos[pag] !== false || pag === "admin";
       if (!perm) { alert("Sin permiso"); return; }
-
       document.querySelectorAll(".pestaña").forEach(t => t.classList.remove("activa"));
       document.querySelectorAll(".pagina").forEach(p => p.classList.remove("visible"));
       tab.classList.add("activa");
       document.getElementById("pag-" + pag).classList.add("visible");
-
       if (window.innerWidth <= 768 && menuVisible) alternarMenu();
       if (pag === "informes") generarInforme();
     });
   });
 }
 
-// ==================================================
-// ===== CARGAR TODOS LOS DATOS =====
-// ==================================================
 async function cargarDatos() {
   const [vC, col, rec, cT, vT, mT, comb, usu] = await Promise.all([
     db.ref("vehiculosCanastillas").once("value"),
@@ -655,7 +451,6 @@ async function cargarDatos() {
   movimientosTrans = objToArray(mT);
   registrosCombustible = objToArray(comb);
   usuariosRegistrados = objToArray(usu);
-
   renderizarVehCanast();
   renderizarColaboradores();
   renderizarRecogidas();
@@ -666,16 +461,8 @@ async function cargarDatos() {
   renderizarUsuarios();
   cargarSelectores();
 }
+function objToArray(snap) { const arr = []; snap.forEach(c => { arr.push({ id: c.key, ...c.val() }); }); return arr; }
 
-function objToArray(snap) {
-  const arr = [];
-  snap.forEach(c => { arr.push({ id: c.key, ...c.val() }); });
-  return arr;
-}
-
-// ==================================================
-// ===== CARGAR SELECTORES =====
-// ==================================================
 function cargarSelectores() {
   const selVehRec = document.getElementById("vehiculoRecolector");
   const selVehComb = document.getElementById("placaComb");
@@ -689,49 +476,29 @@ function cargarSelectores() {
       selVehComb.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.marca}</option>`;
     });
   }
-
-  // === QUIEN RECOGE → Select con colaboradores ACTIVOS ===
   const selQuienRecoge = document.getElementById("quienRecoge");
   if (selQuienRecoge) {
     const valorActual = selQuienRecoge.value;
     selQuienRecoge.innerHTML = "<option value=''>Seleccione colaborador</option>";
-    colaboradores
-      .filter(c => (c.estado || "activo") === "activo")
-      .sort((a, b) => a.nombre.localeCompare(b.nombre))
-      .forEach(c => {
-        selQuienRecoge.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
-      });
+    colaboradores.filter(c => (c.estado || "activo") === "activo").sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(c => {
+      selQuienRecoge.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
+    });
     selQuienRecoge.value = valorActual;
   }
-
-  // === RECOGE A → Select con colaboradores ACTIVOS ===
   document.querySelectorAll(".colaboradorRecogido").forEach(s => {
     const val = s.value;
     s.innerHTML = "<option value=''>Seleccione colaborador</option>";
-    colaboradores
-      .filter(c => (c.estado || "activo") === "activo")
-      .sort((a, b) => a.nombre.localeCompare(b.nombre))
-      .forEach(c => {
-        s.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
-      });
+    colaboradores.filter(c => (c.estado || "activo") === "activo").sort((a,b)=>a.nombre.localeCompare(b.nombre)).forEach(c => {
+      s.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
+    });
     s.value = val;
   });
-
   const selCondT = document.getElementById("selConductorTrans");
   const selVehT = document.getElementById("selVehTrans");
-  if (selCondT) {
-    selCondT.innerHTML = "<option value=''>Seleccione Conductor</option>";
-    conductoresTrans.forEach(c => selCondT.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`);
-  }
-  if (selVehT) {
-    selVehT.innerHTML = "<option value=''>Seleccione Vehículo</option>";
-    vehiculosTrans.forEach(v => selVehT.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.marca}</option>`);
-  }
+  if (selCondT) { selCondT.innerHTML = "<option value=''>Seleccione Conductor</option>"; conductoresTrans.forEach(c => selCondT.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`); }
+  if (selVehT) { selVehT.innerHTML = "<option value=''>Seleccione Vehículo</option>"; vehiculosTrans.forEach(v => selVehT.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.marca}</option>`); }
 }
 
-// ==================================================
-// ===== CANASTILLAS → VEHÍCULOS =====
-// ==================================================
 document.getElementById("formVehiculoCanastilla").addEventListener("submit", async e => {
   e.preventDefault();
   let tipo = document.getElementById("tipoVehCanast").value;
@@ -740,112 +507,43 @@ document.getElementById("formVehiculoCanastilla").addEventListener("submit", asy
     placa: document.getElementById("placaCanast").value.toUpperCase(),
     marca: document.getElementById("marcaCanast").value,
     modelo: document.getElementById("modeloCanast").value,
-    tipo,
-    usuario: usuarioActivo.nombre
+    tipo, usuario: usuarioActivo.nombre
   });
   e.target.reset(); cargarDatos();
 });
-
 function renderizarVehCanast() {
-  const tb = document.querySelector("#tablaVehCanast tbody");
-  tb.innerHTML = "";
+  const tb = document.querySelector("#tablaVehCanast tbody"); tb.innerHTML = "";
   vehiculosCanast.forEach(v => {
-    tb.innerHTML += `
-      <tr>
-        <td>${v.placa}</td><td>${v.marca}</td><td>${v.modelo||"-"}</td><td>${v.tipo}</td>
-        <td>${usuarioActivo.rol==="admin"?`<button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick="db.ref('vehiculosCanastillas/${v.id}').remove();cargarDatos();">🗑️</button>`:""}</td>
-      </tr>`;
+    tb.innerHTML += `<tr><td>${v.placa}</td><td>${v.marca}</td><td>${v.modelo||"-"}</td><td>${v.tipo}</td><td>${usuarioActivo.rol==="admin"?`<button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick="db.ref('vehiculosCanastillas/${v.id}').remove();cargarDatos();">🗑️</button>`:""}</td></tr>`;
   });
 }
 
-// ==================================================
-// ===== CANASTILLAS → COLABORADORES =====
-// ==================================================
 document.getElementById("formColaborador").addEventListener("submit", async e => {
   e.preventDefault();
   const nombre = document.getElementById("nombreColaborador").value.trim().toLowerCase();
   const idEd = document.getElementById("idColaboradorEditar").value;
   const estado = document.getElementById("estadoColaborador").value;
-
-  // === NO PERMITIR NOMBRES REPETIDOS ===
-  const repetido = colaboradores.find(c =>
-    c.nombre.toLowerCase() === nombre && c.id !== idEd
-  );
-  if (repetido) {
-    alert("⚠️ Este colaborador ya está registrado");
-    return;
-  }
-
-  const datos = {
-    nombre: nombre.charAt(0).toUpperCase() + nombre.slice(1),
-    estado: estado,
-    usuario: usuarioActivo.nombre
-  };
-
-  if (idEd) {
-    await db.ref("colaboradores/" + idEd).update(datos);
-  } else {
-    await db.ref("colaboradores").push(datos);
-  }
-
-  limpiarFormColaborador();
-  cargarDatos();
-  alert("✅ Colaborador guardado");
+  const repetido = colaboradores.find(c => c.nombre.toLowerCase() === nombre && c.id !== idEd);
+  if (repetido) { alert("⚠️ Este colaborador ya está registrado"); return; }
+  const datos = { nombre: nombre.charAt(0).toUpperCase() + nombre.slice(1), estado, usuario: usuarioActivo.nombre };
+  if (idEd) await db.ref("colaboradores/" + idEd).update(datos);
+  else await db.ref("colaboradores").push(datos);
+  limpiarFormColaborador(); cargarDatos(); alert("✅ Colaborador guardado");
 });
-
-function limpiarFormColaborador() {
-  document.getElementById("formColaborador").reset();
-  document.getElementById("idColaboradorEditar").value = "";
-}
-
-function editarColaborador(id) {
-  const c = colaboradores.find(x => x.id === id);
-  if (!c) return;
-  document.getElementById("idColaboradorEditar").value = c.id;
-  document.getElementById("nombreColaborador").value = c.nombre;
-  document.getElementById("estadoColaborador").value = c.estado || "activo";
-}
-
+function limpiarFormColaborador() { document.getElementById("formColaborador").reset(); document.getElementById("idColaboradorEditar").value = ""; }
+function editarColaborador(id) { const c = colaboradores.find(x => x.id === id); if (!c) return; document.getElementById("idColaboradorEditar").value = c.id; document.getElementById("nombreColaborador").value = c.nombre; document.getElementById("estadoColaborador").value = c.estado || "activo"; }
 function renderizarColaboradores() {
-  const tb = document.querySelector("#tablaColaboradores tbody");
-  tb.innerHTML = "";
+  const tb = document.querySelector("#tablaColaboradores tbody"); tb.innerHTML = "";
   colaboradores.forEach(c => {
-    tb.innerHTML += `
-      <tr>
-        <td>${c.nombre}</td>
-        <td>${(c.estado || "activo") === "activo" ? "✅ Activo" : "❌ Inactivo"}</td>
-        <td>${c.usuario || "-"}</td>
-        <td>
-          <button class="btn-primario" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick='editarColaborador("${c.id}")'>✏️ Editar</button>
-        </td>
-      </tr>`;
+    tb.innerHTML += `<tr><td>${c.nombre}</td><td>${(c.estado||"activo")==="activo"?"✅ Activo":"❌ Inactivo"}</td><td>${c.usuario||"-"}</td><td><button class="btn-primario" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick='editarColaborador("${c.id}")'>✏️ Editar</button></td></tr>`;
   });
 }
 
-// ==================================================
-// ===== CANASTILLAS → RECOGIDAS DINÁMICAS =====
-// ==================================================
-let contRecog = 1;
-
 function agregarRecogida() {
-  contRecog++;
-  const lista = document.getElementById("listaRecogidas");
-  const div = document.createElement("div");
-  div.className = "recogida";
-  div.innerHTML = `
-    <h4>Recogida #${contRecog} <button type="button" class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem; float:right;" onclick="this.parentElement.parentElement.remove(); actualizarTotal();">❌ Quitar</button></h4>
-    <label>Recoge a:
-      <select class="colaboradorRecogido" required>
-        <option value="">Seleccione colaborador</option>
-        ${colaboradores.filter(c=>(c.estado||"activo")==="activo").sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join("")}
-      </select>
-    </label>
-    <label>Kilos <input type="number" class="kilosRecogidos" min="0" step="0.01" oninput="actualizarTotal()"></label>
-    <label>Canastillas <input type="number" class="canastRecogidas" min="0" oninput="actualizarTotal()"></label>
-  `;
+  contRecog++; const lista = document.getElementById("listaRecogidas"); const div = document.createElement("div"); div.className = "recogida";
+  div.innerHTML = `<h4>Recogida #${contRecog} <button type="button" class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem; float:right;" onclick="this.parentElement.parentElement.remove(); actualizarTotal();">❌ Quitar</button></h4><label>Recoge a: <select class="colaboradorRecogido" required><option value="">Seleccione colaborador</option>${colaboradores.filter(c=>(c.estado||"activo")==="activo").sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join("")}</select></label><label>Kilos <input type="number" class="kilosRecogidos" min="0" step="0.01" oninput="actualizarTotal()"></label><label>Canastillas <input type="number" class="canastRecogidas" min="0" oninput="actualizarTotal()"></label>`;
   lista.appendChild(div);
 }
-
 function actualizarTotal() {
   let tk=0, tc=0;
   document.querySelectorAll(".kilosRecogidos").forEach(i=>tk+=+i.value||0);
@@ -853,31 +551,13 @@ function actualizarTotal() {
   document.getElementById("totalKilos").textContent = tk.toFixed(2);
   document.getElementById("totalCanastillas").textContent = tc;
 }
-
 function resetFormRecogida() {
-  document.getElementById("listaRecogidas").innerHTML = `
-    <div class="recogida">
-      <h4>Recogida #1</h4>
-      <label>Recoge a:
-        <select class="colaboradorRecogido" required>
-          <option value="">Seleccione colaborador</option>
-          ${colaboradores.filter(c=>(c.estado||"activo")==="activo").sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join("")}
-        </select>
-      </label>
-      <label>Kilos <input type="number" class="kilosRecogidos" min="0" step="0.01" oninput="actualizarTotal()"></label>
-      <label>Canastillas <input type="number" class="canastRecogidas" min="0" oninput="actualizarTotal()"></label>
-    </div>
-  `;
-  contRecog=1; actualizarTotal();
-  document.getElementById("obsRecogida").value="";
-  document.getElementById("idEditar").value="";
+  document.getElementById("listaRecogidas").innerHTML = `<div class="recogida"><h4>Recogida #1</h4><label>Recoge a: <select class="colaboradorRecogido" required><option value="">Seleccione colaborador</option>${colaboradores.filter(c=>(c.estado||"activo")==="activo").sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join("")}</select></label><label>Kilos <input type="number" class="kilosRecogidos" min="0" step="0.01" oninput="actualizarTotal()"></label><label>Canastillas <input type="number" class="canastRecogidas" min="0" oninput="actualizarTotal()"></label></div>`;
+  contRecog=1; actualizarTotal(); document.getElementById("obsRecogida").value=""; document.getElementById("idEditar").value="";
 }
-
 document.getElementById("formRecogida").addEventListener("submit", async e => {
-  e.preventDefault();
-  if (usuarioActivo.puedeEditar !== "si") { alert("Sin permiso de edición"); return; }
-  const lista = [];
-  document.querySelectorAll(".recogida").forEach(d => {
+  e.preventDefault(); if (usuarioActivo.puedeEditar !== "si") { alert("Sin permiso"); return; }
+  const lista = []; document.querySelectorAll(".recogida").forEach(d => {
     const nom = d.querySelector(".colaboradorRecogido").value;
     const kg = +d.querySelector(".kilosRecogidos").value || 0;
     const cn = +d.querySelector(".canastRecogidas").value || 0;
@@ -885,186 +565,80 @@ document.getElementById("formRecogida").addEventListener("submit", async e => {
   });
   const tk = lista.reduce((s,x)=>s+x.kilos,0);
   const tc = lista.reduce((s,x)=>s+x.canastillas,0);
-  const datos = {
-    fecha: document.getElementById("fechaRecogida").value,
-    placa: document.getElementById("vehiculoRecolector").value,
-    quienRecoge: document.getElementById("quienRecoge").value,
-    recogidas: lista,
-    totalKilos: tk,
-    totalCanastillas: tc,
-    observaciones: document.getElementById("obsRecogida").value,
-    usuario: usuarioActivo.nombre,
-    hora: new Date().toLocaleString("es-CO")
-  };
+  const datos = { fecha: document.getElementById("fechaRecogida").value, placa: document.getElementById("vehiculoRecolector").value, quienRecoge: document.getElementById("quienRecoge").value, recogidas: lista, totalKilos: tk, totalCanastillas: tc, observaciones: document.getElementById("obsRecogida").value, usuario: usuarioActivo.nombre, hora: new Date().toLocaleString("es-CO") };
   const id = document.getElementById("idEditar").value;
   if (id) await db.ref("recogidas/"+id).update(datos);
   else await db.ref("recogidas").push(datos);
   resetFormRecogida(); cargarDatos();
 });
-
 function renderizarRecogidas() {
-  const tb = document.querySelector("#tablaRecogidas tbody");
-  tb.innerHTML = "";
+  const tb = document.querySelector("#tablaRecogidas tbody"); tb.innerHTML = "";
   recogidas.forEach(r => {
     const noms = r.recogidas?.map(x=>x.colaborador).join(", ") || "-";
-    tb.innerHTML += `
-      <tr>
-        <td>${r.fecha}</td><td>${r.placa}</td><td>${r.quienRecoge}</td><td>${noms}</td>
-        <td>${r.totalKilos}</td><td>${r.totalCanastillas}</td><td>${r.usuario||"-"}</td>
-        <td>${usuarioActivo.rol==="admin"?`<button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick="db.ref('recogidas/${r.id}').remove();cargarDatos();">🗑️</button>`:""}</td>
-              </tr>`;
+    tb.innerHTML += `<tr><td>${r.fecha}</td><td>${r.placa}</td><td>${r.quienRecoge}</td><td>${noms}</td><td>${r.totalKilos}</td><td>${r.totalCanastillas}</td><td>${r.usuario||"-"}</td><td>${usuarioActivo.rol==="admin"?`<button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick="db.ref('recogidas/${r.id}').remove();cargarDatos();">🗑️</button>`:""}</td></tr>`;
   });
 }
 
-// ==================================================
-// ===== TRANSPORTADORA → CONDUCTORES =====
-// ==================================================
 document.getElementById("formConductorTrans").addEventListener("submit", async e => {
-  e.preventDefault();
-  await db.ref("conductoresTrans").push({
-    nombre: document.getElementById("nombreConductorTrans").value.trim(),
-    cedula: document.getElementById("cedulaConductorTrans").value.trim(),
-    usuario: usuarioActivo.nombre
-  });
+  e.preventDefault(); await db.ref("conductoresTrans").push({ nombre: document.getElementById("nombreConductorTrans").value.trim(), cedula: document.getElementById("cedulaConductorTrans").value.trim(), usuario: usuarioActivo.nombre });
   e.target.reset(); cargarDatos();
 });
+function renderizarCondTrans() { const tb = document.querySelector("#tablaConductoresTrans tbody"); tb.innerHTML = ""; conductoresTrans.forEach(c => { tb.innerHTML += `<tr><td>${c.nombre}</td><td>${c.cedula||"-"}</td><td>${c.usuario||"-"}</td></tr>`; }); }
 
-function renderizarCondTrans() {
-  const tb = document.querySelector("#tablaConductoresTrans tbody");
-  tb.innerHTML = "";
-  conductoresTrans.forEach(c => {
-    tb.innerHTML += `<tr><td>${c.nombre}</td><td>${c.cedula||"-"}</td><td>${c.usuario||"-"}</td></tr>`;
-  });
-}
-
-// ==================================================
-// ===== TRANSPORTADORA → VEHÍCULOS =====
-// ==================================================
 document.getElementById("formVehiculoTrans").addEventListener("submit", async e => {
-  e.preventDefault();
-  await db.ref("vehiculosTrans").push({
-    placa: document.getElementById("placaTrans").value.toUpperCase(),
-    marca: document.getElementById("marcaTrans").value,
-    modelo: document.getElementById("modeloTrans").value,
-    tipo: document.getElementById("tipoVehTrans").value,
-    usuario: usuarioActivo.nombre
-  });
+  e.preventDefault(); await db.ref("vehiculosTrans").push({ placa: document.getElementById("placaTrans").value.toUpperCase(), marca: document.getElementById("marcaTrans").value, modelo: document.getElementById("modeloTrans").value, tipo: document.getElementById("tipoVehTrans").value, usuario: usuarioActivo.nombre });
   e.target.reset(); cargarDatos();
 });
+function renderizarVehTrans() { const tb = document.querySelector("#tablaVehTrans tbody"); tb.innerHTML = ""; vehiculosTrans.forEach(v => { tb.innerHTML += `<tr><td>${v.placa}</td><td>${v.marca}</td><td>${v.modelo||"-"}</td><td>${v.tipo}</td><td>${v.usuario||"-"}</td></tr>`; }); }
 
-function renderizarVehTrans() {
-  const tb = document.querySelector("#tablaVehTrans tbody");
-  tb.innerHTML = "";
-  vehiculosTrans.forEach(v => {
-    tb.innerHTML += `<tr><td>${v.placa}</td><td>${v.marca}</td><td>${v.modelo||"-"}</td><td>${v.tipo}</td><td>${v.usuario||"-"}</td></tr>`;
-  });
-}
-
-// ==================================================
-// ===== TRANSPORTADORA → MOVIMIENTOS =====
-// ==================================================
 document.getElementById("formMovTrans").addEventListener("submit", async e => {
-  e.preventDefault();
-  if (usuarioActivo.puedeEditar !== "si") { alert("Sin permiso"); return; }
-  await db.ref("movimientosTrans").push({
-    fecha: document.getElementById("fechaMovTrans").value,
-    conductor: document.getElementById("selConductorTrans").value,
-    placa: document.getElementById("selVehTrans").value,
-    horaSalida: document.getElementById("horaSalidaTrans").value,
-    canSalida: +document.getElementById("canSalidaTrans").value || 0,
-    horaLlegada: document.getElementById("horaLlegadaTrans").value,
-    canLlegada: +document.getElementById("canLlegadaTrans").value || 0,
-    observaciones: document.getElementById("obsTrans").value,
-    usuario: usuarioActivo.nombre,
-    hora: new Date().toLocaleString("es-CO")
-  });
+  e.preventDefault(); if (usuarioActivo.puedeEditar !== "si") { alert("Sin permiso"); return; }
+  await db.ref("movimientosTrans").push({ fecha: document.getElementById("fechaMovTrans").value, conductor: document.getElementById("selConductorTrans").value, placa: document.getElementById("selVehTrans").value, horaSalida: document.getElementById("horaSalidaTrans").value, canSalida: +document.getElementById("canSalidaTrans").value||0, horaLlegada: document.getElementById("horaLlegadaTrans").value, canLlegada: +document.getElementById("canLlegadaTrans").value||0, observaciones: document.getElementById("obsTrans").value, usuario: usuarioActivo.nombre, hora: new Date().toLocaleString("es-CO") });
   e.target.reset(); cargarDatos();
 });
-
 function renderizarMovTrans() {
-  const tb = document.querySelector("#tablaMovTrans tbody");
-  tb.innerHTML = "";
+  const tb = document.querySelector("#tablaMovTrans tbody"); tb.innerHTML = "";
   movimientosTrans.forEach(m => {
-    tb.innerHTML += `
-      <tr>
-        <td>${m.fecha}</td><td>${m.conductor}</td><td>${m.placa}</td>
-        <td>${m.horaSalida||"-"}</td><td>${m.canSalida}</td>
-        <td>${m.horaLlegada||"-"}</td><td>${m.canLlegada}</td><td>${m.usuario||"-"}</td>
-      </tr>`;
+    tb.innerHTML += `<tr><td>${m.fecha}</td><td>${m.conductor}</td><td>${m.placa}</td><td>${m.horaSalida||"-"}</td><td>${m.canSalida}</td><td>${m.horaLlegada||"-"}</td><td>${m.canLlegada}</td><td>${m.usuario||"-"}</td></tr>`;
   });
 }
 
-// ==================================================
-// ===== COMBUSTIBLE =====
-// ==================================================
 document.getElementById("formCombustible").addEventListener("submit", async e => {
-  e.preventDefault();
-  if (usuarioActivo.puedeEditar !== "si") { alert("Sin permiso"); return; }
-  const kmMañana = +document.getElementById("kmManana").value || 0;
-  const kmTarde = +document.getElementById("kmTarde").value || 0;
-  const galones = +document.getElementById("galones").value || 0;
+  e.preventDefault(); if (usuarioActivo.puedeEditar !== "si") { alert("Sin permiso"); return; }
+  const kmMañana = +document.getElementById("kmManana").value||0;
+  const kmTarde = +document.getElementById("kmTarde").value||0;
+  const galones = +document.getElementById("galones").value||0;
   const recorrido = kmTarde - kmMañana;
-  const rendimiento = galones > 0 ? (recorrido / galones).toFixed(2) : "0.00";
-
-  await db.ref("combustible").push({
-    fecha: document.getElementById("fechaComb").value,
-    placa: document.getElementById("placaComb").value,
-    kmManana,
-    kmTarde,
-    recorrido,
-    galones,
-    rendimiento,
-    usuario: usuarioActivo.nombre,
-    hora: new Date().toLocaleString("es-CO")
-  });
+  const rendimiento = galones > 0 ? (recorrido/galones).toFixed(2) : "0.00";
+  await db.ref("combustible").push({ fecha: document.getElementById("fechaComb").value, placa: document.getElementById("placaComb").value, kmManana: kmMañana, kmTarde, recorrido, galones, rendimiento, usuario: usuarioActivo.nombre, hora: new Date().toLocaleString("es-CO") });
   e.target.reset(); cargarDatos();
 });
-
 function renderizarCombustible() {
-  const tb = document.querySelector("#tablaCombustible tbody");
-  tb.innerHTML = "";
+  const tb = document.querySelector("#tablaCombustible tbody"); tb.innerHTML = "";
   registrosCombustible.forEach(r => {
-    tb.innerHTML += `
-      <tr>
-        <td>${r.fecha}</td><td>${r.placa}</td><td>${r.kmManana}</td><td>${r.kmTarde}</td>
-        <td>${r.recorrido}</td><td>${r.galones}</td><td>${r.rendimiento}</td><td>${r.usuario||"-"}</td>
-      </tr>`;
+    tb.innerHTML += `<tr><td>${r.fecha}</td><td>${r.placa}</td><td>${r.kmManana}</td><td>${r.kmTarde}</td><td>${r.recorrido}</td><td>${r.galones}</td><td>${r.rendimiento}</td><td>${r.usuario||"-"}</td></tr>`;
   });
 }
 
-// ==================================================
-// ===== INFORMES =====
-// ==================================================
 function generarInforme() {
   const desde = document.getElementById("fechaIni").value;
   const hasta = document.getElementById("fechaFin").value;
-  const tb = document.querySelector("#tablaInformes tbody");
-  tb.innerHTML = "";
-
+  const tb = document.querySelector("#tablaInformes tbody"); tb.innerHTML = "";
   recogidas.filter(r => {
     if (!desde && !hasta) return true;
     if (desde && r.fecha < desde) return false;
     if (hasta && r.fecha > hasta) return false;
     return true;
   }).forEach(r => {
-    const nombres = r.recogidas?.map(x => x.colaborador).join(", ") || "-";
-    tb.innerHTML += `
-      <tr>
-        <td>${r.fecha}</td>
-        <td>${r.placa}</td>
-        <td>${r.quienRecoge}</td>
-        <td>${nombres}</td>
-        <td>${r.totalKilos}</td>
-        <td>${r.totalCanastillas}</td>
-      </tr>`;
+    const noms = r.recogidas?.map(x=>x.colaborador).join(", ") || "-";
+    tb.innerHTML += `<tr><td>${r.fecha}</td><td>${r.placa}</td><td>${r.quienRecoge}</td><td>${noms}</td><td>${r.totalKilos}</td><td>${r.totalCanastillas}</td></tr>`;
   });
 }
-
-function exportarExcel() {
+  function exportarExcel() {
   let contenido = "FECHA\tPLACA\tQUIEN RECIBE\tCOLABORADORES\tKILOS\tCANASTILLAS\tOBSERVACIONES\n";
   recogidas.forEach(r => {
-    const nombres = r.recogidas?.map(x => x.colaborador).join(", ") || "-";
-    contenido += `${r.fecha}\t${r.placa}\t${r.quienRecoge}\t${nombres}\t${r.totalKilos}\t${r.totalCanastillas}\t${r.observaciones || ""}\n`;
+    const colaboradoresLista = r.recogidas?.map(x => x.colaborador).join(", ") || "-";
+    contenido += `${r.fecha}\t${r.placa}\t${r.quienRecoge}\t${colaboradoresLista}\t${r.totalKilos}\t${r.totalCanastillas}\t${r.observaciones || ""}\n`;
   });
   const blob = new Blob([contenido], { type: "text/tab-separated-values;charset=utf-8" });
   const url = URL.createObjectURL(blob);
@@ -1103,12 +677,12 @@ document.getElementById("formUsuario").addEventListener("submit", async e => {
     await db.ref("usuarios/" + idEd).update(datos);
   } else if (!idEd) {
     if (!claveNueva) {
-      alert("Escriba una contraseña para crear el usuario");
+      alert("⚠️ Escriba una contraseña para crear el usuario");
       return;
     }
     await db.ref("usuarios").push(datos);
   } else {
-    alert("⚠️ Los usuarios fijos del sistema no se pueden modificar aquí");
+    alert("⚠️ Los usuarios fijos del sistema no se pueden modificar desde aquí");
     return;
   }
 
@@ -1125,7 +699,7 @@ function editarUsuario(id) {
 
   document.getElementById("idUsuarioEditar").value = u.id;
   document.getElementById("nombreUsuarioNuevo").value = u.usuario;
-  document.getElementById("claveUsuarioNuevo").value = u.clave || "";
+  document.getElementById("claveUsuarioNuevo").value = "";
   document.getElementById("rolUsuarioNuevo").value = u.rol || "usuario";
   document.getElementById("permCanastillas").checked = u.permisos?.canastillas !== false;
   document.getElementById("permTransportadora").checked = u.permisos?.transportadora !== false;
@@ -1149,18 +723,17 @@ function renderizarUsuarios() {
     tb.innerHTML += `
       <tr>
         <td>${u.usuario}</td>
-        <td>${u.clave || "••••••••"}</td>
+        <td>${u.clave ? "••••••••" : "—"}</td>
         <td>${u.rol === "admin" ? "👑 Administrador" : "Usuario"}</td>
         <td>${ve.join(", ")}</td>
         <td>${u.puedeEditar === "si" ? "✅ Sí" : "❌ Solo consulta"}</td>
         <td>
           <button class="btn-primario" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick='editarUsuario("${u.id}")'>✏️ Editar</button>
-          ${!u.id.startsWith("FIJO_") ? `<button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick='db.ref("usuarios/${u.id}").remove();cargarDatos();'>🗑️</button>` : ""}
+          ${!u.id.startsWith("FIJO_") ? `<button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.7rem;" onclick="if(confirm('¿Eliminar usuario?')){db.ref('usuarios/${u.id}').remove();cargarDatos();}">🗑️</button>` : ""}
         </td>
       </tr>`;
   });
 }
-
 </script>
 </body>
 </html>
