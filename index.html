@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Canastillas</title>
+    <title>Control de Canastillas y Movimientos</title>
     <link rel="stylesheet" href="estilos.css">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -15,53 +15,45 @@
 <!-- Botón menú -->
 <button class="btn-menu" id="btnMenu" onclick="alternarMenu()">☰</button>
 
-<!-- Capa oscura -->
-<div class="overlay" id="capaOscura" onclick="alternarMenu()"></div>
-
 <!-- Menú Lateral -->
-<nav class="sidebar" id="menuLateral">
+<nav class="sidebar" id="sidebar">
     <div class="logo">📋 Control Canastillas</div>
     <button class="btn-pestaña activa" onclick="cambiarPestaña('movimientos')">📝 Movimientos</button>
     <button class="btn-pestaña" onclick="cambiarPestaña('transportadora')">🚛 Transportadora</button>
     <button class="btn-pestaña" onclick="cambiarPestaña('combustible')">⛽ Combustible</button>
     <button class="btn-pestaña" onclick="cambiarPestaña('informes')">📊 Informes</button>
-    <button class="btn-pestaña" id="btnAdmin" onclick="cambiarPestaña('admin')">⚙️ Administración</button>
+    <button class="btn-pestaña" id="btnAdmin" style="display:none;" onclick="cambiarPestaña('admin')">⚙️ Administración</button>
+    <div class="espacio"></div>
+    <button class="btn-salir" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
 </nav>
-
-<!-- Barra Superior -->
-<header class="barra-superior">
-    <button class="btn-actualizar" onclick="refrescarDatos()">🔄 Actualizar</button>
-    <span id="usuarioActual"></span>
-    <button class="btn-salir" onclick="cerrarSesion()">🚪 Salir</button>
-</header>
 
 <!-- Contenido Principal -->
 <main class="contenido">
 
     <!-- Pestaña MOVIMIENTOS -->
     <section id="pest-movimientos" class="pestaña activa">
-        <h2>📝 Movimientos de Canastillas</h2>
+        <h2>📝 Movimientos</h2>
         <div class="tarjeta">
             <h3>Registrar Salida / Llegada</h3>
             <input type="date" id="fecha">
             <select id="vehiculoMov"><option value="">Seleccione vehículo</option></select>
-            <select id="colaboradorConductor"><option value="">Seleccione colaborador (quien conduce)</option></select>
+            <select id="colaboradorConductor"><option value="">Colaborador que conduce</option></select>
             <input type="time" id="horaSalida" placeholder="Hora de Salida">
             <input type="time" id="horaLlegada" placeholder="Hora de Llegada">
 
-            <!-- SECCIÓN DE RECOGIDAS -->
-            <div style="background:#f0f7ff; padding:1rem; border-radius:0.75rem; margin:1rem 0;">
-                <h4 style="margin-bottom:0.75rem; color:#1e40af;">🧺 Recogidas</h4>
+            <div class="caja-recogidas">
+                <h4>🧺 Recogidas</h4>
                 <div id="listaRecogidas"></div>
-                <button type="button" class="btn-exito" onclick="agregarFilaRecogida()" style="padding:0.5rem 1rem; font-size:0.9rem; margin-top:0.5rem;">➕ Agregar otra recogida</button>
+                <button type="button" class="btn-agregar-fila" onclick="agregarFilaRecogida()">➕ Agregar otra recogida</button>
             </div>
 
-            <input type="number" id="canSalidaTotal" placeholder="Total Canastillas que Salen" readonly style="background:#e8f5e9; font-weight:bold;">
-            <input type="number" id="canLlegadaTotal" placeholder="Total Canastillas que Llegan" readonly style="background:#e8f5e9; font-weight:bold;">
+            <input type="number" id="canSalidaTotal" placeholder="Total Canastillas Salida" readonly>
+            <input type="number" id="canLlegadaTotal" placeholder="Total Canastillas Llegada" readonly>
             <input type="text" id="observaciones" placeholder="Observaciones">
             <input type="hidden" id="idEditar">
-            <button class="btn-exito" onclick="guardarMovimiento()">✅ Guardar Movimiento</button>
+            <button class="btn-guardar" onclick="guardarMovimiento()">✅ Guardar Movimiento</button>
         </div>
+
         <div class="tarjeta">
             <h3>🚗 Agregar Vehículo (Movimientos)</h3>
             <input type="text" id="placaVehiculoMov" placeholder="Placa del vehículo">
@@ -70,12 +62,14 @@
                 <option value="Moto">Moto</option>
                 <option value="Camioneta">Camioneta</option>
                 <option value="Camión">Camión</option>
+                <option value="Carguero">Carguero</option>
                 <option value="VTH">Vehículo de Tracción Humana (VTH)</option>
             </select>
-            <button class="btn-exito" onclick="agregarVehiculoMov()">Guardar Vehículo</button>
+            <button class="btn-guardar" onclick="agregarVehiculoMov()">✅ Guardar Vehículo</button>
         </div>
+
         <div class="tarjeta">
-            <h3>Historial de Movimientos</h3>
+            <h3>📋 Historial</h3>
             <input type="text" id="buscarMov" placeholder="🔍 Buscar por placa o nombre..." oninput="filtrarMovimientos()">
             <div id="listaMovimientos"></div>
         </div>
@@ -87,8 +81,9 @@
         <div class="tarjeta">
             <h3>➕ Agregar Conductor</h3>
             <input type="text" id="nombreConductor" placeholder="Nombre del conductor">
-            <button class="btn-exito" onclick="agregarConductor()">Guardar Conductor</button>
+            <button class="btn-guardar" onclick="agregarConductor()">✅ Guardar</button>
         </div>
+
         <div class="tarjeta">
             <h3>🚛 Agregar Vehículo (Transportadora)</h3>
             <input type="text" id="placaVehiculoTransp" placeholder="Placa del vehículo">
@@ -97,20 +92,22 @@
                 <option value="Moto">Moto</option>
                 <option value="Camioneta">Camioneta</option>
                 <option value="Camión">Camión</option>
+                <option value="Carguero">Carguero</option>
                 <option value="VTH">Vehículo de Tracción Humana (VTH)</option>
             </select>
-            <button class="btn-exito" onclick="agregarVehiculoTransp()">Guardar Vehículo</button>
+            <button class="btn-guardar" onclick="agregarVehiculoTransp()">✅ Guardar Vehículo</button>
         </div>
+
         <div class="tarjeta">
-            <h3>📦 Registrar Movimiento de Transportadora</h3>
+            <h3>📦 Movimiento de Canastillas</h3>
             <input type="date" id="fechaTransp">
             <select id="vehiculoTransp"><option value="">Seleccione vehículo</option></select>
             <select id="conductorTransp"><option value="">Seleccione conductor</option></select>
             <input type="number" id="canSalidaTransp" placeholder="Canastillas que salen">
             <input type="number" id="canLlegadaTransp" placeholder="Canastillas que llegan">
-            <input type="time" id="horaSalidaTransp" placeholder="Hora de Salida">
-            <input type="time" id="horaLlegadaTransp" placeholder="Hora de Llegada">
-            <button class="btn-exito" onclick="guardarMovimientoTransp()">✅ Registrar Movimiento</button>
+            <input type="time" id="horaSalidaTransp">
+            <input type="time" id="horaLlegadaTransp">
+            <button class="btn-guardar" onclick="guardarMovimientoTransp()">✅ Registrar Movimiento</button>
         </div>
     </section>
 
@@ -118,11 +115,12 @@
     <section id="pest-combustible" class="pestaña">
         <h2>⛽ Control de Combustible</h2>
         <div class="tarjeta">
+            <h3>Registrar Consumo</h3>
             <select id="vehiculoComb"><option value="">Seleccione vehículo</option></select>
-            <input type="number" id="kma" placeholder="Kilometraje Mañana">
-            <input type="number" id="kmt" placeholder="Kilometraje Tarde">
+            <input type="number" id="kma" placeholder="Kilometraje mañana">
+            <input type="number" id="kmt" placeholder="Kilometraje tarde">
             <input type="number" id="galones" placeholder="Galones cargados">
-            <button class="btn-exito" onclick="guardarCombustible()">Guardar</button>
+            <button class="btn-guardar" onclick="guardarCombustible()">✅ Guardar</button>
         </div>
     </section>
 
@@ -130,45 +128,124 @@
     <section id="pest-informes" class="pestaña">
         <h2>📊 Informes y Consultas</h2>
         <div class="tarjeta">
-            <input type="date" id="fechaInicio" placeholder="Fecha inicio">
-            <input type="date" id="fechaFin" placeholder="Fecha fin">
+            <h3>Filtrar por Fechas</h3>
+            <input type="date" id="fechaInicio">
+            <input type="date" id="fechaFin">
             <button onclick="generarInforme()">🔍 Consultar</button>
             <button class="btn-exito" onclick="exportarExcel()">📥 Exportar Excel</button>
         </div>
-        <div id="resultadoInforme" class="tarjeta"></div>
+        <div class="tarjeta" id="resultadoInforme"></div>
     </section>
 
     <!-- Pestaña ADMINISTRACIÓN -->
     <section id="pest-admin" class="pestaña">
         <h2>⚙️ Administración</h2>
-        <div class="tarjeta">
-            <h3>👤 Crear Usuario</h3>
-            <input type="email" id="correoNuevo" placeholder="Correo">
-            <input type="password" id="passNuevo" placeholder="Contraseña">
-            <select id="rolNuevo">
-                <option value="usuario">Usuario</option>
-                <option value="admin">Administrador</option>
-            </select>
-            <button class="btn-exito" onclick="crearUsuario()">Crear Usuario</button>
+        <div class="barra-subpestañas">
+            <button class="btn-subpestaña activa" onclick="cambiarSubpestañaAdmin('usuarios')">👤 Usuarios</button>
+            <button class="btn-subpestaña" onclick="cambiarSubpestañaAdmin('colaboradores')">🧑 Colaboradores</button>
+            <button class="btn-subpestaña" onclick="cambiarSubpestañaAdmin('conductores')">🚛 Conductores</button>
+            <button class="btn-subpestaña" onclick="cambiarSubpestañaAdmin('vehiculos-mov')">🚗 Vehículos Mov</button>
+            <button class="btn-subpestaña" onclick="cambiarSubpestañaAdmin('vehiculos-transp')">🚛 Vehículos Transp</button>
         </div>
-        <div class="tarjeta">
-            <h3>Colaboradores</h3>
-            <input type="text" id="nombreColab" placeholder="Nombre colaborador">
-            <button class="btn-exito" onclick="agregarColaborador()">Agregar</button>
-            <div id="listaColaboradores"></div>
+
+        <!-- Subpestaña: Usuarios -->
+        <div id="sub-admin-usuarios" class="subpestaña-admin activa">
+            <div class="tarjeta">
+                <h3>➕ Crear Usuario</h3>
+                <input type="email" id="correoNuevo" placeholder="Correo">
+                <input type="password" id="passNuevo" placeholder="Contraseña (mínimo 6 caracteres)">
+                <select id="rolNuevo">
+                    <option value="usuario">Usuario</option>
+                    <option value="admin">Administrador</option>
+                </select>
+                <button class="btn-guardar" onclick="crearUsuario()">✅ Crear Usuario</button>
+            </div>
+            <div class="tarjeta">
+                <h3>👥 Lista de Usuarios</h3>
+                <div id="listaUsuarios"></div>
+            </div>
+        </div>
+
+        <!-- Subpestaña: Colaboradores -->
+        <div id="sub-admin-colaboradores" class="subpestaña-admin">
+            <div class="tarjeta">
+                <h3>➕ Agregar Colaborador</h3>
+                <input type="text" id="nombreColabAdmin" placeholder="Nombre del colaborador">
+                <button class="btn-guardar" onclick="agregarColaboradorAdmin()">✅ Guardar</button>
+            </div>
+            <div class="tarjeta">
+                <h3>📋 Lista de Colaboradores</h3>
+                <div id="listaColaboradoresAdmin"></div>
+            </div>
+        </div>
+
+        <!-- Subpestaña: Conductores -->
+        <div id="sub-admin-conductores" class="subpestaña-admin">
+            <div class="tarjeta">
+                <h3>➕ Agregar Conductor</h3>
+                <input type="text" id="nombreConductorAdmin" placeholder="Nombre del conductor">
+                <button class="btn-guardar" onclick="agregarConductorAdmin()">✅ Guardar</button>
+            </div>
+            <div class="tarjeta">
+                <h3>📋 Lista de Conductores</h3>
+                <div id="listaConductoresAdmin"></div>
+            </div>
+        </div>
+
+        <!-- Subpestaña: Vehículos Movimientos -->
+        <div id="sub-admin-vehiculos-mov" class="subpestaña-admin">
+            <div class="tarjeta">
+                <h3>➕ Agregar Vehículo (Movimientos)</h3>
+                <input type="text" id="placaVehiculoMovAdmin" placeholder="Placa">
+                <select id="tipoVehiculoMovAdmin">
+                    <option value="">Seleccione tipo</option>
+                    <option value="Moto">Moto</option>
+                    <option value="Camioneta">Camioneta</option>
+                    <option value="Camión">Camión</option>
+                    <option value="Carguero">Carguero</option>
+                    <option value="VTH">VTH</option>
+                </select>
+                <button class="btn-guardar" onclick="agregarVehiculoMovAdmin()">✅ Guardar</button>
+            </div>
+            <div class="tarjeta">
+                <h3>🚗 Vehículos Registrados</h3>
+                <div id="listaVehiculosMovAdmin"></div>
+            </div>
+        </div>
+
+        <!-- Subpestaña: Vehículos Transportadora -->
+        <div id="sub-admin-vehiculos-transp" class="subpestaña-admin">
+            <div class="tarjeta">
+                <h3>➕ Agregar Vehículo (Transportadora)</h3>
+                <input type="text" id="placaVehiculoTranspAdmin" placeholder="Placa">
+                <select id="tipoVehiculoTranspAdmin">
+                    <option value="">Seleccione tipo</option>
+                    <option value="Moto">Moto</option>
+                    <option value="Camioneta">Camioneta</option>
+                    <option value="Camión">Camión</option>
+                    <option value="Carguero">Carguero</option>
+                    <option value="VTH">VTH</option>
+                </select>
+                <button class="btn-guardar" onclick="agregarVehiculoTranspAdmin()">✅ Guardar</button>
+            </div>
+            <div class="tarjeta">
+                <h3>🚛 Vehículos Registrados</h3>
+                <div id="listaVehiculosTranspAdmin"></div>
+            </div>
         </div>
     </section>
+
 </main>
 
-<!-- PANTALLA DE LOGIN -->
-<div id="pantallaLogin">
-    <div class="login-caja">
+<!-- MODAL DE LOGIN -->
+<div id="modalLogin" class="modal-login">
+    <div class="caja-login">
         <h2>🔐 Iniciar Sesión</h2>
         <input type="email" id="correoLogin" placeholder="Correo electrónico">
         <input type="password" id="passLogin" placeholder="Contraseña">
         <p id="mensajeError"></p>
-        <button onclick="ingresar()">Ingresar</button>
-        <p class="recuperar"><a href="#" onclick="recuperarClave()">¿Olvidó su contraseña?</a></p>
+        <button class="btn-guardar" onclick="ingresar()">✅ Ingresar</button>
+        <a href="#" onclick="recuperarClave()">¿Olvidó su contraseña?</a>
     </div>
 </div>
 
