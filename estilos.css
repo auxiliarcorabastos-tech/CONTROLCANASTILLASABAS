@@ -28,6 +28,12 @@ h3 {
     color: #2b6cb0;
 }
 
+h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e40af;
+}
+
 /* === BOTÓN MENÚ === */
 .btn-menu {
     position: fixed;
@@ -216,6 +222,11 @@ input:focus, select:focus {
     background: white;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
+input[readonly] {
+    background: #f0fdf4;
+    color: #166534;
+    font-weight: 600;
+}
 
 button {
     padding: 0.75rem 1.25rem;
@@ -238,6 +249,27 @@ button:hover {
 }
 .btn-exito:hover {
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
+}
+
+.fila-recogida {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.5rem;
+    background: white;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+.fila-recogida select, .fila-recogida input {
+    flex: 1;
+    min-width: 120px;
+    margin-bottom: 0;
+}
+.btn-quitar {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
 }
 
 /* === LOGIN === */
