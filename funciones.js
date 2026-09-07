@@ -58,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('input[type="date"]').forEach(i => i.value = hoy);
     agregarFilaRecogida();
     
-    // ⏰ ACTUALIZACIÓN AUTOMÁTICA CADA 10 SEGUNDOS
     tiempoActualizacionAuto = setInterval(() => {
         cargarDatosCompleto();
         actualizarTextoUltimaRevision();
@@ -169,6 +168,9 @@ function cambiarPestaña(nombre) {
     if (window.innerWidth < 768) document.getElementById('sidebar').classList.remove('mostrar');
     if (nombre === 'admin') cargarListasAdmin();
     if (nombre === 'combustible') cargarDatosCombustibleCompleto();
+    if (nombre === 'informes') {
+        cambiarSubpestañaInformes('movimientos');
+    }
 }
 
 function cambiarSubpestañaAdmin(nombre) {
@@ -185,6 +187,17 @@ function cambiarSubpestañaCombustible(nombre) {
     document.getElementById('subcomb-' + nombre).classList.remove('oculto');
     if (nombre === 'kilometraje') cargarInformeKilometraje();
     if (nombre === 'tanqueo') cargarInformeTanqueo();
+}
+
+// ===== SUBPESTAÑAS DE INFORMES =====
+function cambiarSubpestañaInformes(nombre) {
+    const btns = document.querySelectorAll('.btn-subinforme');
+    const cajas = document.querySelectorAll('.subpestaña-informe');
+    btns.forEach(b => b.classList.remove('activa'));
+    if (event && event.target) event.target.classList.add('activa');
+    cajas.forEach(p => p.classList.add('oculto'));
+    const caja = document.getElementById('subinf-' + nombre);
+    if (caja) caja.classList.remove('oculto');
 }
 
 // =====================================================
@@ -540,6 +553,7 @@ async function agregarVehiculoTransp() {
     await db.collection('vehiculos_transportadora').add({ placa: p, tipo: t, activo: true, fechaCreacion: new Date() });
     document.getElementById('placaVehiculoTransp').value = '';
     alert('✅ Vehículo agregado');
+    registrarAccion('Vehículo Agregado', 'Transportadora', `${p} - ${t}`);
     await cargarDatosCompleto();
 }
 
@@ -620,13 +634,6 @@ function cargarInformeKilometraje() {
                 <td style="border:1px solid #ccc;padding:6px;">${r.colaborador}</td>
             </tr>`).join('')}
         </tbody>
-        <tfoot style="background:#f1f5f9;font-weight:bold;">
-            <tr>
-                <td colspan="4" style="border:1px solid #ccc;padding:6px;">TOTAL DEL PERÍODO</td>
-                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${totalKm}</td>
-                <td style="border:1px solid #ccc;padding:6px;">—</td>
-            </tr>
-        </tfoot>
         </table>
         </div>`;
 }
@@ -673,7 +680,7 @@ async function guardarRegistroTanqueo() {
 
     let mensaje = `✅ Tanqueo guardado\nPlaca: ${placa}\nGalones: ${galones}`;
     if (rendimiento) {
-        mensaje += `\n📊 Análisis (FULL): Recorridos ${kmRecorridosDesdeUltimo} km → Rendimiento: ${rendimiento} km/gal`;
+        mensaje += `\n📊 Rendimiento: ${rendimiento} km/gal`;
     }
     alert(mensaje);
 
@@ -721,7 +728,6 @@ function cargarInformeTanqueo() {
                 <th style="border:1px solid #ccc;padding:5px;">Placa</th>
                 <th style="border:1px solid #ccc;padding:5px;">Galones</th>
                 <th style="border:1px solid #ccc;padding:5px;">Estado</th>
-                <th style="border:1px solid #ccc;padding:5px;">% Tanqueado</th>
                 <th style="border:1px solid #ccc;padding:5px;">Km Recorridos</th>
                 <th style="border:1px solid #ccc;padding:5px;">Rendimiento km/gal</th>
                 <th style="border:1px solid #ccc;padding:5px;">Quién Tanqueó</th>
@@ -734,7 +740,6 @@ function cargarInformeTanqueo() {
                 <td style="border:1px solid #ccc;padding:5px;">${r.placa}</td>
                 <td style="border:1px solid #ccc;padding:5px;text-align:center;">${r.galones}</td>
                 <td style="border:1px solid #ccc;padding:5px;text-align:center;font-weight:bold;">${r.estado === 'FULL' ? '✅ FULL' : '⚡ PARCIAL'}</td>
-                <td style="border:1px solid #ccc;padding:5px;text-align:center;">${r.porcentajeReal || 100}%</td>
                 <td style="border:1px solid #ccc;padding:5px;text-align:center;">${r.kmRecorridosDesdeUltimo || '—'}</td>
                 <td style="border:1px solid #ccc;padding:5px;text-align:center;font-weight:bold;color:${r.rendimientoKmPorGalon ? '#006633' : '#999'};">${r.rendimientoKmPorGalon || 'Solo en FULL'}</td>
                 <td style="border:1px solid #ccc;padding:5px;">${r.colaborador}</td>
@@ -773,8 +778,7 @@ function exportarKilometrajeExcel() {
         KilometrajeFinal: r.kmFinal,
         KilometrosRecorridos: r.kmRecorridos,
         ColaboradorQueRegistra: r.colaborador,
-        UsuarioSistema: r.usuario || '',
-        HoraRegistro: r.horaRegistro ? new Date(r.horaRegistro.seconds * 1000).toLocaleString('es-CO') : ''
+        UsuarioSistema: r.usuario || ''
     }));
     const hoja = XLSX.utils.json_to_sheet(datos);
     const libro = XLSX.utils.book_new();
@@ -796,14 +800,105 @@ function exportarTanqueoExcel() {
         KilometrosRecorridosDesdeUltimo: r.kmRecorridosDesdeUltimo || '—',
         Rendimiento_Km_Por_Galon: r.rendimientoKmPorGalon || 'Solo se calcula en tanqueo FULL',
         ColaboradorQueTanqueo: r.colaborador,
-        UsuarioSistema: r.usuario || '',
-        HoraRegistro: r.horaRegistro ? new Date(r.horaRegistro.seconds * 1000).toLocaleString('es-CO') : ''
+        UsuarioSistema: r.usuario || ''
     }));
     const hoja = XLSX.utils.json_to_sheet(datos);
     const libro = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(libro, hoja, "Registro Tanqueo");
     XLSX.writeFile(libro, `Tanqueo_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.xlsx`);
     alert('✅ Excel de Tanqueo generado');
+}
+
+// =====================================================
+// ===== 📊 INFORMES - SUBPESTAÑAS =====
+// =====================================================
+function consultarMovimientos() {
+    const fi = document.getElementById('fechaInicioMov').value;
+    const ff = document.getElementById('fechaFinMov').value;
+    if (!fi || !ff) return alert('Seleccione fechas de inicio y fin');
+
+    const resultados = movimientos.filter(m => m.fecha >= fi && m.fecha <= ff);
+    ultimosResultados.movimientos = resultados;
+
+    const c = document.getElementById('resultadoMovimientos');
+    if (!c) return;
+    if (resultados.length === 0) {
+        c.innerHTML = '<p class="text-center">📭 Sin movimientos en este período</p>';
+        return;
+    }
+
+    let totalCanSalida = 0, totalCanLlegada = 0, totalKilos = 0;
+    resultados.forEach(m => {
+        totalCanSalida += m.totalCanastillasSalida || 0;
+        totalCanLlegada += m.totalCanastillasLlegada || 0;
+        totalKilos += m.kilosTotales || 0;
+    });
+
+    c.innerHTML = `
+        <p class="font-bold mb-2">📋 Movimientos del ${fi} al ${ff}</p>
+        <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+        <thead style="background:#dbeafe;">
+            <tr>
+                <th style="border:1px solid #ccc;padding:6px;">Fecha</th>
+                <th style="border:1px solid #ccc;padding:6px;">Placa</th>
+                <th style="border:1px solid #ccc;padding:6px;">Conductor</th>
+                <th style="border:1px solid #ccc;padding:6px;">Hora Salida</th>
+                <th style="border:1px solid #ccc;padding:6px;">Hora Llegada</th>
+                <th style="border:1px solid #ccc;padding:6px;">Canastillas Salida</th>
+                <th style="border:1px solid #ccc;padding:6px;">Canastillas Llegada</th>
+                <th style="border:1px solid #ccc;padding:6px;">Kilos Totales</th>
+                <th style="border:1px solid #ccc;padding:6px;">Observaciones</th>
+            </tr>
+        </thead>
+        <tbody>
+        ${resultados.map(m => `
+            <tr>
+                <td style="border:1px solid #ccc;padding:6px;">${m.fecha}</td>
+                <td style="border:1px solid #ccc;padding:6px;">${m.placa}</td>
+                <td style="border:1px solid #ccc;padding:6px;">${m.colaboradorConductor}</td>
+                <td style="border:1px solid #ccc;padding:6px;">${m.horaSalida || '--'}</td>
+                <td style="border:1px solid #ccc;padding:6px;">${m.horaLlegada || '--'}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${m.totalCanastillasSalida}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${m.totalCanastillasLlegada}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${m.kilosTotales}</td>
+                <td style="border:1px solid #ccc;padding:6px;">${m.observaciones || ''}</td>
+            </tr>`).join('')}
+        </tbody>
+        <tfoot style="background:#f1f5f9;font-weight:bold;">
+            <tr>
+                <td colspan="5" style="border:1px solid #ccc;padding:6px;">TOTALES</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${totalCanSalida}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${totalCanLlegada}</td>
+                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${totalKilos}</td>
+                <td style="border:1px solid #ccc;padding:6px;">—</td>
+            </tr>
+        </tfoot>
+        </table>
+        </div>`;
+}
+
+function exportarMovimientosExcel() {
+    if (!ultimosResultados.movimientos || ultimosResultados.movimientos.length === 0) {
+        return alert('Realice una consulta primero');
+    }
+    const datos = ultimosResultados.movimientos.map(m => ({
+        Fecha: m.fecha,
+        Placa: m.placa,
+        Conductor: m.colaboradorConductor,
+        HoraSalida: m.horaSalida || '',
+        HoraLlegada: m.horaLlegada || '',
+        CanastillasSalida: m.totalCanastillasSalida,
+        CanastillasLlegada: m.totalCanastillasLlegada,
+        KilosTotales: m.kilosTotales,
+        Observaciones: m.observaciones || '',
+        UsuarioQueRegistro: m.usuario || ''
+    }));
+    const hoja = XLSX.utils.json_to_sheet(datos);
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, "Movimientos");
+    XLSX.writeFile(libro, `Movimientos_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.xlsx`);
+    alert('✅ Excel de Movimientos generado');
 }
 
 // =====================================================
@@ -923,98 +1018,6 @@ async function crearUsuario() {
     } catch (e) {
         alert('❌ Error: ' + e.message);
     }
-}
-
-// =====================================================
-// ===== 📊 INFORMES =====
-// =====================================================
-function consultarMovimientos() {
-    const fi = document.getElementById('fechaInicioMov').value;
-    const ff = document.getElementById('fechaFinMov').value;
-    if (!fi || !ff) return alert('Seleccione fechas de inicio y fin');
-
-    const resultados = movimientos.filter(m => m.fecha >= fi && m.fecha <= ff);
-    ultimosResultados.movimientos = resultados;
-
-    const c = document.getElementById('resultadoMov');
-    if (resultados.length === 0) {
-        c.innerHTML = '<p class="text-center">📭 Sin movimientos en este período</p>';
-        return;
-    }
-
-    let totalCanSalida = 0, totalCanLlegada = 0, totalKilos = 0;
-    resultados.forEach(m => {
-        totalCanSalida += m.totalCanastillasSalida || 0;
-        totalCanLlegada += m.totalCanastillasLlegada || 0;
-        totalKilos += m.kilosTotales || 0;
-    });
-
-    c.innerHTML = `
-        <p class="font-bold mb-2">📋 Movimientos del ${fi} al ${ff}</p>
-        <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
-        <thead style="background:#dbeafe;">
-            <tr>
-                <th style="border:1px solid #ccc;padding:6px;">Fecha</th>
-                <th style="border:1px solid #ccc;padding:6px;">Placa</th>
-                <th style="border:1px solid #ccc;padding:6px;">Conductor</th>
-                <th style="border:1px solid #ccc;padding:6px;">Hora Salida</th>
-                <th style="border:1px solid #ccc;padding:6px;">Hora Llegada</th>
-                <th style="border:1px solid #ccc;padding:6px;">Canastillas Salida</th>
-                <th style="border:1px solid #ccc;padding:6px;">Canastillas Llegada</th>
-                <th style="border:1px solid #ccc;padding:6px;">Kilos Totales</th>
-                <th style="border:1px solid #ccc;padding:6px;">Observaciones</th>
-            </tr>
-        </thead>
-        <tbody>
-        ${resultados.map(m => `
-            <tr>
-                <td style="border:1px solid #ccc;padding:6px;">${m.fecha}</td>
-                <td style="border:1px solid #ccc;padding:6px;">${m.placa}</td>
-                <td style="border:1px solid #ccc;padding:6px;">${m.colaboradorConductor}</td>
-                <td style="border:1px solid #ccc;padding:6px;">${m.horaSalida || '--'}</td>
-                <td style="border:1px solid #ccc;padding:6px;">${m.horaLlegada || '--'}</td>
-                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${m.totalCanastillasSalida}</td>
-                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${m.totalCanastillasLlegada}</td>
-                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${m.kilosTotales}</td>
-                <td style="border:1px solid #ccc;padding:6px;">${m.observaciones || ''}</td>
-            </tr>`).join('')}
-        </tbody>
-        <tfoot style="background:#f1f5f9;font-weight:bold;">
-            <tr>
-                <td colspan="5" style="border:1px solid #ccc;padding:6px;">TOTALES</td>
-                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${totalCanSalida}</td>
-                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${totalCanLlegada}</td>
-                <td style="border:1px solid #ccc;padding:6px;text-align:center;">${totalKilos}</td>
-                <td style="border:1px solid #ccc;padding:6px;">—</td>
-            </tr>
-        </tfoot>
-        </table>
-        </div>`;
-}
-
-function exportarMovimientosExcel() {
-    if (!ultimosResultados.movimientos || ultimosResultados.movimientos.length === 0) {
-        return alert('Realice una consulta primero');
-    }
-    const datos = ultimosResultados.movimientos.map(m => ({
-        Fecha: m.fecha,
-        Placa: m.placa,
-        Conductor: m.colaboradorConductor,
-        HoraSalida: m.horaSalida || '',
-        HoraLlegada: m.horaLlegada || '',
-        CanastillasSalida: m.totalCanastillasSalida,
-        CanastillasLlegada: m.totalCanastillasLlegada,
-        KilosTotales: m.kilosTotales,
-        Observaciones: m.observaciones || '',
-        UsuarioQueRegistro: m.usuario || '',
-        HoraRegistro: m.horaRegistro ? new Date(m.horaRegistro.seconds * 1000).toLocaleString('es-CO') : ''
-    }));
-    const hoja = XLSX.utils.json_to_sheet(datos);
-    const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, "Movimientos");
-    XLSX.writeFile(libro, `Movimientos_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.xlsx`);
-    alert('✅ Excel de Movimientos generado');
 }
 
 // =====================================================
