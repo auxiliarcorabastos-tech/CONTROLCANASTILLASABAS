@@ -104,7 +104,7 @@ async function iniciarSesion() {
     }
 }
 
-// ✅ Soluciona el error: "ingresar is not defined"
+// ✅ SOLUCIÓN DEL ERROR: "ingresar is not defined"
 const ingresar = iniciarSesion;
 
 function ingresarApp() {
