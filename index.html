@@ -209,7 +209,6 @@
     <h1 class="text-lg font-bold m-0">Control de Canastillas</h1>
     <button class="btn-salir ml-auto bg-red-600 text-white px-3 py-1.5 rounded text-sm oculto" onclick="cerrarSesion()">Salir</button>
 </div>
-
 <!-- MENÚ LATERAL -->
 <div id="sidebar">
     <button class="btn-pestaña activa" onclick="cambiarPestaña('movimientos')">📦 Movimientos</button>
@@ -218,13 +217,11 @@
     <button class="btn-pestaña" onclick="cambiarPestaña('informes')">📊 Informes</button>
     <button id="btnAdmin" class="btn-pestaña oculto" onclick="cambiarPestaña('admin')">⚙️ Administración</button>
 </div>
-
 <!-- CONTENIDO PRINCIPAL -->
 <div class="contenedor-principal">
     <div id="tituloPestaña" class="text-xl font-bold mb-2">📦 Movimientos</div>
     <div id="textoUltimaActualizacion" class="text-sm text-gray-500 mb-2"></div>
     <button id="btnActualizarTodo" class="bg-blue-600 text-white px-3 py-1.5 rounded mb-3 text-sm" onclick="actualizarInformacion()">🔄 Actualizar App</button>
-
     <!-- ============================================== -->
     <!-- PESTAÑA: MOVIMIENTOS -->
     <!-- ============================================== -->
@@ -252,7 +249,6 @@
                 <input type="time" id="horaLlegada">
             </div>
         </div>
-
         <div class="mt-4 p-3 bg-gray-50 rounded-lg border">
             <div class="flex justify-between items-center mb-2">
                 <strong>👤 Recogidas de Colaboradores</strong>
@@ -274,15 +270,13 @@
                 </div>
             </div>
         </div>
-
         <div class="mt-3">
             <label>Observaciones</label>
             <input type="text" id="observaciones" placeholder="Escriba observaciones...">
         </div>
-
         <button class="bg-blue-600 text-white px-4 py-2 rounded mt-4 w-full" onclick="guardarMovimiento()">💾 Guardar Movimiento</button>
+        <button class="bg-green-600 text-white px-4 py-2 rounded mt-2 w-full" onclick="completarMovimiento()">✅ Completar Movimiento</button>
         <hr class="my-4">
-
         <!-- 🔍 BUSCAR + BOTÓN FILTRO -->
         <div class="flex gap-2 items-center mb-3">
             <input type="text" id="buscarMov" placeholder="🔍 Buscar por placa o conductor..." oninput="filtrarMovimientos()" style="flex:1; margin:0;">
@@ -290,11 +284,9 @@
                 <span id="textoFiltro">⏳ Ver Pendientes</span>
             </button>
         </div>
-
         <!-- LISTA DE MOVIMIENTOS -->
         <div id="listaMovimientos" class="mt-2"></div>
     </div>
-
     <!-- ============================================== -->
     <!-- PESTAÑA: TRANSPORTADORA -->
     <!-- ============================================== -->
@@ -311,13 +303,11 @@
         </div>
         <button class="bg-blue-600 text-white px-4 py-2 rounded mt-3 w-full" onclick="guardarMovimientoTransp()">💾 Registrar Movimiento</button>
         <hr class="my-4">
-
         <h3 class="font-bold text-lg mb-3">➕ Agregar Conductores</h3>
         <input type="text" id="nombreConductor" placeholder="Nombre del conductor">
         <button class="bg-green-600 text-white px-3 py-1 rounded mt-2" onclick="agregarConductor()">Agregar Conductor</button>
         <div id="listaConductoresTransp" class="mt-3"></div>
         <hr class="my-4">
-
         <h3 class="font-bold text-lg mb-3">➕ Agregar Vehículo</h3>
         <input type="text" id="placaVehiculoTransp" placeholder="Placa del vehículo" class="mb-2">
         <select id="tipoVehiculoTransp" class="mb-2">
@@ -330,7 +320,6 @@
         </select>
         <button class="bg-green-600 text-white px-3 py-1 rounded" onclick="agregarVehiculoTransp()">Agregar Vehículo</button>
     </div>
-
     <!-- ============================================== -->
     <!-- PESTAÑA: COMBUSTIBLE -->
     <!-- ============================================== -->
@@ -339,7 +328,6 @@
             <button class="btn-subcombustible activa" onclick="cambiarSubpestañaCombustible('kilometraje')">📏 Kilometraje Diario</button>
             <button class="btn-subcombustible" onclick="cambiarSubpestañaCombustible('tanqueo')">⛽ Registro de Tanqueo</button>
         </div>
-
         <div id="subcomb-kilometraje" class="subpestaña-combustible">
             <h3 class="font-bold mb-3">📏 Registro de Kilometraje</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -351,7 +339,6 @@
             </div>
             <button class="bg-blue-600 text-white px-4 py-2 rounded mt-3" onclick="guardarKilometrajeDiario()">💾 Guardar Kilometraje</button>
             <hr class="my-4">
-
             <h4 class="font-bold">📊 Consulta por Fechas</h4>
             <div class="grid grid-cols-2 gap-2">
                 <div><label>Fecha Inicio</label><input type="date" id="fechaInicioKm"></div>
@@ -361,7 +348,6 @@
             <button class="bg-amber-500 text-white px-3 py-1 rounded mt-2 ml-2" onclick="exportarKilometrajeExcel()">📥 Exportar Excel</button>
             <div id="resultadoKilometraje" class="mt-3"></div>
         </div>
-
         <div id="subcomb-tanqueo" class="subpestaña-combustible oculto">
             <h3 class="font-bold mb-3">⛽ Registro de Tanqueo</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -379,7 +365,6 @@
             </div>
             <button class="bg-blue-600 text-white px-4 py-2 rounded mt-3" onclick="guardarRegistroTanqueo()">💾 Guardar Tanqueo</button>
             <hr class="my-4">
-
             <h4 class="font-bold">📊 Consulta por Fechas</h4>
             <div class="grid grid-cols-2 gap-2">
                 <div><label>Fecha Inicio</label><input type="date" id="fechaInicioTanqueo"></div>
@@ -390,7 +375,6 @@
             <div id="resultadoTanqueo" class="mt-3"></div>
         </div>
     </div>
-
     <!-- ============================================== -->
     <!-- PESTAÑA: INFORMES -->
     <!-- ============================================== -->
@@ -404,7 +388,6 @@
         <button class="bg-amber-500 text-white px-4 py-2 rounded mt-3 ml-2" onclick="exportarMovimientosExcel()">📥 Exportar a Excel</button>
         <div id="resultadoMov" class="mt-4"></div>
     </div>
-
     <!-- ============================================== -->
     <!-- PESTAÑA: ADMINISTRACIÓN -->
     <!-- ============================================== -->
@@ -414,14 +397,12 @@
             <button class="btn-subpestaña" onclick="cambiarSubpestañaAdmin('vehiculos')">🚗 Vehículos</button>
             <button class="btn-subpestaña" onclick="cambiarSubpestañaAdmin('usuarios')">🔐 Usuarios</button>
         </div>
-
         <div id="sub-admin-colaboradores" class="subpestaña-admin">
             <h3 class="font-bold mb-3">Agregar Colaborador</h3>
             <input type="text" id="nombreColabAdmin" placeholder="Nombre del colaborador">
             <button class="bg-green-600 text-white px-3 py-1 rounded mt-2" onclick="agregarColaboradorAdmin()">Agregar</button>
             <div id="listaColaboradoresAdmin" class="mt-3"></div>
         </div>
-
         <div id="sub-admin-vehiculos" class="subpestaña-admin oculto">
             <h3 class="font-bold mb-3">Agregar Vehículo</h3>
             <input type="text" id="placaVehiculoMovAdmin" placeholder="Placa">
@@ -441,7 +422,6 @@
             <h4 class="font-bold mt-4 mb-2">Conductores</h4>
             <div id="listaConductoresAdmin"></div>
         </div>
-
         <div id="sub-admin-usuarios" class="subpestaña-admin oculto">
             <h3 class="font-bold mb-3">Crear Usuario del Sistema</h3>
             <input type="email" id="correoNuevo" placeholder="Correo electrónico">
@@ -454,7 +434,6 @@
         </div>
     </div>
 </div>
-
 <!-- ============================================== -->
 <!-- MODAL DE LOGIN -->
 <!-- ============================================== -->
@@ -468,7 +447,6 @@
         <button class="text-blue-600 text-sm w-full mt-2" onclick="recuperarClave()">¿Olvidó su contraseña?</button>
     </div>
 </div>
-
 <script src="funciones.js"></script>
 </body>
 </html>
