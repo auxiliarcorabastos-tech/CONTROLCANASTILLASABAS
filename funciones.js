@@ -514,3 +514,7 @@ window.onload = function() {
     document.getElementById('fechaKm').valueAsDate = new Date();
     document.getElementById('fechaTanqueo').valueAsDate = new Date();
 };
+// Alias para que el botón del HTML funcione
+function ingresar() {
+    iniciarSesion();
+}
