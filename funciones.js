@@ -115,79 +115,92 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // =====================================================
-// ===== CARGA COMPLETA DE TODOS LOS DATOS DESDE FIREBASE =====
+// 🔄 CARGAR TODOS LOS DATOS GUARDADOS EN FIREBASE
 // =====================================================
 async function cargarDatosCompleto() {
     try {
-        // ✅ COLABORADORES
-        const cl = await db.collection('colaboradores').orderBy('nombre').get();
-        colaboradores = cl.docs.map(d => ({ id: d.id, ...d.data() }));
-        actualizarSelectColaboradoresConductores();
+        console.log("🔄 Cargando datos desde Firebase...");
 
-        // ✅ VEHÍCULOS DE MOVIMIENTOS
-        const vm = await db.collection('vehiculos_movimientos').orderBy('placa').get();
-        vehiculosMov = vm.docs.map(d => ({ id: d.id, ...d.data() }));
-        actualizarSelectVehiculosMov();
+        // 📦 CARGAR MOVIMIENTOS
+        const snapMov = await db.collection('movimientos').get();
+        movimientos = [];
+        snapMovimientos.forEach(doc => {
+            movimientos.push({ id: doc.id, ...doc.data() });
+        });
+        console.log(`✅ Movimientos cargados: ${movimientos.length}`);
 
-        // ✅ VEHÍCULOS DE TRANSPORTADORA
-        const vt = await db.collection('vehiculos_transportadora').orderBy('placa').get();
-        vehiculosTransp = vt.docs.map(d => ({ id: d.id, ...d.data() }));
-        actualizarSelectVehiculosTransp();
+        // 👥 CARGAR COLABORADORES
+        const snapCol = await db.collection('colaboradores').get();
+        colaboradores = [];
+        snapCol.forEach(doc => {
+            colaboradores.push({ id: doc.id, ...doc.data() });
+        });
+        console.log(`✅ Colaboradores cargados: ${colaboradores.length}`);
 
-        // ✅ CONDUCTORES
-        const cd = await db.collection('conductores').orderBy('nombre').get();
-        conductores = cd.docs.map(d => ({ id: d.id, ...d.data() }));
-        actualizarSelectConductores();
-        dibujarListaConductoresTransp();
+        // 🚗 VEHÍCULOS DE MOVIMIENTOS
+        const snapVeh = await db.collection('vehiculos_movimientos').get();
+        vehiculosMov = [];
+        snapVeh.forEach(doc => {
+            vehiculosMov.push({ id: doc.id, ...doc.data() });
+        });
+        console.log(`✅ Vehículos Mov cargados: ${vehiculosMov.length}`);
 
-        // ✅ MOVIMIENTOS
-        const mv = await db.collection('movimientos').orderBy('fecha', 'desc').limit(50).get();
-        movimientos = mv.docs.map(d => ({ id: d.id, ...d.data() }));
-        dibujarMovimientos();
+        // 🚛 VEHÍCULOS DE TRANSPORTADORA
+        const snapVehTr = await db.collection('vehiculos_transportadora').get();
+        vehiculosTransp = [];
+        snapVehTr.forEach(doc => {
+            vehiculosTransp.push({ id: doc.id, ...doc.data() });
+        });
+        console.log(`✅ Vehículos Transp cargados: ${vehiculosTransp.length}`);
 
-        // ✅ MOVIMIENTOS TRANSPORTADORA
-        const mt = await db.collection('movimientos_transportadora').orderBy('fecha', 'desc').get();
-        movimientosTransporte = mt.docs.map(d => ({ id: d.id, ...d.data() }));
+        // 👤 CONDUCTORES
+        const snapCond = await db.collection('conductores').get();
+        conductores = [];
+        snapCond.forEach(doc => {
+            conductores.push({ id: doc.id, ...doc.data() });
+        });
+        console.log(`✅ Conductores cargados: ${conductores.length}`);
 
-        // ✅ KILOMETRAJE
-        const k = await db.collection('kilometraje_diario').orderBy('fecha', 'desc').get();
-        registrosKilometraje = k.docs.map(d => ({ id: d.id, ...d.data() }));
-
-        // ✅ TANQUEO / COMBUSTIBLE
-        const tq = await db.collection('tanqueo_combustible').orderBy('fechaTanqueo', 'desc').get();
-        registrosTanqueo = tq.docs.map(d => ({ id: d.id, ...d.data() }));
-
-        // ✅ ACTUALIZAR SELECTORES DE COMBUSTIBLE
-        const selKm = document.getElementById('vehiculoKm');
-        const selTq = document.getElementById('vehiculoTanqueo');
-        const selReg = document.getElementById('quienRegistraKm');
-        const selTanq = document.getElementById('quienTanquea');
-        const optsVeh = '<option value="">Seleccione vehículo</option>' + 
-            vehiculosMov.map(v => `<option value="${v.placa}">${v.placa} - ${v.tipo}</option>`).join('');
-        const optsCol = obtenerOpcionesColaboradoresActivos();
-        if (selKm) selKm.innerHTML = optsVeh;
-        if (selTq) selTq.innerHTML = optsVeh;
-        if (selReg) selReg.innerHTML = optsCol;
-        if (selTanq) selTanq.innerHTML = optsCol;
-
-        // ✅ ÚLTIMO KILOMETRAJE POR PLACA
-        ultimoKmPorPlaca = {};
-        registrosKilometraje.forEach(r => {
-            if (!ultimoKmPorPlaca[r.placa] || r.kmFinal > ultimoKmPorPlaca[r.placa]) {
-                ultimoKmPorPlaca[r.placa] = r.kmFinal;
-            }
+        // ⛽ COMBUSTIBLE / KILOMETRAJE
+        const snapKm = await db.collection('kilometraje').get();
+        registrosKm = [];
+        snapKm.forEach(doc => {
+            registrosKm.push({ id: doc.id, ...doc.data() });
         });
 
-        // ✅ ADMINISTRACIÓN
+        const snapTanq = await db.collection('tanqueo').get();
+        registrosTanqueo = [];
+        snapTanq.forEach(doc => {
+            registrosTanqueo.push({ id: doc.id, ...doc.data() });
+        });
+
+        // 🔄 ACTUALIZAR LAS LISTAS DESPLEGABLES
+        llenarSelects();
+
+        // 📋 DIBUJAR LISTAS EN PANTALLA
+        dibujarListaMovimientos();
         dibujarListaColaboradoresAdmin();
         dibujarListaVehiculosMovAdmin();
         dibujarListaVehiculosTranspAdmin();
         dibujarListaConductoresAdmin();
-    } catch (e) {
-        console.log('❌ Error cargando datos:', e.message);
+
+        // ✅ Actualizar fecha de última sincronización
+        const ahora = new Date().toLocaleTimeString('es-CO');
+        document.getElementById('textoUltimaActualizacion').textContent = `Última actualización: ${ahora}`;
+
+    } catch (error) {
+        console.error("❌ Error al cargar datos:", error);
+        alert("⚠️ No se pudieron cargar los datos: " + error.message);
     }
 }
 
+// =====================================================
+// 🔄 BOTÓN ACTUALIZAR APP
+// =====================================================
+async function actualizarInformacion() {
+    await cargarDatosCompleto();
+    alert("✅ Datos actualizados correctamente");
+}
 // =====================================================
 // ===== NAVEGACIÓN Y PESTAÑAS =====
 // =====================================================
