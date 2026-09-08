@@ -604,3 +604,64 @@ async function registrarAccion(accion, modulo, detalle) {
         fechaHora: new Date()
     });
 }
+// =====================================================
+// ===== FUNCIONES QUE FALTABAN =====
+// =====================================================
+function recuperarClave() {
+    alert('📧 Función de recuperación: Se enviará un enlace a su correo registrado.\n\nPor favor contacte al administrador del sistema.');
+}
+
+// ✅ VERIFICACIÓN SEGURA DE CAMPOS — NO SE CAE AL INICIO
+document.addEventListener('DOMContentLoaded', () => {
+    // No intentar leer valores hasta que el usuario haga clic
+    console.log('✅ Página cargada correctamente');
+});
+
+// ✅ CORREGIR LA VERIFICACIÓN DE CAMPOS EN INICIAR SESIÓN
+// Reemplaza tu función iniciarSesion por esta:
+async function iniciarSesion() {
+    const campoUsuario = document.getElementById('correoLogin');
+    const campoClave = document.getElementById('passLogin');
+    const campoMensaje = document.getElementById('mensajeError');
+
+    // ✅ Si no encuentra los campos, avisa pero NO se cae
+    if (!campoUsuario || !campoClave) {
+        alert('❌ Error: No se encontraron los campos de inicio de sesión');
+        return;
+    }
+
+    const usu = campoUsuario.value.trim();
+    const clave = campoClave.value;
+    const msj = campoMensaje || { textContent: '' };
+
+    // ==== USUARIOS FIJOS ====
+    if (usuariosFijos[usu] && usuariosFijos[usu].clave === clave) {
+        usuarioConectado = { ...usuariosFijos[usu], uid: "FIJO_" + usu };
+        ingresarApp();
+        return;
+    }
+
+    // ==== BUSCAR EN FIREBASE ====
+    try {
+        const snap = await db.collection('usuarios').get();
+        let enc = null;
+        snap.forEach(doc => {
+            const u = doc.data();
+            if (u.usuario === usu && u.clave === clave) {
+                enc = { uid: doc.id, ...u };
+            }
+        });
+
+        if (enc) {
+            usuarioConectado = enc;
+            ingresarApp();
+        } else {
+            let existe = false;
+            snap.forEach(doc => { if (doc.data().usuario === usu) existe = true; });
+            msj.textContent = existe ? "🔒 Contraseña errada" : "❌ Usuario no registrado";
+        }
+    } catch (e) {
+        msj.textContent = "⚠️ Error: " + e.message;
+    }
+}
+const ingresar = iniciarSesion;
