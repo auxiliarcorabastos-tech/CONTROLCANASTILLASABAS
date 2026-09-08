@@ -10,7 +10,6 @@ const firebaseConfig = {
   appId: "1:372736670308:web:14c2e2614c14ff3dc2bd71",
   measurementId: "G-N3YMQ2JKZM"
 };
-
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -104,6 +103,9 @@ async function iniciarSesion() {
         msj.textContent = "⚠️ Error: " + e.message;
     }
 }
+
+// ✅ Soluciona el error: "ingresar is not defined"
+const ingresar = iniciarSesion;
 
 function ingresarApp() {
     ultimaActividad = Date.now();
@@ -230,7 +232,7 @@ function recalcularTotales() {
 }
 
 // =====================================================
-// ===== 📦 GUARDAR MOVIMIENTO — CORREGIDO: NO BORRA DATOS ANTERIORES =====
+// ===== 📦 GUARDAR MOVIMIENTO — NO BORRA DATOS ANTERIORES =====
 // =====================================================
 async function guardarMovimiento() {
     const rec = filasRecogida.map(f => ({
@@ -256,13 +258,12 @@ async function guardarMovimiento() {
 
     try {
         if (idEdicion) {
-            // ✅ MODO EDICIÓN: Leer PRIMERO los datos guardados y COMBINAR
+            // ✅ MODO EDICIÓN: Leer PRIMERO y combinar
             const docRef = db.collection('movimientos').doc(idEdicion);
             const snap = await docRef.get();
             
             if (snap.exists) {
                 const datosGuardados = snap.data();
-                // Conservar TODO lo anterior, solo reemplazar lo que cambió
                 const datosFinales = {
                     ...datosGuardados,
                     ...datosNuevos,
@@ -593,6 +594,4 @@ async function registrarAccion(accion, modulo, detalle) {
         usuario: usuarioConectado.nombre || usuarioConectado.usuario,
         fechaHora: new Date()
     });
-// ✅ Agrega esta línea al final del archivo
-const ingresar = iniciarSesion;
 }
