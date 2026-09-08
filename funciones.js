@@ -121,15 +121,15 @@ async function cargarDatosCompleto() {
     try {
         console.log("🔄 Cargando datos desde Firebase...");
 
-        // 📦 CARGAR MOVIMIENTOS
+        // 📦 MOVIMIENTOS
         const snapMov = await db.collection('movimientos').get();
         movimientos = [];
-        snapMovimientos.forEach(doc => {
+        snapMov.forEach(doc => {
             movimientos.push({ id: doc.id, ...doc.data() });
         });
         console.log(`✅ Movimientos cargados: ${movimientos.length}`);
 
-        // 👥 CARGAR COLABORADORES
+        // 👥 COLABORADORES
         const snapCol = await db.collection('colaboradores').get();
         colaboradores = [];
         snapCol.forEach(doc => {
@@ -137,10 +137,18 @@ async function cargarDatosCompleto() {
         });
         console.log(`✅ Colaboradores cargados: ${colaboradores.length}`);
 
+        // 👤 CONDUCTORES
+        const snapCond = await db.collection('conductores').get();
+        conductores = [];
+        snapCond.forEach(doc => {
+            conductores.push({ id: doc.id, ...doc.data() });
+        });
+        console.log(`✅ Conductores cargados: ${conductores.length}`);
+
         // 🚗 VEHÍCULOS DE MOVIMIENTOS
-        const snapVeh = await db.collection('vehiculos_movimientos').get();
+        const snapVehMov = await db.collection('vehiculos_movimientos').get();
         vehiculosMov = [];
-        snapVeh.forEach(doc => {
+        snapVehMov.forEach(doc => {
             vehiculosMov.push({ id: doc.id, ...doc.data() });
         });
         console.log(`✅ Vehículos Mov cargados: ${vehiculosMov.length}`);
@@ -153,47 +161,37 @@ async function cargarDatosCompleto() {
         });
         console.log(`✅ Vehículos Transp cargados: ${vehiculosTransp.length}`);
 
-        // 👤 CONDUCTORES
-        const snapCond = await db.collection('conductores').get();
-        conductores = [];
-        snapCond.forEach(doc => {
-            conductores.push({ id: doc.id, ...doc.data() });
+        // 📋 MOVIMIENTOS DE TRANSPORTADORA
+        const snapMovTr = await db.collection('movimientos_transportadora').get();
+        movimientosTransp = [];
+        snapMovTr.forEach(doc => {
+            movimientosTransp.push({ id: doc.id, ...doc.data() });
         });
-        console.log(`✅ Conductores cargados: ${conductores.length}`);
+        console.log(`✅ Movimientos Transp cargados: ${movimientosTransp.length}`);
 
-        // ⛽ COMBUSTIBLE / KILOMETRAJE
-        const snapKm = await db.collection('kilometraje').get();
-        registrosKm = [];
-        snapKm.forEach(doc => {
-            registrosKm.push({ id: doc.id, ...doc.data() });
-        });
+        // ⛽ Si tienes datos de combustible/kilometraje
+        const kmRef = await db.collection('vehiculos').get();
+        console.log(`✅ Vehículos base: ${kmRef.size}`);
 
-        const snapTanq = await db.collection('tanqueo').get();
-        registrosTanqueo = [];
-        snapTanq.forEach(doc => {
-            registrosTanqueo.push({ id: doc.id, ...doc.data() });
-        });
-
-        // 🔄 ACTUALIZAR LAS LISTAS DESPLEGABLES
+        // 🔄 LLENAR LOS DESPLEGABLES
         llenarSelects();
 
-        // 📋 DIBUJAR LISTAS EN PANTALLA
+        // 📋 MOSTRAR EN PANTALLA
         dibujarListaMovimientos();
         dibujarListaColaboradoresAdmin();
         dibujarListaVehiculosMovAdmin();
         dibujarListaVehiculosTranspAdmin();
         dibujarListaConductoresAdmin();
 
-        // ✅ Actualizar fecha de última sincronización
+        // ✅ Actualizar hora
         const ahora = new Date().toLocaleTimeString('es-CO');
         document.getElementById('textoUltimaActualizacion').textContent = `Última actualización: ${ahora}`;
 
     } catch (error) {
         console.error("❌ Error al cargar datos:", error);
-        alert("⚠️ No se pudieron cargar los datos: " + error.message);
+        alert("⚠️ " + error.message);
     }
 }
-
 // =====================================================
 // 🔄 BOTÓN ACTUALIZAR APP
 // =====================================================
