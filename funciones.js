@@ -58,10 +58,38 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('input[type="date"]').forEach(i => i.value = hoy);
     agregarFilaRecogida();
     
-    tiempoActualizacionAuto = setInterval(() => {
-        cargarDatosCompleto();
+    // 🔄 ACTUALIZACIÓN INTELIGENTE — NO BORRA LO QUE ESCRIBES
+    tiempoActualizacionAuto = setInterval(async () => {
+        // ✅ GUARDAMOS LO QUE TIENES ESCRITO EN PANTALLA
+        const valoresGuardados = {
+            fecha: document.getElementById('fecha')?.value,
+            vehiculo: document.getElementById('vehiculoMov')?.value,
+            conductor: document.getElementById('colaboradorConductor')?.value,
+            horaSalida: document.getElementById('horaSalida')?.value,
+            horaLlegada: document.getElementById('horaLlegada')?.value,
+            canSalida: document.getElementById('canSalidaTotal')?.value,
+            canLlegada: document.getElementById('canLlegadaTotal')?.value,
+            kilos: document.getElementById('kilosTotales')?.value,
+            observaciones: document.getElementById('observaciones')?.value
+        };
+
+        // 🔄 CARGAMOS LOS DATOS NUEVOS DESDE FIREBASE
+        await cargarDatosCompleto();
+
+        // ✅ VOLVEMOS A PONER TUS DATOS EN LOS CAMPOS
+        if (valoresGuardados.fecha) document.getElementById('fecha').value = valoresGuardados.fecha;
+        if (valoresGuardados.vehiculo) document.getElementById('vehiculoMov').value = valoresGuardados.vehiculo;
+        if (valoresGuardados.conductor) document.getElementById('colaboradorConductor').value = valoresGuardados.conductor;
+        if (valoresGuardados.horaSalida) document.getElementById('horaSalida').value = valoresGuardados.horaSalida;
+        if (valoresGuardados.horaLlegada) document.getElementById('horaLlegada').value = valoresGuardados.horaLlegada;
+        if (valoresGuardados.canSalida) document.getElementById('canSalidaTotal').value = valoresGuardados.canSalida;
+        if (valoresGuardados.canLlegada) document.getElementById('canLlegadaTotal').value = valoresGuardados.canLlegada;
+        if (valoresGuardados.kilos) document.getElementById('kilosTotales').value = valoresGuardados.kilos;
+        if (valoresGuardados.observaciones) document.getElementById('observaciones').value = valoresGuardados.observaciones;
+
+        // 🕒 ACTUALIZAMOS LA HORA DE REVISIÓN
         actualizarTextoUltimaRevision();
-    }, 10 * 1000);
+    }, 10 * 1000); // Cada 10 segundos
 });
 
 // =====================================================
