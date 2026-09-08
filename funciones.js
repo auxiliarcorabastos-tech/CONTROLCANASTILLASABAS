@@ -10,7 +10,6 @@ const firebaseConfig = {
   appId: "1:372736670308:web:14c2e2614c14ff3dc2bd71",
   measurementId: "G-N3YMQ2JKZM"
 };
-
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
@@ -49,6 +48,7 @@ let ultimaActualizacion = null;
 let registrosKilometraje = [];
 let registrosTanqueo = [];
 let ultimoKmPorPlaca = {};
+let filtroSoloPendientes = false;
 
 // =====================================================
 // ===== INICIO AUTOMÁTICO =====
@@ -60,7 +60,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 🔄 ACTUALIZACIÓN INTELIGENTE — NO BORRA LO QUE ESCRIBES
     tiempoActualizacionAuto = setInterval(async () => {
-        // ✅ GUARDAMOS LO QUE TIENES ESCRITO EN PANTALLA
         const valoresGuardados = {
             fecha: document.getElementById('fecha')?.value,
             vehiculo: document.getElementById('vehiculoMov')?.value,
@@ -68,28 +67,18 @@ document.addEventListener('DOMContentLoaded', () => {
             horaSalida: document.getElementById('horaSalida')?.value,
             horaLlegada: document.getElementById('horaLlegada')?.value,
             canSalida: document.getElementById('canSalidaTotal')?.value,
-            canLlegada: document.getElementById('canLlegadaTotal')?.value,
-            kilos: document.getElementById('kilosTotales')?.value,
             observaciones: document.getElementById('observaciones')?.value
         };
-
-        // 🔄 CARGAMOS LOS DATOS NUEVOS DESDE FIREBASE
         await cargarDatosCompleto();
-
-        // ✅ VOLVEMOS A PONER TUS DATOS EN LOS CAMPOS
         if (valoresGuardados.fecha) document.getElementById('fecha').value = valoresGuardados.fecha;
         if (valoresGuardados.vehiculo) document.getElementById('vehiculoMov').value = valoresGuardados.vehiculo;
         if (valoresGuardados.conductor) document.getElementById('colaboradorConductor').value = valoresGuardados.conductor;
         if (valoresGuardados.horaSalida) document.getElementById('horaSalida').value = valoresGuardados.horaSalida;
         if (valoresGuardados.horaLlegada) document.getElementById('horaLlegada').value = valoresGuardados.horaLlegada;
         if (valoresGuardados.canSalida) document.getElementById('canSalidaTotal').value = valoresGuardados.canSalida;
-        if (valoresGuardados.canLlegada) document.getElementById('canLlegadaTotal').value = valoresGuardados.canLlegada;
-        if (valoresGuardados.kilos) document.getElementById('kilosTotales').value = valoresGuardados.kilos;
         if (valoresGuardados.observaciones) document.getElementById('observaciones').value = valoresGuardados.observaciones;
-
-        // 🕒 ACTUALIZAMOS LA HORA DE REVISIÓN
         actualizarTextoUltimaRevision();
-    }, 10 * 1000); // Cada 10 segundos
+    }, 10 * 1000);
 });
 
 // =====================================================
@@ -104,7 +93,6 @@ async function actualizarInformacion() {
     alert('✅ Información actualizada desde la nube');
     if (btn) btn.disabled = false;
 }
-
 function actualizarTextoUltimaRevision() {
     const el = document.getElementById('textoUltimaActualizacion');
     if (el && ultimaActualizacion) {
@@ -173,7 +161,6 @@ async function cargarDatosCompleto() {
         dibujarListaVehiculosMovAdmin();
         dibujarListaVehiculosTranspAdmin();
         dibujarListaConductoresAdmin();
-
     } catch (e) {
         console.log('Error cargando datos:', e.message);
     }
@@ -185,7 +172,6 @@ async function cargarDatosCompleto() {
 function alternarMenu() { 
     document.getElementById('sidebar').classList.toggle('mostrar'); 
 }
-
 function cambiarPestaña(nombre) {
     document.querySelectorAll('.btn-pestaña').forEach(b => b.classList.remove('activa'));
     event.target.classList.add('activa');
@@ -196,18 +182,14 @@ function cambiarPestaña(nombre) {
     if (window.innerWidth < 768) document.getElementById('sidebar').classList.remove('mostrar');
     if (nombre === 'admin') cargarListasAdmin();
     if (nombre === 'combustible') cargarDatosCombustibleCompleto();
-    if (nombre === 'informes') {
-        cambiarSubpestañaInformes('movimientos');
-    }
+    if (nombre === 'informes') cambiarSubpestañaInformes('movimientos');
 }
-
 function cambiarSubpestañaAdmin(nombre) {
     document.querySelectorAll('.btn-subpestaña').forEach(b => b.classList.remove('activa'));
     event.target.classList.add('activa');
     document.querySelectorAll('.subpestaña-admin').forEach(p => p.classList.add('oculto'));
     document.getElementById('sub-admin-' + nombre).classList.remove('oculto');
 }
-
 function cambiarSubpestañaCombustible(nombre) {
     document.querySelectorAll('.btn-subcombustible').forEach(b => b.classList.remove('activa'));
     event.target.classList.add('activa');
@@ -216,8 +198,6 @@ function cambiarSubpestañaCombustible(nombre) {
     if (nombre === 'kilometraje') cargarInformeKilometraje();
     if (nombre === 'tanqueo') cargarInformeTanqueo();
 }
-
-// ===== SUBPESTAÑAS DE INFORMES =====
 function cambiarSubpestañaInformes(nombre) {
     const btns = document.querySelectorAll('.btn-subinforme');
     const cajas = document.querySelectorAll('.subpestaña-informe');
@@ -236,9 +216,7 @@ async function ingresar() {
     const pass = document.getElementById('passLogin').value;
     const error = document.getElementById('mensajeError');
     error.textContent = '';
-
     if (!correo.includes('@')) correo += '@correo.com';
-
     try {
         const usuarioBuscar = correo.split('@')[0];
         if (usuariosFijos[usuarioBuscar] || usuariosFijos[correo]) {
@@ -252,7 +230,6 @@ async function ingresar() {
                 return;
             }
         }
-
         const cred = await auth.signInWithEmailAndPassword(correo, pass);
         const doc = await db.doc(`usuarios/${cred.user.uid}`).get();
         if (doc.exists) {
@@ -268,7 +245,6 @@ async function ingresar() {
         else error.textContent = '⚠️ ' + e.message;
     }
 }
-
 async function finalizarLogin() {
     document.getElementById('modalLogin').style.display = 'none';
     document.querySelector('.btn-salir').style.display = 'block';
@@ -281,17 +257,14 @@ async function finalizarLogin() {
     iniciarTiempoSesion();
     registrarAccion('Inicio de Sesión', 'Sistema', '');
 }
-
 function cerrarSesion() {
     clearInterval(tiempoActualizacionAuto);
     auth.signOut();
     location.reload();
 }
-
 function recuperarClave() {
     alert('Solicita recuperación desde tu consola de Firebase o contacta al administrador');
 }
-
 function iniciarTiempoSesion() {
     reiniciarTiempoSesion();
     window.onmousemove = reiniciarTiempoSesion;
@@ -313,33 +286,28 @@ function obtenerOpcionesColaboradoresActivos(sel = '') {
     return '<option value="">Seleccione colaborador</option>' + 
         activos.map(c => `<option value="${c.nombre}" ${sel === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('');
 }
-
 function actualizarSelectColaboradoresConductores() {
     const s = document.getElementById('colaboradorConductor');
     if (s) s.innerHTML = obtenerOpcionesColaboradoresActivos();
 }
-
 function actualizarSelectVehiculosMov() {
     const opts = '<option value="">Seleccione vehículo</option>' + 
         vehiculosMov.map(v => `<option value="${v.placa}">${v.placa} - ${v.tipo}</option>`).join('');
     const s1 = document.getElementById('vehiculoMov');
     if (s1) s1.innerHTML = opts;
 }
-
 function actualizarSelectVehiculosTransp() {
     const s = document.getElementById('vehiculoTransp');
     if (!s) return;
     s.innerHTML = '<option value="">Seleccione vehículo</option>' + 
         vehiculosTransp.map(v => `<option value="${v.placa}">${v.placa} - ${v.tipo}</option>`).join('');
 }
-
 function actualizarSelectConductores() {
     const s = document.getElementById('conductorTransp');
     if (!s) return;
     s.innerHTML = '<option value="">Seleccione conductor</option>' + 
         conductores.filter(c => c.activo !== false).map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
 }
-
 function dibujarListaConductoresTransp() {
     const c = document.getElementById('listaConductoresTransp');
     if (!c) return;
@@ -368,19 +336,16 @@ function agregarFilaRecogida(d = null) {
     });
     renderizarFilasRecogida();
 }
-
 function quitarFilaRecogida(id) {
     filasRecogida = filasRecogida.filter(f => f.id !== id);
     renderizarFilasRecogida();
 }
-
 function actualizarFilaRecogida(id, campo, valor) {
     const f = filasRecogida.find(x => x.id === id);
     if (!f) return;
     f[campo] = (campo === 'kilos' || campo === 'canastillas') ? Number(valor) || 0 : valor;
     calcularTotalesAutomaticos();
 }
-
 function calcularTotalesAutomaticos() {
     let tk = 0, tc = 0;
     filasRecogida.forEach(f => {
@@ -392,7 +357,6 @@ function calcularTotalesAutomaticos() {
     if (kt) kt.value = tk || '';
     if (cl) cl.value = tc || '';
 }
-
 function renderizarFilasRecogida() {
     const c = document.getElementById('listaRecogidas');
     if (!c) return;
@@ -419,7 +383,6 @@ async function guardarMovimiento() {
         kilos: Number(f.kilos) || 0,
         canastillas: Number(f.canastillas) || 0
     }));
-
     const datos = {
         fecha: document.getElementById('fecha').value,
         placa: document.getElementById('vehiculoMov').value,
@@ -434,16 +397,16 @@ async function guardarMovimiento() {
         usuario: usuarioConectado.nombre || usuarioConectado.email,
         horaRegistro: new Date()
     };
-
     try {
         if (idEdicion) {
             await db.collection('movimientos').doc(idEdicion).update(datos);
             registrarAccion('Movimiento Modificado', 'Movimientos', `ID: ${idEdicion}`);
+            alert('✅ Movimiento actualizado');
         } else {
             await db.collection('movimientos').add(datos);
             registrarAccion('Salida Registrada', 'Movimientos', `Placa: ${datos.placa}`);
+            alert('✅ Movimiento guardado');
         }
-        alert('✅ Guardado');
         idEdicion = null;
         filasRecogida = [];
         document.getElementById('horaSalida').value = '';
@@ -459,27 +422,76 @@ async function guardarMovimiento() {
     }
 }
 
+// =====================================================
+// ===== 📋 DIBUJAR MOVIMIENTOS + FILTRO PENDIENTES =====
+// =====================================================
+function alternarFiltroMovimientos() {
+    filtroSoloPendientes = !filtroSoloPendientes;
+    const btn = document.getElementById('btnFiltroMov');
+    const txt = document.getElementById('textoFiltro');
+    if (filtroSoloPendientes) {
+        btn.classList.add('activo');
+        txt.textContent = '📋 Ver Todos';
+    } else {
+        btn.classList.remove('activo');
+        txt.textContent = '⏳ Ver Pendientes';
+    }
+    dibujarMovimientos();
+}
 function dibujarMovimientos() {
     const c = document.getElementById('listaMovimientos');
     if (!c) return;
-    if (movimientos.length === 0) {
+    let lista = [...movimientos];
+    
+    // Aplicar filtro de pendientes
+    if (filtroSoloPendientes) {
+        lista = lista.filter(m => !m.horaLlegada || m.totalCanastillasLlegada === 0);
+    }
+
+    if (lista.length === 0) {
         c.innerHTML = '<p class="text-center">Sin movimientos registrados</p>';
         return;
     }
-    c.innerHTML = movimientos.map(m => `
-        <div class="fila-lista">
-            <div>
-                <strong>${m.fecha} | ${m.placa}</strong><br>
-                Conductor: ${m.colaboradorConductor}<br>
-                🕒 ${m.horaSalida || '--'} - ${m.horaLlegada || '--'} | 📦 Salida: ${m.totalCanastillasSalida} / Llegada: ${m.totalCanastillasLlegada}
-            </div>
-            <div>
-                <button class="btn-editar" onclick="cargarEnFormulario('${m.id}')">✏️</button>
-                ${usuarioConectado?.rol === 'admin' ? `<button class="btn-eliminar" onclick="eliminarMovimiento('${m.id}')">🗑️</button>` : ''}
-            </div>
-        </div>`).join('');
-}
 
+    // Separar VTH y Vehículos
+    const vth = [];
+    const vehiculos = [];
+    lista.forEach(m => {
+        const v = vehiculosMov.find(vh => vh.placa === m.placa);
+        if (v && v.tipo.includes('Tracción Humana')) vth.push(m);
+        else vehiculos.push(m);
+    });
+
+    let html = '';
+    if (vth.length > 0) {
+        html += `<div class="grupo-titulo grupo-vth">🚲 Vehículos de Tracción Humana (${vth.length})</div>`;
+        html += vth.map(m => dibujarFilaMovimiento(m)).join('');
+    }
+    if (vehiculos.length > 0) {
+        html += `<div class="grupo-titulo grupo-veh">🏍️ Vehículos (${vehiculos.length})</div>`;
+        html += vehiculos.map(m => dibujarFilaMovimiento(m)).join('');
+    }
+    c.innerHTML = html;
+}
+function dibujarFilaMovimiento(m) {
+    const esPendiente = !m.horaLlegada || !m.totalCanastillasLlegada || m.totalCanastillasLlegada === 0;
+    const etiqueta = esPendiente 
+        ? '<span class="etiqueta-estado etiqueta-pend">⏳ PENDIENTE</span>' 
+        : '<span class="etiqueta-estado etiqueta-cerr">✅ CERRADO</span>';
+    return `
+        <div class="fila-lista ${esPendiente ? 'pendiente' : ''}">
+            <div>
+                <strong>${m.fecha} | ${m.placa}</strong> ${etiqueta}<br>
+                Conductor: ${m.colaboradorConductor}<br>
+                🕒 ${m.horaSalida || '--'} - ${m.horaLlegada || '--'} | 📦 Salieron: ${m.totalCanastillasSalida} / Llegaron: ${m.totalCanastillasLlegada}
+                ${m.kilosTotales > 0 ? `<br>⚖️ Kilos totales: ${m.kilosTotales}` : ''}
+            </div>
+            <div>
+                <button class="btn-editar" onclick="cargarEnFormulario('${m.id}')" title="Editar/Registrar llegada">✏️</button>
+                ${usuarioConectado?.rol === 'admin' ? `<button class="btn-eliminar" onclick="eliminarMovimiento('${m.id}')" title="Eliminar">🗑️</button>` : ''}
+            </div>
+        </div>`;
+}
 function cargarEnFormulario(id) {
     const mov = movimientos.find(m => m.id === id);
     if (!mov) return;
@@ -497,7 +509,6 @@ function cargarEnFormulario(id) {
     renderizarFilasRecogida();
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-
 async function eliminarMovimiento(id) {
     if (usuarioConectado.rol !== 'admin') {
         alert('🔒 Solo el administrador puede eliminar registros');
@@ -509,7 +520,6 @@ async function eliminarMovimiento(id) {
     alert('Eliminado ✅');
     await cargarDatosCompleto();
 }
-
 function filtrarMovimientos() {
     const b = document.getElementById('buscarMov').value.toLowerCase();
     const c = document.getElementById('listaMovimientos');
@@ -522,18 +532,24 @@ function filtrarMovimientos() {
         c.innerHTML = '<p class="text-center">Sin coincidencias</p>';
         return;
     }
-    c.innerHTML = filtro.map(m => `
-        <div class="fila-lista">
+    let html = '';
+    filtro.forEach(m => {
+        const esPendiente = !m.horaLlegada || !m.totalCanastillasLlegada || m.totalCanastillasLlegada === 0;
+        html += `
+        <div class="fila-lista ${esPendiente ? 'pendiente' : ''}">
             <div>
                 <strong>${m.fecha} | ${m.placa}</strong><br>
-                Conductor: ${m.colaboradorConductor} | 📦 ${m.totalCanastillasSalida} → ${m.totalCanastillasLlegada}
+                Conductor: ${m.colaboradorConductor} | 📦 Salieron: ${m.totalCanastillasSalida} / Llegaron: ${m.totalCanastillasLlegada}
             </div>
             <div>
                 <button class="btn-editar" onclick="cargarEnFormulario('${m.id}')">✏️</button>
                 ${usuarioConectado?.rol === 'admin' ? `<button class="btn-eliminar" onclick="eliminarMovimiento('${m.id}')">🗑️</button>` : ''}
             </div>
-        </div>`).join('');
+        </div>`;
+    });
+    c.innerHTML = html;
 }
+
 // =====================================================
 // ===== 🚛 TRANSPORTADORA =====
 // =====================================================
@@ -558,7 +574,6 @@ async function guardarMovimientoTransp() {
     registrarAccion('Movimiento Transportadora', 'Transportadora', datos.placa);
     await cargarDatosCompleto();
 }
-
 async function agregarConductor() {
     const n = document.getElementById('nombreConductor').value.trim();
     if (!n) return alert('Escribe el nombre del conductor');
@@ -567,13 +582,11 @@ async function agregarConductor() {
     alert('✅ Conductor agregado');
     await cargarDatosCompleto();
 }
-
 async function cambiarEstadoConductor(id, activar) {
     await db.collection('conductores').doc(id).update({ activo: activar });
     registrarAccion(activar ? 'Conductor Activado' : 'Conductor Inactivado', 'Administración', '');
     await cargarDatosCompleto();
 }
-
 async function agregarVehiculoTransp() {
     const p = document.getElementById('placaVehiculoTransp').value.trim().toUpperCase();
     const t = document.getElementById('tipoVehiculoTransp').value;
@@ -594,49 +607,40 @@ async function guardarKilometrajeDiario() {
     const kmInicial = Number(document.getElementById('kmInicial').value);
     const kmFinal = Number(document.getElementById('kmFinal').value);
     const colaborador = document.getElementById('quienRegistraKm').value;
-
     if (!fecha || !placa || isNaN(kmInicial) || isNaN(kmFinal) || !colaborador) {
         return alert('⚠️ Complete todos los campos');
     }
     if (kmFinal < kmInicial) {
         return alert('⚠️ Km Final no puede ser menor al Km Inicial');
     }
-
     const kmRecorridos = kmFinal - kmInicial;
     const datos = {
         fecha, placa, kmInicial, kmFinal, kmRecorridos, colaborador,
         usuario: usuarioConectado.nombre || usuarioConectado.email, 
         horaRegistro: new Date()
     };
-
     await db.collection('kilometraje_diario').add(datos);
     alert(`✅ Guardado\nKilómetros recorridos: ${kmRecorridos} km`);
     registrarAccion('Registro Kilometraje', 'Combustible-Km', `${placa} — ${kmRecorridos} km`);
-    
     ultimoKmPorPlaca[placa] = kmFinal;
     document.getElementById('kmInicial').value = '';
     document.getElementById('kmFinal').value = '';
     await cargarDatosCompleto();
 }
-
 function cargarInformeKilometraje() {
     const fi = document.getElementById('fechaInicioKm')?.value;
     const ff = document.getElementById('fechaFinKm')?.value;
     if (!fi || !ff) return;
-
     const resultados = registrosKilometraje.filter(r => r.fecha >= fi && r.fecha <= ff);
     ultimosResultados.kilometraje = resultados;
-
     const cont = document.getElementById('resultadoKilometraje');
     if (!cont) return;
     if (resultados.length === 0) {
         cont.innerHTML = '<p class="text-center">📭 Sin registros en este período</p>';
         return;
     }
-
     let totalKm = 0;
     resultados.forEach(r => totalKm += r.kmRecorridos || 0);
-
     cont.innerHTML = `
         <p class="font-bold mb-2">📋 Período: ${fi} al ${ff} — Total: ${totalKm} km recorridos</p>
         <div style="overflow-x:auto;">
@@ -676,26 +680,21 @@ async function guardarRegistroTanqueo() {
     const estado = document.getElementById('estadoTanqueo').value;
     const porcentaje = Number(document.getElementById('porcentajeTanqueo').value) || 100;
     const colaborador = document.getElementById('quienTanquea').value;
-
     if (!fechaTanqueo || !placa || isNaN(galones) || !colaborador) {
         return alert('⚠️ Complete fecha, placa, galones y quien tanquea');
     }
-
     let kmRecorridosDesdeUltimo = null;
     let rendimiento = null;
-
     if (estado === 'FULL' && ultimoKmPorPlaca[placa]) {
         const ultimoRegistro = registrosKilometraje
             .filter(r => r.placa === placa)
             .sort((a, b) => b.kmFinal - a.kmFinal)[0];
-        
         if (ultimoRegistro && ultimoRegistro.kmFinal > ultimoKmPorPlaca[placa]) {
             kmRecorridosDesdeUltimo = ultimoRegistro.kmFinal - ultimoKmPorPlaca[placa];
             rendimiento = (kmRecorridosDesdeUltimo / galones).toFixed(2);
             ultimoKmPorPlaca[placa] = ultimoRegistro.kmFinal;
         }
     }
-
     const datos = {
         fechaTanqueo, placa, galones, estado,
         porcentajeReal: estado === 'FULL' ? 100 : porcentaje,
@@ -703,37 +702,27 @@ async function guardarRegistroTanqueo() {
         usuario: usuarioConectado.nombre || usuarioConectado.email, 
         horaRegistro: new Date()
     };
-
     await db.collection('tanqueo_combustible').add(datos);
-
     let mensaje = `✅ Tanqueo guardado\nPlaca: ${placa}\nGalones: ${galones}`;
-    if (rendimiento) {
-        mensaje += `\n📊 Rendimiento: ${rendimiento} km/gal`;
-    }
+    if (rendimiento) mensaje += `\n📊 Rendimiento: ${rendimiento} km/gal`;
     alert(mensaje);
-
     registrarAccion('Registro Tanqueo', 'Combustible-Tanqueo', `${placa} — ${galones} gal ${estado}`);
-
     document.getElementById('galonesTanqueo').value = '';
     document.getElementById('porcentajeTanqueo').value = '';
     await cargarDatosCompleto();
 }
-
 function cargarInformeTanqueo() {
     const fi = document.getElementById('fechaInicioTanqueo')?.value;
     const ff = document.getElementById('fechaFinTanqueo')?.value;
     if (!fi || !ff) return;
-
     const resultados = registrosTanqueo.filter(r => r.fechaTanqueo >= fi && r.fechaTanqueo <= ff);
     ultimosResultados.tanqueo = resultados;
-
     const cont = document.getElementById('resultadoTanqueo');
     if (!cont) return;
     if (resultados.length === 0) {
         cont.innerHTML = '<p class="text-center">📭 Sin registros de tanqueo en este período</p>';
         return;
     }
-
     let totalGalones = 0;
     let tanqueosFull = 0;
     let sumaRendimientos = 0;
@@ -745,7 +734,6 @@ function cargarInformeTanqueo() {
         }
     });
     const promRendimiento = tanqueosFull > 0 ? (sumaRendimientos / tanqueosFull).toFixed(2) : '—';
-
     cont.innerHTML = `
         <p class="font-bold mb-2">⛽ Período: ${fi} al ${ff} — Total Galones: ${totalGalones.toFixed(2)} | Promedio Rendimiento FULL: ${promRendimiento} km/gal</p>
         <div style="overflow-x:auto;">
@@ -776,14 +764,11 @@ function cargarInformeTanqueo() {
         </table>
         </div>`;
 }
-
 async function cargarDatosCombustibleCompleto() {
     const k = await db.collection('kilometraje_diario').orderBy('fecha', 'desc').get();
     registrosKilometraje = k.docs.map(d => ({ id: d.id, ...d.data() }));
-
     const tq = await db.collection('tanqueo_combustible').orderBy('fechaTanqueo', 'desc').get();
     registrosTanqueo = tq.docs.map(d => ({ id: d.id, ...d.data() }));
-
     ultimoKmPorPlaca = {};
     registrosKilometraje.forEach(r => {
         if (!ultimoKmPorPlaca[r.placa] || r.kmFinal > ultimoKmPorPlaca[r.placa]) {
@@ -814,7 +799,6 @@ function exportarKilometrajeExcel() {
     XLSX.writeFile(libro, `Kilometraje_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.xlsx`);
     alert('✅ Excel de Kilometraje generado');
 }
-
 function exportarTanqueoExcel() {
     if (!ultimosResultados.tanqueo || ultimosResultados.tanqueo.length === 0) {
         return alert('Realice una consulta primero');
@@ -838,30 +822,26 @@ function exportarTanqueoExcel() {
 }
 
 // =====================================================
-// ===== 📊 INFORMES - SUBPESTAÑAS =====
+// ===== 📊 INFORMES =====
 // =====================================================
 function consultarMovimientos() {
     const fi = document.getElementById('fechaInicioMov').value;
     const ff = document.getElementById('fechaFinMov').value;
     if (!fi || !ff) return alert('Seleccione fechas de inicio y fin');
-
     const resultados = movimientos.filter(m => m.fecha >= fi && m.fecha <= ff);
     ultimosResultados.movimientos = resultados;
-
     const c = document.getElementById('resultadoMovimientos');
     if (!c) return;
     if (resultados.length === 0) {
         c.innerHTML = '<p class="text-center">📭 Sin movimientos en este período</p>';
         return;
     }
-
     let totalCanSalida = 0, totalCanLlegada = 0, totalKilos = 0;
     resultados.forEach(m => {
         totalCanSalida += m.totalCanastillasSalida || 0;
         totalCanLlegada += m.totalCanastillasLlegada || 0;
         totalKilos += m.kilosTotales || 0;
     });
-
     c.innerHTML = `
         <p class="font-bold mb-2">📋 Movimientos del ${fi} al ${ff}</p>
         <div style="overflow-x:auto;">
@@ -905,7 +885,6 @@ function consultarMovimientos() {
         </table>
         </div>`;
 }
-
 function exportarMovimientosExcel() {
     if (!ultimosResultados.movimientos || ultimosResultados.movimientos.length === 0) {
         return alert('Realice una consulta primero');
@@ -920,7 +899,8 @@ function exportarMovimientosExcel() {
         CanastillasLlegada: m.totalCanastillasLlegada,
         KilosTotales: m.kilosTotales,
         Observaciones: m.observaciones || '',
-        UsuarioQueRegistro: m.usuario || ''
+        UsuarioQueRegistro: m.usuario || '',
+        FechaHoraRegistro: m.horaRegistro ? new Date(m.horaRegistro.toDate()).toLocaleString('es-CO') : ''
     }));
     const hoja = XLSX.utils.json_to_sheet(datos);
     const libro = XLSX.utils.book_new();
@@ -1026,14 +1006,12 @@ function dibujarListaConductoresAdmin() {
 
 async function crearUsuario() {
     if (usuarioConectado?.rol !== 'admin') return alert('🔒 Solo administrador');
-    const correo = document.getElementById('correoNuevo').value.trim();
-    const pass = document.getElementById('passNuevo').value;
-    const rol = document.getElementById('rolNuevo').value;
-
+    const correo = document.getElementById('correoNuevoUsuario').value.trim();
+    const pass = document.getElementById('claveNuevoUsuario').value;
+    const rol = document.getElementById('rolNuevoUsuario').value;
     if (!correo || pass.length < 6) {
         return alert('⚠️ Escribe un correo válido y contraseña de mínimo 6 caracteres');
     }
-
     try {
         const cred = await auth.createUserWithEmailAndPassword(correo, pass);
         await db.collection('usuarios').doc(cred.user.uid).set({
@@ -1041,8 +1019,8 @@ async function crearUsuario() {
         });
         alert('✅ Usuario creado exitosamente');
         registrarAccion('Usuario Creado', 'Administración', `${correo} — Rol: ${rol}`);
-        document.getElementById('correoNuevo').value = '';
-        document.getElementById('passNuevo').value = '';
+        document.getElementById('correoNuevoUsuario').value = '';
+        document.getElementById('claveNuevoUsuario').value = '';
     } catch (e) {
         alert('❌ Error: ' + e.message);
     }
