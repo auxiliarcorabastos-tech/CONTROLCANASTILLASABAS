@@ -593,4 +593,6 @@ async function registrarAccion(accion, modulo, detalle) {
         usuario: usuarioConectado.nombre || usuarioConectado.usuario,
         fechaHora: new Date()
     });
+// ✅ Agrega esta línea al final del archivo
+const ingresar = iniciarSesion;
 }
