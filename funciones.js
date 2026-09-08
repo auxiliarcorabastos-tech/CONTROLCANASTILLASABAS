@@ -67,12 +67,22 @@ function verificarSesion() {
 }
 
 // =====================================================
-// ===== INICIAR SESIÓN =====
+// ===== INICIAR SESIÓN — CORREGIDO =====
 // =====================================================
 async function iniciarSesion() {
-    const usu = document.getElementById('usuario').value.trim();
-    const clave = document.getElementById('clave').value;
-    const msj = document.getElementById('mensajeLogin');
+    // ✅ Verificar que los campos existan antes de leerlos
+    const campoUsuario = document.getElementById('usuario');
+    const campoClave = document.getElementById('clave');
+    const campoMensaje = document.getElementById('mensajeLogin');
+
+    if (!campoUsuario || !campoClave) {
+        alert('❌ Error: Faltan campos de usuario en la página');
+        return;
+    }
+
+    const usu = campoUsuario.value.trim();
+    const clave = campoClave.value;
+    const msj = campoMensaje || { textContent: '' };
 
     if (usuariosFijos[usu] && usuariosFijos[usu].clave === clave) {
         usuarioConectado = { ...usuariosFijos[usu], uid: "FIJO_" + usu };
@@ -103,7 +113,6 @@ async function iniciarSesion() {
         msj.textContent = "⚠️ Error: " + e.message;
     }
 }
-
 // ✅ SOLUCIÓN DEL ERROR: "ingresar is not defined"
 const ingresar = iniciarSesion;
 
