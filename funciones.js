@@ -51,6 +51,87 @@ let ultimoKmPorPlaca = {};
 let filtroSoloPendientes = false;
 
 // =====================================================
+// ===== 🔄 LLENAR LISTAS DESPLEGABLES (SELECTS) =====
+// =====================================================
+function llenarSelects() {
+    try {
+        // 🚗 Vehículos de Movimientos
+        const selVehMov = document.getElementById('vehiculoMov');
+        if (selVehMov) {
+            selVehMov.innerHTML = '<option value="">Seleccione vehículo</option>';
+            vehiculosMov.forEach(v => {
+                selVehMov.innerHTML += `<option value="${v.placa || v.id}">${v.placa || v.id} - ${v.tipo || ''}</option>`;
+            });
+        }
+
+        // 🚛 Vehículos de Transportadora
+        const selVehTr = document.getElementById('vehiculoTransp');
+        if (selVehTr) {
+            selVehTr.innerHTML = '<option value="">Seleccione vehículo</option>';
+            vehiculosTransp.forEach(v => {
+                selVehTr.innerHTML += `<option value="${v.placa || v.id}">${v.placa || v.id} - ${v.tipo || ''}</option>`;
+            });
+        }
+
+        // 👥 Colaboradores (Conductor en Movimientos)
+        const selCol = document.getElementById('colaboradorConductor');
+        if (selCol) {
+            selCol.innerHTML = '<option value="">Seleccione colaborador</option>';
+            colaboradores.filter(c => c.activo !== false).forEach(c => {
+                selCol.innerHTML += `<option value="${c.nombre || c.id}">${c.nombre || c.id}</option>`;
+            });
+        }
+
+        // 👤 Conductores en Transportadora
+        const selCond = document.getElementById('conductorTransp');
+        if (selCond) {
+            selCond.innerHTML = '<option value="">Seleccione conductor</option>';
+            conductores.filter(c => c.activo !== false).forEach(c => {
+                selCond.innerHTML += `<option value="${c.nombre || c.id}">${c.nombre || c.id}</option>`;
+            });
+        }
+
+        // ⛽ Combustible: Placa Kilometraje
+        const selKmPlaca = document.getElementById('vehiculoKm');
+        if (selKmPlaca) {
+            selKmPlaca.innerHTML = '<option value="">Seleccione placa</option>';
+            vehiculosMov.forEach(v => {
+                selKmPlaca.innerHTML += `<option value="${v.placa || v.id}">${v.placa || v.id}</option>`;
+            });
+        }
+
+        // ⛽ Combustible: Placa Tanqueo
+        const selTanqPlaca = document.getElementById('vehiculoTanqueo');
+        if (selTanqPlaca) {
+            selTanqPlaca.innerHTML = '<option value="">Seleccione placa</option>';
+            vehiculosMov.forEach(v => {
+                selTanqPlaca.innerHTML += `<option value="${v.placa || v.id}">${v.placa || v.id}</option>`;
+            });
+        }
+
+        // ⛽ Combustible: Quién registra
+        const selQuienKm = document.getElementById('quienRegistraKm');
+        if (selQuienKm) {
+            selQuienKm.innerHTML = '<option value="">Seleccione colaborador</option>';
+            colaboradores.filter(c => c.activo !== false).forEach(c => {
+                selQuienKm.innerHTML += `<option value="${c.nombre || c.id}">${c.nombre || c.id}</option>`;
+            });
+        }
+
+        const selQuienTanq = document.getElementById('quienTanquea');
+        if (selQuienTanq) {
+            selQuienTanq.innerHTML = '<option value="">Seleccione colaborador</option>';
+            colaboradores.filter(c => c.activo !== false).forEach(c => {
+                selQuienTanq.innerHTML += `<option value="${c.nombre || c.id}">${c.nombre || c.id}</option>`;
+            });
+        }
+
+    } catch (e) {
+        console.warn("⚠️ Algun select no se pudo llenar:", e.message);
+    }
+}
+
+// =====================================================
 // ===== 🔄 BOTÓN ACTUALIZAR INFORMACIÓN =====
 // =====================================================
 async function actualizarInformacion() {
@@ -79,10 +160,11 @@ function actualizarTextoUltimaRevision() {
 document.addEventListener('DOMContentLoaded', () => {
     const hoy = new Date().toISOString().split('T')[0];
     document.querySelectorAll('input[type="date"]').forEach(i => i.value = hoy);
-    agregarFilaRecogida();
+    if (typeof agregarFilaRecogida === 'function') agregarFilaRecogida();
     
-    // 🔄 ACTUALIZACIÓN AUTOMÁTICA DESDE FIREBASE — NO BORRA LO QUE ESCRIBES
+    // 🔄 ACTUALIZACIÓN AUTOMÁTICA DESDE FIREBASE
     tiempoActualizacionAuto = setInterval(async () => {
+        if (!usuarioConectado) return;
         console.log('🔄 Actualizando datos desde Firebase...');
         
         // Guardar lo que estás escribiendo para NO perderlo
@@ -95,10 +177,8 @@ document.addEventListener('DOMContentLoaded', () => {
             canSalida: document.getElementById('canSalidaTotal')?.value,
             observaciones: document.getElementById('observaciones')?.value
         };
-
         // ✅ Cargar datos nuevos desde Firebase
         await cargarDatosCompleto();
-
         // Restaurar lo que estabas escribiendo
         if (valoresGuardados.fecha) document.getElementById('fecha').value = valoresGuardados.fecha;
         if (valoresGuardados.vehiculo) document.getElementById('vehiculoMov').value = valoresGuardados.vehiculo;
@@ -107,10 +187,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (valoresGuardados.horaLlegada) document.getElementById('horaLlegada').value = valoresGuardados.horaLlegada;
         if (valoresGuardados.canSalida) document.getElementById('canSalidaTotal').value = valoresGuardados.canSalida;
         if (valoresGuardados.observaciones) document.getElementById('observaciones').value = valoresGuardados.observaciones;
-
         ultimaActualizacion = new Date();
         actualizarTextoUltimaRevision();
-        console.log('✅ Datos actualizados desde Firebase');
     }, 10000); // Cada 10 segundos
 });
 
@@ -169,7 +247,7 @@ async function cargarDatosCompleto() {
         });
         console.log(`✅ Movimientos Transp cargados: ${movimientosTransp.length}`);
 
-        // ⛽ Si tienes datos de combustible/kilometraje
+        // ⛽ Vehículos base
         const kmRef = await db.collection('vehiculos').get();
         console.log(`✅ Vehículos base: ${kmRef.size}`);
 
@@ -177,7 +255,7 @@ async function cargarDatosCompleto() {
         llenarSelects();
 
         // 📋 MOSTRAR EN PANTALLA
-        dibujarListaMovimientos();
+        dibujarMovimientos();
         dibujarListaColaboradoresAdmin();
         dibujarListaVehiculosMovAdmin();
         dibujarListaVehiculosTranspAdmin();
@@ -185,20 +263,15 @@ async function cargarDatosCompleto() {
 
         // ✅ Actualizar hora
         const ahora = new Date().toLocaleTimeString('es-CO');
-        document.getElementById('textoUltimaActualizacion').textContent = `Última actualización: ${ahora}`;
+        const el = document.getElementById('textoUltimaActualizacion');
+        if (el) el.textContent = `Última actualización: ${ahora}`;
 
     } catch (error) {
         console.error("❌ Error al cargar datos:", error);
         alert("⚠️ " + error.message);
     }
 }
-// =====================================================
-// 🔄 BOTÓN ACTUALIZAR APP
-// =====================================================
-async function actualizarInformacion() {
-    await cargarDatosCompleto();
-    alert("✅ Datos actualizados correctamente");
-}
+
 // =====================================================
 // ===== NAVEGACIÓN Y PESTAÑAS =====
 // =====================================================
@@ -207,11 +280,12 @@ function alternarMenu() {
 }
 function cambiarPestaña(nombre) {
     document.querySelectorAll('.btn-pestaña').forEach(b => b.classList.remove('activa'));
-    event.target.classList.add('activa');
+    if (event && event.target) event.target.classList.add('activa');
     document.querySelectorAll('.pestaña').forEach(p => { p.classList.remove('activa'); p.classList.add('oculto'); });
-    document.getElementById('pest-' + nombre).classList.remove('oculto');
-    document.getElementById('pest-' + nombre).classList.add('activa');
-    document.getElementById('tituloPestaña').textContent = event.target.textContent.trim();
+    const pestaña = document.getElementById('pest-' + nombre);
+    if (pestaña) pestaña.classList.remove('oculto');
+    const titulo = document.getElementById('tituloPestaña');
+    if (titulo && event && event.target) titulo.textContent = event.target.textContent.trim();
     if (window.innerWidth < 768) document.getElementById('sidebar').classList.remove('mostrar');
     if (nombre === 'admin') cargarListasAdmin();
     if (nombre === 'combustible') cargarDatosCombustibleCompleto();
@@ -219,15 +293,17 @@ function cambiarPestaña(nombre) {
 }
 function cambiarSubpestañaAdmin(nombre) {
     document.querySelectorAll('.btn-subpestaña').forEach(b => b.classList.remove('activa'));
-    event.target.classList.add('activa');
+    if (event && event.target) event.target.classList.add('activa');
     document.querySelectorAll('.subpestaña-admin').forEach(p => p.classList.add('oculto'));
-    document.getElementById('sub-admin-' + nombre).classList.remove('oculto');
+    const sub = document.getElementById('sub-admin-' + nombre);
+    if (sub) sub.classList.remove('oculto');
 }
 function cambiarSubpestañaCombustible(nombre) {
     document.querySelectorAll('.btn-subcombustible').forEach(b => b.classList.remove('activa'));
-    event.target.classList.add('activa');
+    if (event && event.target) event.target.classList.add('activa');
     document.querySelectorAll('.subpestaña-combustible').forEach(p => p.classList.add('oculto'));
-    document.getElementById('subcomb-' + nombre).classList.remove('oculto');
+    const sub = document.getElementById('subcomb-' + nombre);
+    if (sub) sub.classList.remove('oculto');
     if (nombre === 'kilometraje') cargarInformeKilometraje();
     if (nombre === 'tanqueo') cargarInformeTanqueo();
 }
@@ -448,7 +524,7 @@ async function guardarMovimiento() {
         document.getElementById('canLlegadaTotal').value = '';
         document.getElementById('kilosTotales').value = '';
         document.getElementById('observaciones').value = '';
-        agregarFilaRecogida();
+        if (typeof agregarFilaRecogida === 'function') agregarFilaRecogida();
         await cargarDatosCompleto();
     } catch (e) {
         alert('❌ ' + e.message);
@@ -463,11 +539,11 @@ function alternarFiltroMovimientos() {
     const btn = document.getElementById('btnFiltroMov');
     const txt = document.getElementById('textoFiltro');
     if (filtroSoloPendientes) {
-        btn.classList.add('activo');
-        txt.textContent = '📋 Ver Todos';
+        btn?.classList.add('activo');
+        if (txt) txt.textContent = '📋 Ver Todos';
     } else {
-        btn.classList.remove('activo');
-        txt.textContent = '⏳ Ver Pendientes';
+        btn?.classList.remove('activo');
+        if (txt) txt.textContent = '⏳ Ver Pendientes';
     }
     dibujarMovimientos();
 }
@@ -478,23 +554,20 @@ function dibujarMovimientos() {
     
     // Aplicar filtro de pendientes
     if (filtroSoloPendientes) {
-        lista = lista.filter(m => !m.horaLlegada || m.totalCanastillasLlegada === 0);
+        lista = lista.filter(m => !m.horaLlegada || !m.totalCanastillasLlegada || m.totalCanastillasLlegada === 0);
     }
-
     if (lista.length === 0) {
         c.innerHTML = '<p class="text-center">Sin movimientos registrados</p>';
         return;
     }
-
     // Separar VTH y Vehículos
     const vth = [];
     const vehiculos = [];
     lista.forEach(m => {
         const v = vehiculosMov.find(vh => vh.placa === m.placa);
-        if (v && v.tipo.includes('Tracción Humana')) vth.push(m);
+        if (v && v.tipo && v.tipo.includes('Tracción Humana')) vth.push(m);
         else vehiculos.push(m);
     });
-
     let html = '';
     if (vth.length > 0) {
         html += `<div class="grupo-titulo grupo-vth">🚲 Vehículos de Tracción Humana (${vth.length})</div>`;
@@ -543,7 +616,7 @@ function cargarEnFormulario(id) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 async function eliminarMovimiento(id) {
-    if (usuarioConectado.rol !== 'admin') {
+    if (usuarioConectado?.rol !== 'admin') {
         alert('🔒 Solo el administrador puede eliminar registros');
         return;
     }
@@ -554,12 +627,12 @@ async function eliminarMovimiento(id) {
     await cargarDatosCompleto();
 }
 function filtrarMovimientos() {
-    const b = document.getElementById('buscarMov').value.toLowerCase();
+    const b = document.getElementById('buscarMov')?.value.toLowerCase() || '';
     const c = document.getElementById('listaMovimientos');
     if (!c) return;
     const filtro = movimientos.filter(m => 
-        m.placa.toLowerCase().includes(b) || 
-        m.colaboradorConductor.toLowerCase().includes(b)
+        (m.placa && m.placa.toLowerCase().includes(b)) || 
+        (m.colaboradorConductor && m.colaboradorConductor.toLowerCase().includes(b))
     );
     if (filtro.length === 0) {
         c.innerHTML = '<p class="text-center">Sin coincidencias</p>';
@@ -568,17 +641,7 @@ function filtrarMovimientos() {
     let html = '';
     filtro.forEach(m => {
         const esPendiente = !m.horaLlegada || !m.totalCanastillasLlegada || m.totalCanastillasLlegada === 0;
-        html += `
-        <div class="fila-lista ${esPendiente ? 'pendiente' : ''}">
-            <div>
-                <strong>${m.fecha} | ${m.placa}</strong><br>
-                Conductor: ${m.colaboradorConductor} | 📦 Salieron: ${m.totalCanastillasSalida} / Llegaron: ${m.totalCanastillasLlegada}
-            </div>
-            <div>
-                <button class="btn-editar" onclick="cargarEnFormulario('${m.id}')">✏️</button>
-                ${usuarioConectado?.rol === 'admin' ? `<button class="btn-eliminar" onclick="eliminarMovimiento('${m.id}')">🗑️</button>` : ''}
-            </div>
-        </div>`;
+        html += dibujarFilaMovimiento(m);
     });
     c.innerHTML = html;
 }
@@ -828,7 +891,8 @@ function exportarKilometrajeExcel() {
     }));
     const hoja = XLSX.utils.json_to_sheet(datos);
     const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, "Kilometraje Diario");
+    XLSX.utils.book_append_s
+  sheet(libro, hoja, "Kilometraje Diario");
     XLSX.writeFile(libro, `Kilometraje_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.xlsx`);
     alert('✅ Excel de Kilometraje generado');
 }
@@ -853,7 +917,6 @@ function exportarTanqueoExcel() {
     XLSX.writeFile(libro, `Tanqueo_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.xlsx`);
     alert('✅ Excel de Tanqueo generado');
 }
-
 // =====================================================
 // ===== 📊 INFORMES =====
 // =====================================================
@@ -880,7 +943,7 @@ function consultarMovimientos() {
         <div style="overflow-x:auto;">
         <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
         <thead style="background:#dbeafe;">
-                    <tr>
+            <tr>
                 <th style="border:1px solid #ccc;padding:6px;">Fecha</th>
                 <th style="border:1px solid #ccc;padding:6px;">Placa</th>
                 <th style="border:1px solid #ccc;padding:6px;">Conductor</th>
@@ -923,7 +986,6 @@ function consultarMovimientos() {
         </table>
         </div>`;
 }
-
 function exportarMovimientosExcel() {
     if (!ultimosResultados.movimientos || ultimosResultados.movimientos.length === 0) {
         return alert('⚠️ Realice una consulta primero antes de exportar');
@@ -947,7 +1009,6 @@ function exportarMovimientosExcel() {
     XLSX.writeFile(libro, `Movimientos_${new Date().toLocaleDateString('es-CO').replace(/\//g, '-')}.xlsx`);
     alert('✅ Excel generado correctamente');
 }
-
 // =====================================================
 // ===== ⚙️ ADMINISTRACIÓN =====
 // =====================================================
@@ -957,7 +1018,6 @@ function cargarListasAdmin() {
     dibujarListaVehiculosTranspAdmin();
     dibujarListaConductoresAdmin();
 }
-
 async function agregarColaboradorAdmin() {
     if (usuarioConectado?.rol !== 'admin') return alert('🔒 Solo el administrador puede agregar');
     const nombre = document.getElementById('nombreColabAdmin').value.trim();
@@ -974,7 +1034,6 @@ async function agregarColaboradorAdmin() {
     registrarAccion('Colaborador Agregado', 'Administración', nombre);
     await cargarDatosCompleto();
 }
-
 function dibujarListaColaboradoresAdmin() {
     const c = document.getElementById('listaColaboradoresAdmin');
     if (!c) return;
@@ -990,14 +1049,12 @@ function dibujarListaColaboradoresAdmin() {
             </button>
         </div>`).join('');
 }
-
 async function cambiarEstadoColab(id, activar) {
     if (usuarioConectado?.rol !== 'admin') return alert('🔒 Solo el administrador');
     await db.collection('colaboradores').doc(id).update({ activo: activar });
     registrarAccion(activar ? 'Colaborador Activado' : 'Colaborador Inactivado', 'Administración', '');
     await cargarDatosCompleto();
 }
-
 async function agregarVehiculoMovAdmin() {
     if (usuarioConectado?.rol !== 'admin') return alert('🔒 Solo el administrador');
     const placa = document.getElementById('placaVehiculoMovAdmin').value.trim().toUpperCase();
@@ -1016,7 +1073,6 @@ async function agregarVehiculoMovAdmin() {
     registrarAccion('Vehículo Agregado', 'Administración', `${placa} — ${tipo}`);
     await cargarDatosCompleto();
 }
-
 function dibujarListaVehiculosMovAdmin() {
     const c = document.getElementById('listaVehiculosMovAdmin');
     if (!c) return;
@@ -1029,7 +1085,6 @@ function dibujarListaVehiculosMovAdmin() {
             <span><strong>${v.placa}</strong> — ${v.tipo}</span>
         </div>`).join('');
 }
-
 function dibujarListaVehiculosTranspAdmin() {
     const c = document.getElementById('listaVehiculosTranspAdmin');
     if (!c) return;
@@ -1042,7 +1097,6 @@ function dibujarListaVehiculosTranspAdmin() {
             <span><strong>${v.placa}</strong> — ${v.tipo}</span>
         </div>`).join('');
 }
-
 function dibujarListaConductoresAdmin() {
     const c = document.getElementById('listaConductoresAdmin');
     if (!c) return;
@@ -1055,7 +1109,6 @@ function dibujarListaConductoresAdmin() {
             <span><strong>${co.nombre}</strong> ${co.activo === false ? '❌ INACTIVO' : '✅ ACTIVO'}</span>
         </div>`).join('');
 }
-
 async function crearUsuario() {
     if (usuarioConectado?.rol !== 'admin') return alert('🔒 Solo el administrador puede crear usuarios');
     let correo = document.getElementById('correoNuevoUsuario').value.trim();
@@ -1079,7 +1132,6 @@ async function crearUsuario() {
         alert('❌ Error: ' + e.message);
     }
 }
-
 // =====================================================
 // ===== 📝 AUDITORÍA / REGISTRO DE ACCIONES =====
 // =====================================================
