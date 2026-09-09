@@ -320,7 +320,7 @@
         </select>
         <button class="bg-green-600 text-white px-3 py-1 rounded" onclick="agregarVehiculoTransp()">Agregar Vehículo</button>
     </div>
-    <!-- ============================================== -->
+   <!-- ============================================== -->
     <!-- PESTAÑA: COMBUSTIBLE -->
     <!-- ============================================== -->
     <div id="pest-combustible" class="pestaña oculto">
@@ -339,7 +339,13 @@
             </div>
             <button class="bg-blue-600 text-white px-4 py-2 rounded mt-3" onclick="guardarKilometrajeDiario()">💾 Guardar Kilometraje</button>
             <p class="text-sm text-gray-500 mt-1">💡 Puede guardar solo el de la mañana y completar el de la tarde más tarde</p>
+
+            <!-- ⏳ LISTA DE PENDIENTES POR COMPLETAR -->
             <hr class="my-4">
+            <h4 class="font-bold text-orange-600">⏳ Registros Pendientes (sin completar tarde)</h4>
+            <div id="pendientesKilometraje" class="mt-2 mb-4"></div>
+
+            <!-- 📊 CONSULTA POR FECHAS -->
             <h4 class="font-bold">📊 Consulta por Fechas</h4>
             <div class="grid grid-cols-2 gap-2">
                 <div><label>Fecha Inicio</label><input type="date" id="fechaInicioKm"></div>
