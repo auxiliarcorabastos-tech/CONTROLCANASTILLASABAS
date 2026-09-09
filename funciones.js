@@ -409,27 +409,59 @@ function cambiarSubpestañaCombustible(nombre) {
 async function guardarKilometrajeDiario() {
     const fecha = document.getElementById('fechaKm').value;
     const placa = document.getElementById('vehiculoKm').value;
-    const kmInicial = parseFloat(document.getElementById('kmInicial').value);
-    const kmFinal = parseFloat(document.getElementById('kmFinal').value);
+    const kmManana = parseFloat(document.getElementById('kmManana').value) || null;
+    const kmTarde = parseFloat(document.getElementById('kmTarde').value) || null;
     const colaborador = document.getElementById('quienRegistraKm').value;
-    if (!fecha || !placa || isNaN(kmInicial) || isNaN(kmFinal) || !colaborador) {
-        return alert('⚠️ Complete todos los campos');
+
+    if (!fecha || !placa || !colaborador) {
+        return alert('⚠️ Complete Fecha, Placa y Quién Registra');
     }
-    const kmRecorridos = kmFinal - kmInicial;
-    if (kmRecorridos < 0) return alert('⚠️ Km Final debe ser mayor al Inicial');
-    await db.collection('kilometraje').add({
-        fecha, placa, kmInicial, kmFinal, kmRecorridos, colaborador,
+    if (kmManana === null && kmTarde === null) {
+        return alert('⚠️ Escriba al menos el Kilometraje de la Mañana o de la Tarde');
+    }
+
+    // Buscar si ya existe registro HOY para esta PLACA
+    const registroExistente = kilometraje.find(k => k.fecha === fecha && k.placa === placa);
+
+    let kmRecorridos = null;
+    if (kmManana !== null && kmTarde !== null) {
+        if (kmTarde < kmManana) return alert('⚠️ Km Tarde debe ser MAYOR a Km Mañana');
+        kmRecorridos = kmTarde - kmManana;
+    }
+
+    const datos = {
+        fecha, placa,
+        kmManana: kmManana,
+        kmTarde: kmTarde,
+        kmRecorridos: kmRecorridos,
+        colaborador,
         usuario: usuarioActivo.email || usuarioActivo.usuario,
         fechaHora: new Date()
-    });
-    alert(`✅ Guardado. Km recorridos: ${kmRecorridos}`);
-    registrarAccion('Registro Kilometraje', 'Combustible', `${placa} — ${kmRecorridos} km`);
-    document.getElementById('fechaKm').valueAsDate = new Date();
-    document.getElementById('vehiculoKm').value = '';
-    document.getElementById('kmInicial').value = '';
-    document.getElementById('kmFinal').value = '';
-    document.getElementById('quienRegistraKm').value = '';
-    await cargarDatosCompleto();
+    };
+
+    try {
+        if (registroExistente) {
+            // ✅ ACTUALIZAR: Completar el de la tarde sin borrar lo de la mañana
+            await db.collection('kilometraje').doc(registroExistente.id).update(datos);
+            alert('✅ Registro ACTUALIZADO. Kilometraje de la tarde guardado.');
+            registrarAccion('Completar Kilometraje', 'Combustible', `${placa} — Mañana:${kmManana} Tarde:${kmTarde}`);
+        } else {
+            // ✅ CREAR NUEVO
+            await db.collection('kilometraje').add(datos);
+            alert('✅ Kilometraje de la Mañana GUARDADO. Puede completar el de la tarde más tarde.');
+            registrarAccion('Registro Kilometraje', 'Combustible', `${placa} — Mañana:${kmManana}`);
+        }
+
+        // Limpiar formulario
+        document.getElementById('fechaKm').valueAsDate = new Date();
+        document.getElementById('vehiculoKm').value = '';
+        document.getElementById('kmManana').value = '';
+        document.getElementById('kmTarde').value = '';
+        document.getElementById('quienRegistraKm').value = '';
+        await cargarDatosCompleto();
+    } catch (error) {
+        alert('❌ Error: ' + error.message);
+    }
 }
 
 function cargarInformeKilometraje() {
@@ -443,25 +475,57 @@ function cargarInformeKilometraje() {
     c.innerHTML = `
         <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
         <thead style="background:#dbeafe;"><tr>
-            <th>Fecha</th><th>Placa</th><th>Km Inic</th><th>Km Fin</th><th>Recorridos</th><th>Colaborador</th>
+            <th>Fecha</th><th>Placa</th><th>🌅 Km Mañana</th><th>🌇 Km Tarde</th><th>✅ Recorridos</th><th>Colaborador</th>
         </tr></thead><tbody>
-        ${res.map(r=>`<tr><td>${r.fecha}</td><td>${r.placa}</td><td>${r.kmInicial}</td><td>${r.kmFinal}</td><td>${r.kmRecorridos}</td><td>${r.colaborador}</td></tr>`).join('')}
+        ${res.map(r=>`<tr>
+            <td>${r.fecha}</td>
+            <td>${r.placa}</td>
+            <td>${r.kmManana || '--'}</td>
+            <td>${r.kmTarde || '--'}</td>
+            <td>${r.kmRecorridos !== null ? r.kmRecorridos : '⏳ Pendiente'}</td>
+            <td>${r.colaborador}</td>
+        </tr>`).join('')}
         </tbody></table>`;
 }
 
-function exportarKilometrajeExcel() {
-    if (!ultimosResultados.kilometraje?.length) return alert('Consulte primero');
-    const datos = ultimosResultados.kilometraje.map(r => ({
-        Fecha: r.fecha, Placa: r.placa, KmInicial: r.kmInicial, KmFinal: r.kmFinal,
-        KmRecorridos: r.kmRecorridos, Colaborador: r.colaborador, Usuario: r.usuario || ''
-    }));
-    const hoja = XLSX.utils.json_to_sheet(datos);
-    const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, "Kilometraje");
-    XLSX.writeFile(libro, `Kilometraje_${new Date().toLocaleDateString('es-CO').replace(/\//g,'-')}.xlsx`);
-    alert('✅ Excel de Kilometraje generado');
-}
+// ✅ En la función dibujarMovimientos, filtrar SOLO los del DÍA
+function dibujarMovimientos() {
+    const c = document.getElementById('listaMovimientos');
+    if (!c) return;
 
+    // 📅 SOLO movimientos de HOY
+    const hoy = new Date().toISOString().split('T')[0]; // formato YYYY-MM-DD
+    let lista = movimientos.filter(m => m.fecha === hoy);
+
+    const busqueda = (document.getElementById('buscarMov')?.value || '').toLowerCase();
+    if (filtroPendientes) lista = lista.filter(m => !m.horaLlegada);
+    if (busqueda) lista = lista.filter(m => 
+        m.placa.toLowerCase().includes(busqueda) || 
+        m.colaboradorConductor.toLowerCase().includes(busqueda));
+
+    if (lista.length === 0) {
+        c.innerHTML = '<p class="text-center">📭 Sin movimientos registrados HOY</p>';
+        return;
+    }
+
+    c.innerHTML = lista.map(m => {
+        const esPendiente = !m.horaLlegada;
+        return `
+        <div class="fila-lista ${esPendiente?'pendiente':''}">
+            <div>
+                <strong>📅 ${m.fecha}</strong> | 🚗 ${m.placa} | 👤 ${m.colaboradorConductor}<br>
+                🕒 Salida: ${m.horaSalida || '--'} | 🕐 Llegada: ${m.horaLlegada || '--'}<br>
+                📦 Salida: ${m.totalCanastillasSalida} | 📦 Llegada: ${m.totalCanastillasLlegada} | ⚖️ Kilos: ${m.kilosTotales || 0}
+                ${m.observaciones?`<br>📝 ${m.observaciones}`:''}
+                ${esPendiente?'<span class="etiqueta-estado etiqueta-pend">⏳ PENDIENTE</span>':'<span class="etiqueta-estado etiqueta-cerr">✅ COMPLETADO</span>'}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;">
+                <button class="btn-editar" onclick="cargarEnFormulario('${m.id}')">✏️ Editar</button>
+                ${usuarioActivo?.rol==='admin'?`<button class="btn-eliminar" onclick="eliminarMovimiento('${m.id}')">🗑️ Eliminar</button>`:''}
+            </div>
+        </div>`;
+    }).join('');
+}
 // ==================================================
 // ===== COMBUSTIBLE - TANQUEO =====
 // ==================================================
