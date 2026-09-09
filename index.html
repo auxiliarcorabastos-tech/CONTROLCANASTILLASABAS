@@ -333,11 +333,12 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div><label>Fecha</label><input type="date" id="fechaKm"></div>
                 <div><label>Placa</label><select id="vehiculoKm"></select></div>
-                <div><label>Kilometraje Inicial</label><input type="number" id="kmInicial" placeholder="0"></div>
-                <div><label>Kilometraje Final</label><input type="number" id="kmFinal" placeholder="0"></div>
+                <div><label>🌅 Kilometraje Mañana</label><input type="number" id="kmManana" placeholder="Km al iniciar jornada"></div>
+                <div><label>🌇 Kilometraje Tarde</label><input type="number" id="kmTarde" placeholder="Km al finalizar jornada"></div>
                 <div><label>Quién Registra</label><select id="quienRegistraKm"></select></div>
             </div>
             <button class="bg-blue-600 text-white px-4 py-2 rounded mt-3" onclick="guardarKilometrajeDiario()">💾 Guardar Kilometraje</button>
+            <p class="text-sm text-gray-500 mt-1">💡 Puede guardar solo el de la mañana y completar el de la tarde más tarde</p>
             <hr class="my-4">
             <h4 class="font-bold">📊 Consulta por Fechas</h4>
             <div class="grid grid-cols-2 gap-2">
