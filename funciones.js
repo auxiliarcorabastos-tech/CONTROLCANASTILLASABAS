@@ -147,6 +147,7 @@ async function cargarDatosCompleto() {
     llenarSelects();
     llenarSelectsTransportadora();
     dibujarMovimientos();
+    cargarPendientesKilometraje();
     document.getElementById("textoUltimaActualizacion").textContent = "Última actualización: " + new Date().toLocaleTimeString('es-CO');
 }
 
@@ -406,6 +407,47 @@ function cambiarSubpestañaCombustible(nombre) {
     document.getElementById(`subcomb-${nombre}`).classList.remove('oculto');
 }
 
+// ==================================================
+// ===== ⏳ CARGAR TODOS LOS PENDIENTES =====
+// ==================================================
+function cargarPendientesKilometraje() {
+    // ✅ TODOS los que NO tienen km de la tarde completado (cualquier fecha)
+    const pendientes = kilometraje.filter(k => k.kmTarde === null || k.kmTarde === undefined || k.kmTarde === '');
+    const c = document.getElementById('pendientesKilometraje');
+    if (!c) return;
+    if (pendientes.length === 0) {
+        c.innerHTML = '<p class="text-sm text-green-600">✅ No hay registros pendientes por completar</p>';
+        return;
+    }
+    c.innerHTML = `
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+        <thead style="background:#fed7aa;"><tr>
+            <th>Fecha</th><th>Placa</th><th>🌅 Km Mañana</th><th>Colaborador</th><th>Acción</th>
+        </tr></thead><tbody>
+        ${pendientes.map(r=>`<tr style="background:#fff7ed;">
+            <td>${r.fecha}</td>
+            <td>${r.placa}</td>
+            <td>${r.kmManana}</td>
+            <td>${r.colaborador}</td>
+            <td><button class="bg-orange-500 text-white px-2 py-1 rounded text-xs" onclick="cargarParaCompletar('${r.id}')">✏️ Completar Tarde</button></td>
+        </tr>`).join('')}
+        </tbody></table>`;
+}
+
+// ==================================================
+// ===== 📝 CARGAR PARA COMPLETAR =====
+// ==================================================
+function cargarParaCompletar(id) {
+    const reg = kilometraje.find(k => k.id === id);
+    if (!reg) return;
+    document.getElementById('fechaKm').value = reg.fecha;
+    document.getElementById('vehiculoKm').value = reg.placa;
+    document.getElementById('kmManana').value = reg.kmManana;
+    document.getElementById('kmTarde').value = '';
+    document.getElementById('kmTarde').focus();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 async function guardarKilometrajeDiario() {
     const fecha = document.getElementById('fechaKm').value;
     const placa = document.getElementById('vehiculoKm').value;
@@ -420,7 +462,7 @@ async function guardarKilometrajeDiario() {
         return alert('⚠️ Escriba al menos el Kilometraje de la Mañana o de la Tarde');
     }
 
-    // Buscar si ya existe registro HOY para esta PLACA
+    // Buscar si ya existe registro para esta FECHA y PLACA
     const registroExistente = kilometraje.find(k => k.fecha === fecha && k.placa === placa);
 
     let kmRecorridos = null;
@@ -458,6 +500,7 @@ async function guardarKilometrajeDiario() {
         document.getElementById('kmManana').value = '';
         document.getElementById('kmTarde').value = '';
         document.getElementById('quienRegistraKm').value = '';
+
         await cargarDatosCompleto();
     } catch (error) {
         alert('❌ Error: ' + error.message);
@@ -468,10 +511,12 @@ function cargarInformeKilometraje() {
     const fi = document.getElementById('fechaInicioKm').value;
     const ff = document.getElementById('fechaFinKm').value;
     if (!fi || !ff) return alert('Seleccione fechas');
+
     const res = kilometraje.filter(k => k.fecha >= fi && k.fecha <= ff);
     ultimosResultados.kilometraje = res;
     const c = document.getElementById('resultadoKilometraje');
     if (res.length === 0) return c.innerHTML = '<p class="text-center">📭 Sin datos</p>';
+
     c.innerHTML = `
         <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
         <thead style="background:#dbeafe;"><tr>
@@ -488,7 +533,9 @@ function cargarInformeKilometraje() {
         </tbody></table>`;
 }
 
-// ✅ En la función dibujarMovimientos, filtrar SOLO los del DÍA
+// ==================================================
+// ===== 📋 LISTA DE MOVIMIENTOS (SOLO DEL DÍA) =====
+// ==================================================
 function dibujarMovimientos() {
     const c = document.getElementById('listaMovimientos');
     if (!c) return;
