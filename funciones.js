@@ -30,7 +30,7 @@ let datosVehiculos = [];
 let tiposVehiculo = ['Moto', 'Vehículo de Tracción Humana (VTH)', 'Carguero', 'Camión', 'Otro'];
 let idEdicion = null;
 let idEdicionTransp = null;
-let filtroSelectores = 'todos'; // 🔍 FILTRO DE ARRIBA: afecta SOLO los selectores
+let filtroSelectores = 'todos'; // 🔍 FILTRO SOLO INFORMATIVO — NO BLOQUEA
 let filasRecogida = [];
 let tiempoActualizacion = null;
 let ultimosResultados = { movimientos: [], kilometraje: [], tanqueo: [] };
@@ -189,7 +189,7 @@ async function cargarDatosCompleto() {
     dibujarListaMovimientosTransp();
     dibujarPendientesKilometraje();
     dibujarListaPlacasMant();
-    if (placaSeleccionada) verHistorialVehiculo(placaSeleccionada);
+    if (typeof placaSeleccionada !== 'undefined' && placaSeleccionada) verHistorialVehiculo(placaSeleccionada);
 
     restaurarDatosFormulario();
     document.getElementById("textoUltimaActualizacion").textContent = "Última: " + new Date().toLocaleTimeString();
@@ -215,10 +215,9 @@ function iniciarActualizacionAutomatica() {
 }
 
 // =====================================================
-// ===== 🔍 FILTRO DE SELECTORES (ARRIBA) =====
+// ===== 🔍 FILTRO DE SELECTORES — SOLO INFORMATIVO =====
 // =====================================================
-// ⚠️ Este filtro SOLO cambia qué vehículos y conductores aparecen para elegir
-// NO afecta la lista de movimientos de abajo
+// ⚠️ MUESTRA quién está libre o en ruta, PERO NO BLOQUEA al guardar
 function cambiarFiltroSelectores(nombre) {
     filtroSelectores = nombre;
     document.querySelectorAll('.btn-filtro-mov').forEach(b => b.classList.remove('activa'));
@@ -227,7 +226,7 @@ function cambiarFiltroSelectores(nombre) {
 }
 
 // =====================================================
-// ===== 📋 LLENAR SELECTS CON FILTRO DE DISPONIBLES =====
+// ===== 📋 LLENAR SELECTS CON FILTRO INFORMATIVO =====
 // =====================================================
 function llenarSelects() {
     const selVeh = document.getElementById('vehiculoMov');
@@ -245,19 +244,17 @@ function llenarSelects() {
     let listaVeh = vehiculosMov.filter(v => v.estado !== 'inactivo');
     let listaCol = colaboradores.filter(c => (c.estado || 'activo') === 'activo');
 
-    // 🔄 Aplicar filtro SOLO a los selectores del formulario
+    // 🔄 Aplicar filtro SOLO para MOSTRAR en el selector
     if (filtroSelectores === 'disponibles') {
-        // ✅ Solo lo que NO está en ruta
         listaVeh = listaVeh.filter(v => !placasEnRuta.includes(v.placa));
         listaCol = listaCol.filter(c => !colsEnRuta.includes(c.nombre));
     } else if (filtroSelectores === 'enruta') {
-        // 🚗 Solo lo que SÍ está pendiente
         listaVeh = listaVeh.filter(v => placasEnRuta.includes(v.placa));
         listaCol = listaCol.filter(c => colsEnRuta.includes(c.nombre));
     }
     // Si es 'todos' → muestra todo sin filtrar
 
-    // 📦 Opciones para el formulario de Movimientos (con filtro aplicado)
+    // 📦 Opciones para el formulario de Movimientos (con filtro de visualización)
     const optCol = listaCol.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
     const optVeh = listaVeh.map(v => `<option value="${v.placa}">${v.placa} — ${v.tipo}</option>`).join('');
 
@@ -411,7 +408,7 @@ function recalcularTotalesRecogida() {
 }
 
 // =====================================================
-// ===== 📦 GUARDAR MOVIMIENTO — VALIDACIÓN CORREGIDA =====
+// ===== 📦 GUARDAR MOVIMIENTO — ✅ SIN BLOQUEO =====
 // =====================================================
 async function guardarMovimiento() {
     const fecha = document.getElementById('fecha').value;
@@ -429,13 +426,8 @@ async function guardarMovimiento() {
         return alert('⚠️ Complete Fecha, Placa, Conductor y Hora de Salida');
     }
 
-    // ✅ VALIDACIÓN CORREGIDA: BLOQUEA SOLO SI HAY OTRO MOVIMIENTO PENDIENTE
-    // Si el movimiento ya tiene hora de llegada → PERMITE crear uno nuevo
-    const pendVeh = movimientos.find(m => m.placa === placa && !m.horaLlegada && m.id !== id);
-    if (pendVeh) return alert(`⚠️ El vehículo ${placa} está EN RUTA. Complete primero su llegada.`);
-    
-    const pendCond = movimientos.find(m => m.colaboradorConductor === conductor && !m.horaLlegada && m.id !== id);
-    if (pendCond) return alert(`⚠️ El conductor ${conductor} está EN RUTA. Complete primero su llegada.`);
+    // ✅ YA NO HAY BLOQUEO: Se permite crear y editar libremente
+    // Los filtros de arriba SOLO muestran información visual
 
     const datos = {
         fecha, placa, colaboradorConductor: conductor,
@@ -604,6 +596,8 @@ function dibujarListaMovimientosTransp() {
     if (!c) return;
     const hoy = new Date().toISOString().split('T')[0];
     const lista = movimientos.filter(m => m.fecha === hoy);
+
+    llenarSelectsTransportadora();
 
     if (!lista.length) {
         c.innerHTML = '<p class="text-center text-gray-500 py-4">📭 Sin movimientos de Transportadora hoy</p>';
@@ -842,6 +836,7 @@ function dibujarListaPlacasMant() {
 function verHistorialVehiculo(placa) {
     placaSeleccionada = placa;
     document.getElementById('placaMantSeleccionada').textContent = placa;
+    document.getElementById('formIngresoTaller').classList.remove('oculto');
     const datos = datosVehiculos.find(d => d.placa === placa);
     document.getElementById('datosVehiculoSeleccionado').innerHTML = datos ? `
         <p><strong>Tipo:</strong> ${datos.tipo || '—'}</p>
@@ -854,7 +849,7 @@ function verHistorialVehiculo(placa) {
         <div class="p-2 border rounded mb-2 bg-gray-50">
             <p><strong>Ingreso:</strong> ${h.fechaIngreso} | <strong>Salida:</strong> ${h.fechaSalida || '⏳ EN TALLER'}</p>
             <p><strong>Motivo:</strong> ${h.motivo}</p>
-            <p><strong>Observaciones:</strong> ${h.observaciones || '—'}</p>
+            <p><strong>Entregó:</strong> ${h.quienEntrega || '—'}</p>
         </div>
     `).join('') : '<p class="text-sm text-gray-500">Sin historial de mantenimiento</p>';
 
@@ -1116,20 +1111,3 @@ async function registrarAccion(accion, modulo, detalle) {
         });
     } catch (e) { /* Silencioso */ }
 }
-
-// =====================================================
-// ===== INICIO AUTOMÁTICO AL CARGAR =====
-// =====================================================
-window.onload = function() {
-    document.getElementById('fecha').valueAsDate = new Date();
-    document.getElementById('fechaTransp').valueAsDate = new Date();
-    document.getElementById('fechaKm').valueAsDate = new Date();
-    document.getElementById('fechaTanqueo').valueAsDate = new Date();
-    document.getElementById('fechaIngreso').valueAsDate = new Date();
-    document.getElementById('fechaInicioMov').valueAsDate = new Date();
-    document.getElementById('fechaFinMov').valueAsDate = new Date();
-    document.getElementById('fechaInicioKm').valueAsDate = new Date();
-    document.getElementById('fechaFinKm').valueAsDate = new Date();
-    document.getElementById('fechaInicioTanqueo').valueAsDate = new Date();
-    document.getElementById('fechaFinTanqueo').valueAsDate = new Date();
-};
