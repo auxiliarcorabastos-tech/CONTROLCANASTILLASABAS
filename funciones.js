@@ -12,7 +12,6 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const auth = firebase.auth();
 
 // =====================================================
 // ===== VARIABLES GLOBALES =====
@@ -25,16 +24,15 @@ let vehiculosTransp = [];
 let conductores = [];
 let kilometraje = [];
 let tanqueo = [];
+let mantenimientos = [];
 let idEdicion = null;
-let ultimosResultados = { movimientos: [], kilometraje: [], tanqueo: [] };
 let tiempoSesion;
-let ultimoCambioDatos = Date.now();
 
 // Usuarios fijos predeterminados
 const usuariosFijos = [
     { usuario: "jgarnica", clave: "123456", rol: "admin", nombre: "J. Garnica" },
     { usuario: "jfigueroa", clave: "3134630773", rol: "admin", nombre: "J. Figueroa" },
-    { usuario: "estudiante", clave: "123456", rol: "usuario", nombre: "Estudiante", modulosPermitidos: ['movimientos'] }
+    { usuario: "estudiante", clave: "123456", rol: "usuario", nombre: "Estudiante" }
 ];
 
 // =====================================================
@@ -46,7 +44,6 @@ async function iniciarSesion() {
     const error = document.getElementById('mensajeError');
     error.textContent = '';
 
-    // Buscar en usuarios fijos
     const fijo = usuariosFijos.find(u => u.usuario === usu && u.clave === clave);
     if (fijo) {
         usuarioActivo = { ...fijo, uid: "FIJO_" + fijo.usuario };
@@ -54,43 +51,31 @@ async function iniciarSesion() {
         return;
     }
 
-    if (!usu || !clave) {
-        error.textContent = '⚠️ Escribe usuario y contraseña';
-        return;
-    }
-    error.textContent = '❌ Usuario no registrado o contraseña incorrecta';
+    error.textContent = '❌ Usuario o contraseña incorrectos';
 }
 
 async function finalizarLogin() {
-    // Cerrar pantalla de login
     document.getElementById('modalLogin').classList.add('oculto');
 
-    // ✅ MOSTRAR/OCULTAR PESTAÑA DE ADMINISTRACIÓN
+    // ✅ MOSTRAR PESTAÑA DE ADMINISTRACIÓN SOLO SI ES ADMIN
     const btnAdmin = document.getElementById('btnAdmin');
     if (btnAdmin) {
         if (usuarioActivo.rol === 'admin') {
-            btnAdmin.classList.remove('oculto');
+            btnAdmin.classList.remove('oculto'); // 👈 SOLO ADMIN LA VE
         } else {
             btnAdmin.classList.add('oculto');
         }
     }
 
-    // Mostrar nombre del usuario conectado
+    // Mostrar nombre de usuario
     const nom = document.getElementById('nombreUsuarioActivo');
-    if (nom) nom.textContent = `Conectado: ${usuarioActivo.nombre || usuarioActivo.usuario}`;
+    if (nom) nom.textContent = `Conectado: ${usuarioActivo.nombre} (${usuarioActivo.rol === 'admin' ? 'Admin' : 'Usuario'})`;
 
-    // Cargar datos desde Firebase
     await cargarDatosFirebase();
-
-    // Iniciar temporizador de sesión (1 hora)
     reiniciarTiempoSesion();
 
-    // Actualizar datos cada 10 segundos
-    setInterval(() => {
-        if (Date.now() - ultimoCambioDatos > 5000) {
-            cargarDatosFirebase();
-        }
-    }, 10000);
+    // Actualización automática cada 10s
+    setInterval(cargarDatosFirebase, 10000);
 }
 
 // =====================================================
@@ -99,22 +84,14 @@ async function finalizarLogin() {
 function reiniciarTiempoSesion() {
     clearTimeout(tiempoSesion);
     tiempoSesion = setTimeout(() => {
-        alert('⏰ Sesión cerrada por inactividad');
+        alert('⏰ Sesión cerrada por inactividad (1 hora)');
         cerrarSesion();
-    }, 60 * 60 * 1000); // 1 hora
+    }, 60 * 60 * 1000);
 }
 
 function cerrarSesion() {
     usuarioActivo = null;
     clearTimeout(tiempoSesion);
-    movimientos = [];
-    colaboradores = [];
-    vehiculosMov = [];
-    vehiculosTransp = [];
-    conductores = [];
-    kilometraje = [];
-    tanqueo = [];
-    idEdicion = null;
     document.getElementById('modalLogin').classList.remove('oculto');
     document.getElementById('correoLogin').value = '';
     document.getElementById('passLogin').value = '';
@@ -124,7 +101,7 @@ function cerrarSesion() {
 }
 
 // =====================================================
-// ===== 🔄 ACTUALIZAR INFORMACIÓN =====
+// ===== 🔄 ACTUALIZAR =====
 // =====================================================
 async function actualizarInformacion() {
     await cargarDatosFirebase();
@@ -132,45 +109,35 @@ async function actualizarInformacion() {
 }
 
 // =====================================================
-// ===== 📥 CARGAR DATOS DESDE FIREBASE =====
+// ===== 📥 CARGAR DATOS FIREBASE =====
 // =====================================================
 async function cargarDatosFirebase() {
     try {
-        ultimoCambioDatos = Date.now();
+        const [snapMov, snapCol, snapVehM, snapVehT, snapCond, snapKm, snapTan, snapMant] = await Promise.all([
+            db.collection('movimientos').get(),
+            db.collection('colaboradores').get(),
+            db.collection('vehiculos_movimientos').get(),
+            db.collection('vehiculos_transportadora').get(),
+            db.collection('conductores_transportadora').get(),
+            db.collection('kilometraje').get(),
+            db.collection('tanqueo').get(),
+            db.collection('mantenimientos').get()
+        ]);
 
-        // Movimientos
-        const snapMov = await db.collection('movimientos').get();
         movimientos = snapMov.docs.map(d => ({ id: d.id, ...d.data() }));
-
-        // Colaboradores
-        const snapCol = await db.collection('colaboradores').get();
         colaboradores = snapCol.docs.map(d => ({ id: d.id, ...d.data() }));
-
-        // Vehículos Movimientos
-        const snapVehM = await db.collection('vehiculos_movimientos').get();
         vehiculosMov = snapVehM.docs.map(d => ({ id: d.id, ...d.data() }));
-
-        // Vehículos Transportadora
-        const snapVehT = await db.collection('vehiculos_transportadora').get();
         vehiculosTransp = snapVehT.docs.map(d => ({ id: d.id, ...d.data() }));
-
-        // Conductores Transportadora
-        const snapCond = await db.collection('conductores_transportadora').get();
         conductores = snapCond.docs.map(d => ({ id: d.id, ...d.data() }));
-
-        // Kilometraje
-        const snapKm = await db.collection('kilometraje').get();
         kilometraje = snapKm.docs.map(d => ({ id: d.id, ...d.data() }));
-
-        // Tanqueo
-        const snapTan = await db.collection('tanqueo').get();
         tanqueo = snapTan.docs.map(d => ({ id: d.id, ...d.data() }));
+        mantenimientos = snapMant.docs.map(d => ({ id: d.id, ...d.data() }));
 
-        // Actualizar selects y listas
         actualizarSelects();
         dibujarMovimientosHoy();
         dibujarDisponibilidad();
         dibujarPendientesKilometraje();
+        dibujarListaPlacasMant(); // ✅ CARGAR MANTENIMIENTOS
 
     } catch (e) {
         console.error('Error cargando datos:', e);
@@ -178,11 +145,11 @@ async function cargarDatosFirebase() {
 }
 
 // =====================================================
-// ===== 🔄 ACTUALIZAR SELECTS =====
+// ===== 🔄 SELECTS =====
 // =====================================================
 function actualizarSelects() {
-    // Vehículos Movimientos
-    const selVeh = ['vehiculoMov', 'vehiculoKm'];
+    const hoy = new Date().toISOString().split('T')[0];
+    const selVeh = ['vehiculoMov', 'vehiculoKm', 'vehiculoTanqueo'];
     selVeh.forEach(id => {
         const s = document.getElementById(id);
         if (!s) return;
@@ -194,14 +161,14 @@ function actualizarSelects() {
         s.value = sel;
     });
 
-    // Colaboradores / Conductores
-    const selCol = ['conductorMov', 'quienRegistraKm', 'quienTanquea'];
+    const activos = colaboradores.filter(c => (c.estado || 'activo') === 'activo');
+    const selCol = ['conductorMov', 'quienRegistraKm', 'quienTanquea', 'recogio', 'colaboradorRecogido'];
     selCol.forEach(id => {
         const s = document.getElementById(id);
         if (!s) return;
         const sel = s.value;
         s.innerHTML = '<option value="">Seleccione...</option>';
-        colaboradores.filter(c => (c.estado || 'activo') === 'activo').forEach(c => {
+        activos.forEach(c => {
             s.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
         });
         s.value = sel;
@@ -209,7 +176,7 @@ function actualizarSelects() {
 }
 
 // =====================================================
-// ===== 📦 MOVIMIENTOS - SALIDA =====
+// ===== 📦 MOVIMIENTOS =====
 // =====================================================
 async function guardarMovimiento() {
     reiniciarTiempoSesion();
@@ -223,12 +190,12 @@ async function guardarMovimiento() {
     const observaciones = document.getElementById('observacionesMov').value;
 
     if (!fecha || !placa || !conductor || !horaSalida) {
-        return alert('⚠️ Completa Fecha, Vehículo, Conductor y Hora de Salida');
+        return alert('⚠️ Complete: Fecha, Vehículo, Conductor y Hora de Salida');
     }
 
     const recogidas = obtenerRecogidasActuales();
     const totalKilos = recogidas.reduce((s, r) => s + (parseFloat(r.kilos) || 0), 0);
-    const totalCanLlegada = recogidas.reduce((s, r) => s + (parseInt(r.canastillas) || 0), canLlegada);
+    const totalCanLleg = recogidas.reduce((s, r) => s + (parseInt(r.canastillas) || 0), canLlegada);
 
     const datos = {
         fecha, placa, conductor,
@@ -236,7 +203,7 @@ async function guardarMovimiento() {
         canastillasSalida: canSalida,
         canastillasLlegada: canLlegada,
         totalCanastillasSalida: canSalida,
-        totalCanastillasLlegada: totalCanLlegada,
+        totalCanastillasLlegada: totalCanLleg,
         kilosTotales: totalKilos,
         observaciones,
         recogidas,
@@ -324,39 +291,47 @@ function limpiarFormularioMovimiento() {
 
 async function completarMovimiento() {
     reiniciarTiempoSesion();
-    if (!idEdicion) return alert('⚠️ Primero busque o seleccione un movimiento para completar');
+    if (!idEdicion) return alert('⚠️ Primero busque y edite un movimiento para completar');
     const horaLleg = document.getElementById('horaLlegada').value;
     if (!horaLleg) return alert('⚠️ Escriba la Hora de Llegada');
     await guardarMovimiento();
 }
 
 // =====================================================
-// ===== 📋 MOSTRAR MOVIMIENTOS =====
+// ===== 📋 LISTAR MOVIMIENTOS =====
 // =====================================================
 function dibujarMovimientosHoy() {
     const hoy = new Date().toISOString().split('T')[0];
-    const todos = document.getElementById('submov-todos');
-    const pend = document.getElementById('submov-pendientes');
-    const buscado = document.getElementById('buscarMov')?.value?.toLowerCase() || '';
+    const buscado = (document.getElementById('buscarMov')?.value || '').toLowerCase();
 
-    const filtroPend = movimientos.filter(m => m.fecha === hoy && !m.horaLlegada);
-    const filtroTodos = movimientos.filter(m => {
+    // ⏳ PENDIENTES DE LLEGADA: SOLO los que NO tienen horaLlegada
+    const pendientes = movimientos.filter(m => m.fecha === hoy && !m.horaLlegada);
+    // 📋 TODOS LOS DE HOY
+    const todos = movimientos.filter(m => {
         if (m.fecha !== hoy) return false;
         if (!buscado) return true;
-        return m.placa?.toLowerCase().includes(buscado) || m.conductor?.toLowerCase().includes(buscado);
+        return (m.placa || '').toLowerCase().includes(buscado) ||
+               (m.conductor || '').toLowerCase().includes(buscado);
     });
 
-    if (pend) pend.innerHTML = filtroPend.length === 0
-        ? '<p class="text-center text-sm">✅ Sin movimientos pendientes de llegada</p>'
-        : filtroPend.map(m => dibujarFilaMov(m)).join('');
+    const cajaPend = document.getElementById('submov-pendientes');
+    const cajaTodos = document.getElementById('submov-todos');
 
-    if (todos) todos.innerHTML = filtroTodos.length === 0
-        ? '<p class="text-center text-sm">📭 Sin movimientos registrados hoy</p>'
-        : filtroTodos.map(m => dibujarFilaMov(m)).join('');
+    if (cajaPend) {
+        cajaPend.innerHTML = pendientes.length === 0
+            ? '<p class="text-center p-4 text-sm">✅ No hay movimientos pendientes de llegada</p>'
+            : pendientes.map(m => dibujarFilaMov(m)).join('');
+    }
+
+    if (cajaTodos) {
+        cajaTodos.innerHTML = todos.length === 0
+            ? '<p class="text-center p-4 text-sm">📭 Sin movimientos registrados hoy</p>'
+            : todos.map(m => dibujarFilaMov(m)).join('');
+    }
 }
 
 function dibujarFilaMov(m) {
-    let clases = m.horaLlegada ? 'fila-movimiento completado' : 'fila-movimiento pendiente';
+    const esPendiente = !m.horaLlegada;
     let infoRecogidas = '';
     if (m.recogidas && m.recogidas.length > 0) {
         infoRecogidas = m.recogidas.map(r =>
@@ -364,11 +339,14 @@ function dibujarFilaMov(m) {
         ).join('');
     }
     return `
-    <div class="${clases}">
+    <div class="fila-movimiento ${esPendiente ? 'pendiente' : 'completado'}">
         <div class="flex justify-between items-start flex-wrap gap-2">
             <div>
-                <strong>${m.fecha} | ${m.placa} | ${m.conductor}</strong><br>
-                Salida: ${m.horaSalida || '-'} | Llegada: ${m.horaLlegada || '⏳ Pendiente'}<br>
+                <strong>${m.fecha} | ${m.placa} | ${m.conductor}</strong>
+                ${esPendiente ? '<span class="etiqueta etiqueta-pendiente ml-2">⏳ PENDIENTE</span>' : '<span class="etiqueta etiqueta-exito ml-2">✅ COMPLETADO</span>'}
+                <br>
+                Salida: ${m.horaSalida || '-'} | Llegada: ${m.horaLlegada || '⏳ Pendiente'}
+                <br>
                 📦 Salida: ${m.canastillasSalida || 0} | Llegada: ${m.canastillasLlegada || 0} | ⚖️ ${m.kilosTotales || 0}kg
                 ${infoRecogidas}
                 ${m.observaciones ? `<br>📝 ${m.observaciones}` : ''}
@@ -396,7 +374,6 @@ async function cargarMovimientoEditar(id) {
     document.getElementById('observacionesMov').value = m.observaciones || '';
     document.getElementById('kilosTotal').value = m.kilosTotales || '';
 
-    // Cargar recogidas
     const lista = document.getElementById('listaRecogidas');
     lista.innerHTML = '';
     if (m.recogidas && m.recogidas.length > 0) {
@@ -409,13 +386,11 @@ async function cargarMovimientoEditar(id) {
             ult.querySelector('[name="canastillasRecogido"]').value = r.canastillas || '';
         });
     }
-
-    // Ir a pestaña de registro
     cambiarSubpestañaMov('registro');
 }
 
 async function eliminarMovimiento(id) {
-    if (usuarioActivo.rol !== 'admin') return alert('🔒 Solo el administrador puede eliminar');
+    if (usuarioActivo?.rol !== 'admin') return alert('🔒 Solo el administrador puede eliminar');
     if (!confirm('¿Eliminar este movimiento?')) return;
     await db.collection('movimientos').doc(id).delete();
     alert('✅ Eliminado');
@@ -437,7 +412,8 @@ function dibujarDisponibilidad() {
     const dispVeh = vehiculosMov.filter(v => !enRutaPlacas.includes(v.placa)).map(v => `<span class="etiqueta etiqueta-exito">${v.placa}</span>`).join('') || '<span class="text-sm">Ninguno</span>';
     const rutaVeh = enRutaPlacas.map(p => `<span class="etiqueta etiqueta-pendiente">${p}</span>`).join('') || '<span class="text-sm">Ninguno</span>';
 
-    const dispCond = colaboradores.filter(c => (c.estado || 'activo') === 'activo' && !enRutaCond.includes(c.nombre)).map(c => `<span class="etiqueta etiqueta-exito">${c.nombre}</span>`).join('') || '<span class="text-sm">Ninguno</span>';
+    const activos = colaboradores.filter(c => (c.estado || 'activo') === 'activo');
+    const dispCond = activos.filter(c => !enRutaCond.includes(c.nombre)).map(c => `<span class="etiqueta etiqueta-exito">${c.nombre}</span>`).join('') || '<span class="text-sm">Ninguno</span>';
     const rutaCond = enRutaCond.map(c => `<span class="etiqueta etiqueta-pendiente">${c}</span>`).join('') || '<span class="text-sm">Ninguno</span>';
 
     const elDV = document.getElementById('vehiculosDisponibles');
@@ -452,32 +428,92 @@ function dibujarDisponibilidad() {
 }
 
 // =====================================================
-// ===== 🚛 TRANSPORTADORA =====
+// ===== 🔧 MANTENIMIENTOS — CORREGIDO =====
 // =====================================================
-async function agregarConductorTransp() {
-    reiniciarTiempoSesion();
-    const nom = document.getElementById('nombreConductorTransp').value.trim();
-    if (!nom) return alert('Escriba el nombre');
-    await db.collection('conductores_transportadora').add({ nombre: nom, fecha: new Date() });
-    document.getElementById('nombreConductorTransp').value = '';
-    alert('✅ Conductor agregado');
+function dibujarListaPlacasMant() {
+    const c = document.getElementById('listaPlacasMant');
+    if (!c) return;
+
+    // ✅ UNIR VEHÍCULOS DE MOVIMIENTOS + TRANSPORTADORA
+    const todasPlacas = [
+        ...vehiculosMov.map(v => ({ placa: v.placa, tipo: v.tipo || 'Movimiento' })),
+        ...vehiculosTransp.map(v => ({ placa: v.placa, tipo: v.tipo || 'Transp' }))
+    ];
+
+    // Eliminar duplicados
+    const unicas = [];
+    const vistas = new Set();
+    todasPlacas.forEach(v => {
+        if (!vistas.has(v.placa)) { vistas.add(v.placa); unicas.push(v); }
+    });
+    unicas.sort((a, b) => a.placa.localeCompare(b.placa));
+
+    if (unicas.length === 0) {
+        c.innerHTML = '<p class="text-sm p-3">⚠️ Primero cree vehículos en Movimientos o Transportadora</p>';
+        return;
+    }
+
+    c.innerHTML = unicas.map(v =>
+        `<button type="button" class="btn-placa" onclick="seleccionarPlacaMant('${v.placa}')">🚗 ${v.placa} <small>(${v.tipo})</small></button>`
+    ).join('');
+}
+
+function seleccionarPlacaMant(placa) {
+    document.querySelectorAll('.btn-placa').forEach(b => b.classList.remove('activa'));
+    event.target.classList.add('activa');
+    document.getElementById('placaSeleccionada').textContent = placa;
+    document.getElementById('formMantenimiento').classList.remove('oculto');
+    document.getElementById('fechaIngreso').value = new Date().toISOString().split('T')[0];
+    dibujarHistorialPlaca(placa);
+}
+
+function dibujarHistorialPlaca(placa) {
+    const c = document.getElementById('historialVehiculo');
+    const hist = mantenimientos.filter(m => m.placa === placa).sort((a, b) => b.fecha.localeCompare(a.fecha));
+
+    if (hist.length === 0) {
+        c.innerHTML = '<p class="text-sm p-2">📭 Sin registros de mantenimiento para esta placa</p>';
+        return;
+    }
+
+    c.innerHTML = '<table class="tabla-datos"><thead><tr><th>Fecha</th><th>Motivo</th><th>Quién Entregó</th><th>Estado</th></tr></thead><tbody>';
+    hist.forEach(m => {
+        c.innerHTML += `<tr>
+            <td>${m.fecha}</td>
+            <td>${m.motivo}</td>
+            <td>${m.quien || '-'}</td>
+            <td>${m.estado || '🔧 En Taller'}</td>
+        </tr>`;
+    });
+    c.innerHTML += '</tbody></table>';
+}
+
+async function registrarIngresoTaller() {
+    const placa = document.getElementById('placaSeleccionada').textContent;
+    const fecha = document.getElementById('fechaIngreso').value;
+    const motivo = document.getElementById('motivoMantenimiento').value.trim();
+    const quien = document.getElementById('quienEntregaVehiculo').value.trim();
+
+    if (!placa || !fecha || !motivo || !quien) {
+        return alert('⚠️ Complete todos los campos');
+    }
+
+    await db.collection('mantenimientos').add({
+        placa, fecha, motivo, quien,
+        estado: '🔧 En Taller',
+        usuario: usuarioActivo.usuario,
+        fechaCreacion: new Date()
+    });
+
+    alert('✅ Ingreso a taller registrado');
+    document.getElementById('motivoMantenimiento').value = '';
+    document.getElementById('quienEntregaVehiculo').value = '';
+    dibujarHistorialPlaca(placa);
     await cargarDatosFirebase();
 }
 
-async function agregarVehiculoTransp() {
-    reiniciarTiempoSesion();
-    const placa = document.getElementById('placaVehiculoTransp').value.trim().toUpperCase();
-    const tipo = document.getElementById('tipoVehiculoTransp').value;
-    if (!placa || !tipo) return alert('Complete placa y tipo');
-    await db.collection('vehiculos_transportadora').add({ placa, tipo, fechaCreacion: new Date() });
-    document.getElementById('placaVehiculoTransp').value = '';
-    document.getElementById('tipoVehiculoTransp').value = '';
-    alert('✅ Vehículo agregado');
-    await cargarDatosFirebase();
-}
-
 // =====================================================
-// ===== ⛽ COMBUSTIBLE - KILOMETRAJE =====
+// ===== ⛽ COMBUSTIBLE =====
 // =====================================================
 async function guardarKilometrajeDiario() {
     reiniciarTiempoSesion();
@@ -487,7 +523,7 @@ async function guardarKilometrajeDiario() {
     const kmTarde = parseFloat(document.getElementById('kmTarde').value) || null;
 
     if (!fecha || !placa || kmManana === null) {
-        return alert('⚠️ Fecha, Placa y Kilometraje de la Mañana son obligatorios');
+        return alert('⚠️ Fecha, Placa y Km de la Mañana son obligatorios');
     }
     const kmRecorridos = (kmManana !== null && kmTarde !== null) ? (kmTarde - kmManana).toFixed(1) : null;
 
@@ -527,29 +563,13 @@ function dibujarPendientesKilometraje() {
 }
 
 async function completarKmTarde(id, placa, kmIni) {
-    const kmFin = prompt(`Escriba kilometraje de la tarde para ${placa}:`);
+    const kmFin = prompt(`Kilometraje de la tarde para ${placa}:`);
     if (!kmFin) return;
     const kmF = parseFloat(kmFin);
     const rec = (kmF - kmIni).toFixed(1);
     await db.collection('kilometraje').doc(id).update({ kmFinal: kmF, kmRecorridos: rec });
     alert('✅ Actualizado');
     await cargarDatosFirebase();
-}
-
-async function cargarInformeKilometraje() {
-    const fi = document.getElementById('fechaInicioKm').value;
-    const ff = document.getElementById('fechaFinKm').value;
-    if (!fi || !ff) return alert('Seleccione fechas');
-    const res = kilometraje.filter(k => k.fecha >= fi && k.fecha <= ff);
-    ultimosResultados.kilometraje = res;
-    const c = document.getElementById('resultadoKilometraje');
-    if (res.length === 0) return c.innerHTML = '<p class="text-sm">📭 Sin registros</p>';
-    let html = '<table class="tabla-datos"><thead><tr><th>Fecha</th><th>Placa</th><th>Mañana</th><th>Tarde</th><th>Recorridos</th><th>Registró</th></tr></thead><tbody>';
-    res.forEach(r => {
-        html += `<tr><td>${r.fecha}</td><td>${r.placa}</td><td>${r.kmInicial}</td><td>${r.kmFinal || '-'}</td><td>${r.kmRecorridos || '-'}</td><td>${r.colaborador}</td></tr>`;
-    });
-    html += '</tbody></table>';
-    c.innerHTML = html;
 }
 
 async function guardarRegistroTanqueo() {
@@ -576,20 +596,29 @@ async function guardarRegistroTanqueo() {
     await cargarDatosFirebase();
 }
 
-async function cargarInformeTanqueo() {
-    const fi = document.getElementById('fechaInicioTanqueo').value;
-    const ff = document.getElementById('fechaFinTanqueo').value;
-    if (!fi || !ff) return alert('Seleccione fechas');
-    const res = tanqueo.filter(t => t.fecha >= fi && t.fecha <= ff);
-    ultimosResultados.tanqueo = res;
-    const c = document.getElementById('resultadoTanqueo');
-    if (res.length === 0) return c.innerHTML = '<p class="text-sm">📭 Sin registros</p>';
-    let html = '<table class="tabla-datos"><thead><tr><th>Fecha</th><th>Placa</th><th>Galones</th><th>Nivel</th><th>%</th><th>Quién</th></tr></thead><tbody>';
-    res.forEach(r => {
-        html += `<tr><td>${r.fecha}</td><td>${r.placa}</td><td>${r.galones}</td><td>${r.nivel}</td><td>${r.porcentaje}%</td><td>${r.quien}</td></tr>`;
-    });
-    html += '</tbody></table>';
-    c.innerHTML = html;
+// =====================================================
+// ===== 🚛 TRANSPORTADORA =====
+// =====================================================
+async function agregarConductorTransp() {
+    reiniciarTiempoSesion();
+    const nom = document.getElementById('nombreConductorTransp').value.trim();
+    if (!nom) return alert('Escriba el nombre');
+    await db.collection('conductores_transportadora').add({ nombre: nom, fecha: new Date() });
+    document.getElementById('nombreConductorTransp').value = '';
+    alert('✅ Conductor agregado');
+    await cargarDatosFirebase();
+}
+
+async function agregarVehiculoTransp() {
+    reiniciarTiempoSesion();
+    const placa = document.getElementById('placaVehiculoTransp').value.trim().toUpperCase();
+    const tipo = document.getElementById('tipoVehiculoTransp').value;
+    if (!placa || !tipo) return alert('Complete placa y tipo');
+    await db.collection('vehiculos_transportadora').add({ placa, tipo, fechaCreacion: new Date() });
+    document.getElementById('placaVehiculoTransp').value = '';
+    document.getElementById('tipoVehiculoTransp').value = '';
+    alert('✅ Vehículo agregado');
+    await cargarDatosFirebase();
 }
 
 // =====================================================
@@ -600,7 +629,6 @@ async function generarInformeMovimientos() {
     const ff = document.getElementById('fechaFinMov').value;
     if (!fi || !ff) return alert('Seleccione fechas de inicio y fin');
     const res = movimientos.filter(m => m.fecha >= fi && m.fecha <= ff);
-    ultimosResultados.movimientos = res;
     const c = document.getElementById('resultadoInformeMov');
     if (res.length === 0) return c.innerHTML = '<p class="text-sm">📭 Sin movimientos en este período</p>';
 
@@ -620,49 +648,8 @@ async function generarInformeMovimientos() {
     c.innerHTML = html;
 }
 
-function exportarInformeMovExcel() {
-    if (ultimosResultados.movimientos.length === 0) return alert('Genera el informe primero');
-    const datos = ultimosResultados.movimientos.map(m => ({
-        Fecha: m.fecha,
-        Placa: m.placa,
-        Conductor: m.conductor,
-        HoraSalida: m.horaSalida,
-        HoraLlegada: m.horaLlegada || '-',
-        CanastillasSalida: m.canastillasSalida,
-        CanastillasLlegada: m.canastillasLlegada,
-        Kilos: m.kilosTotales,
-        Observaciones: m.observaciones || ''
-    }));
-    const hoja = XLSX.utils.json_to_sheet(datos);
-    const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, 'Movimientos');
-    XLSX.writeFile(libro, `Movimientos_${new Date().toISOString().slice(0,10)}.xlsx`);
-}
-
-function exportarKilometrajeExcel() {
-    if (ultimosResultados.kilometraje.length === 0) return alert('Consulta primero el informe');
-    const datos = ultimosResultados.kilometraje.map(r => ({
-        Fecha: r.fecha, Placa: r.placa, KmInicial: r.kmInicial, KmFinal: r.kmFinal || '-', Recorridos: r.kmRecorridos || '-', Registró: r.colaborador
-    }));
-    const hoja = XLSX.utils.json_to_sheet(datos);
-    const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, 'Kilometraje');
-    XLSX.writeFile(libro, `Kilometraje_${new Date().toISOString().slice(0,10)}.xlsx`);
-}
-
-function exportarTanqueoExcel() {
-    if (ultimosResultados.tanqueo.length === 0) return alert('Consulta primero el informe');
-    const datos = ultimosResultados.tanqueo.map(r => ({
-        Fecha: r.fecha, Placa: r.placa, Galones: r.galones, Nivel: r.nivel, Porcentaje: r.porcentaje, Quien: r.quien
-    }));
-    const hoja = XLSX.utils.json_to_sheet(datos);
-    const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, 'Tanqueo');
-    XLSX.writeFile(libro, `Tanqueo_${new Date().toISOString().slice(0,10)}.xlsx`);
-}
-
 // =====================================================
-// ===== ⚙️ ADMINISTRACIÓN - USUARIOS =====
+// ===== ⚙️ ADMINISTRACIÓN =====
 // =====================================================
 async function guardarUsuarioSistema() {
     if (usuarioActivo?.rol !== 'admin') return alert('🔒 Solo administradores');
@@ -670,20 +657,16 @@ async function guardarUsuarioSistema() {
     const cla = document.getElementById('claveNuevo').value;
     const nom = document.getElementById('nombreCompletoUsuario').value.trim();
     const rol = document.getElementById('rolUsuario').value;
-    const puedeEditar = document.getElementById('puedeEditarDatos').checked;
 
     if (!usu || !cla || !nom) return alert('Complete todos los campos');
     await db.collection('usuarios_sistema').add({
-        usuario: usu, clave: cla, nombre: nom, rol, puedeEditar,
-        fechaCreacion: new Date(),
-        creadoPor: usuarioActivo.usuario
+        usuario: usu, clave: cla, nombre: nom, rol,
+        fechaCreacion: new Date(), creadoPor: usuarioActivo.usuario
     });
     alert('✅ Usuario guardado');
     document.getElementById('usuarioNuevo').value = '';
     document.getElementById('claveNuevo').value = '';
     document.getElementById('nombreCompletoUsuario').value = '';
-    document.getElementById('rolUsuario').value = 'usuario';
-    document.getElementById('puedeEditarDatos').checked = true;
     cargarUsuariosSistema();
 }
 
@@ -696,29 +679,20 @@ async function cargarUsuariosSistema() {
         c.innerHTML = '<p class="text-sm">Sin usuarios registrados</p>';
         return;
     }
-    c.innerHTML = '<table class="tabla-datos"><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Clave</th><th>Permisos</th><th>Acciones</th></tr></thead><tbody>';
+    c.innerHTML = '<table class="tabla-datos"><thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Clave</th><th>Acciones</th></tr></thead><tbody>';
     lista.forEach(u => {
         c.innerHTML += `<tr>
             <td>${u.usuario}</td>
             <td>${u.nombre}</td>
             <td>${u.rol === 'admin' ? '🔴 Admin' : '🔵 Usuario'}</td>
             <td>${u.clave}</td>
-            <td>${u.puedeEditar ? '✅ Editar' : '👁️ Solo ver'}</td>
             <td>
-                <button class="btn-editar text-xs py-1 px-2" onclick="cargarEditarUsuario('${u.id}','${u.usuario}','${u.clave}','${u.nombre}','${u.rol}','${u.puedeEditar}')">✏️</button>
+                <button class="btn-editar text-xs py-1 px-2" onclick="alert('Edición disponible próximamente')">✏️</button>
                 <button class="btn-peligro text-xs py-1 px-2" onclick="eliminarUsuarioSistema('${u.id}')">🗑️</button>
             </td>
         </tr>`;
     });
     c.innerHTML += '</tbody></table>';
-}
-
-function cargarEditarUsuario(id, usu, cla, nom, rol, editar) {
-    document.getElementById('usuarioNuevo').value = usu;
-    document.getElementById('claveNuevo').value = cla;
-    document.getElementById('nombreCompletoUsuario').value = nom;
-    document.getElementById('rolUsuario').value = rol;
-    document.getElementById('puedeEditarDatos').checked = editar === 'true';
 }
 
 async function eliminarUsuarioSistema(id) {
@@ -737,8 +711,7 @@ async function cambiarContrasena() {
     if (nueva1 !== nueva2) return alert('⚠️ Las contraseñas nuevas no coinciden');
 
     const fijo = usuariosFijos.find(u => u.usuario === usuarioActivo.usuario);
-    if (fijo) {
-        if (fijo.clave !== actual) return alert('⚠️ Contraseña actual incorrecta');
+    if (fijo && fijo.clave === actual) {
         fijo.clave = nueva1;
         alert('✅ Contraseña cambiada con éxito');
         document.getElementById('claveActual').value = '';
@@ -746,56 +719,7 @@ async function cambiarContrasena() {
         document.getElementById('claveNueva2').value = '';
         return;
     }
-
-    alert('⚠️ Usuario no puede cambiar contraseña desde esta versión');
-}
-
-// =====================================================
-// ===== 🔧 MANTENIMIENTOS =====
-// =====================================================
-function dibujarListaPlacasMant() {
-    const c = document.getElementById('listaPlacasMant');
-    if (!c) return;
-    const placas = [...new Set([...vehiculosMov.map(v => v.placa), ...vehiculosTransp.map(v => v.placa)])].sort();
-    if (placas.length === 0) {
-        c.innerHTML = '<p class="text-sm">Primero cree vehículos en Movimientos o Transportadora</p>';
-        return;
-    }
-    c.innerHTML = placas.map(p => `<button class="btn-placa" onclick="seleccionarPlacaMant('${p}')">🚗 ${p}</button>`).join('');
-}
-
-function seleccionarPlacaMant(placa) {
-    document.querySelectorAll('.btn-placa').forEach(b => b.classList.remove('activa'));
-    event.target.classList.add('activa');
-    document.getElementById('placaSeleccionada').textContent = placa;
-    document.getElementById('formMantenimiento').classList.remove('oculto');
-    document.getElementById('fechaIngreso').value = new Date().toISOString().split('T')[0];
-    dibujarHistorialPlaca(placa);
-}
-
-function dibujarHistorialPlaca(placa) {
-    const c = document.getElementById('historialVehiculo');
-    const hist = []; // Aquí se cargarán los registros de mantenimiento
-    c.innerHTML = '<p class="text-sm">📭 Sin registros de mantenimiento</p>';
-}
-
-async function registrarIngresoTaller() {
-    const placa = document.getElementById('placaSeleccionada').textContent;
-    const fecha = document.getElementById('fechaIngreso').value;
-    const motivo = document.getElementById('motivoMantenimiento').value.trim();
-    const quien = document.getElementById('quienEntregaVehiculo').value.trim();
-
-    if (!placa || !fecha || !motivo || !quien) return alert('Complete todos los campos');
-
-    await db.collection('mantenimientos').add({
-        placa, fecha, motivo, quien,
-        usuario: usuarioActivo.usuario,
-        fechaCreacion: new Date()
-    });
-    alert('✅ Ingreso a taller registrado');
-    document.getElementById('motivoMantenimiento').value = '';
-    document.getElementById('quienEntregaVehiculo').value = '';
-    dibujarHistorialPlaca(placa);
+    alert('⚠️ Contraseña actual incorrecta');
 }
 
 // =====================================================
