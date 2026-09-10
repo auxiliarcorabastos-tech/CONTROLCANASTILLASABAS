@@ -33,14 +33,16 @@
         .btn-actualizar { background: rgba(255,255,255,.2); border: none; color: white; padding: 0.4rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
         .btn-actualizar:hover { background: rgba(255,255,255,.3); }
 
-        /* === MENÚ LATERAL === */
+        /* === MENÚ LATERAL — CORREGIDO === */
         #sidebar {
             position: fixed; top: 56px; left: 0; bottom: 0; width: 260px;
             background: white; border-right: 1px solid var(--borde);
             padding: 1rem; overflow-y: auto; z-index: 80;
-            transition: transform 0.3s ease; transform: translateX(0);
+            transition: transform 0.3s ease;
+            transform: translateX(-100%); /* OCULTO POR DEFECTO EN CELULAR */
         }
-        #sidebar.oculto { transform: translateX(-100%); }
+        #sidebar.mostrar { transform: translateX(0); } /* AL ABRIRSE DESLIZA */
+
         .btn-pestaña {
             display: block; width: 100%; text-align: left; padding: 0.75rem 1rem;
             margin-bottom: 0.4rem; border: none; background: transparent;
@@ -52,8 +54,7 @@
         .btn-cerrar { margin-top: 0.5rem; background: #fee2e2; color: var(--rojo); }
 
         /* === CONTENIDO PRINCIPAL === */
-        .contenido { margin-top: 56px; margin-left: 260px; padding: 1.2rem; transition: margin-left 0.3s ease; }
-        .contenido.expandido { margin-left: 0; }
+        .contenido { margin-top: 56px; padding: 1.2rem; transition: margin-left 0.3s ease; }
 
         /* === PESTAÑAS Y SUBPESTAÑAS === */
         .pestaña { display: block; }
@@ -137,9 +138,11 @@
         .font-bold { font-weight: 700; }
 
         /* === RESPONSIVE / CELULAR === */
+        @media (min-width: 769px) {
+            #sidebar { transform: translateX(0); } /* En escritorio SIEMPRE visible */
+            .contenido { margin-left: 260px; }
+        }
         @media (max-width: 768px) {
-            #sidebar { width: 260px; }
-            .contenido { margin-left: 0; }
             .grid-cols-2, .grid-cols-3 { grid-template-columns: 1fr; }
             .fila-recogida { flex-direction: column; align-items: stretch; }
             .fila-recogida input, .fila-recogida select { width: 100%; }
@@ -176,13 +179,13 @@
     <div class="encabezado">
         <button class="btn-menu" onclick="alternarMenu()">☰</button>
         <h1 class="titulo-app">📦 Control de Canastillas</h1>
-        <button class="btn-actualizar" onclick="actualizarInformacion()">🔄 Actualizar</button>
+        <button class="btn-actualizar" onclick="actualizarInformacion()">🔄</button>
     </div>
 
     <!-- ============================================== -->
-    <!-- MENÚ LATERAL -->
+    <!-- MENÚ LATERAL — CORREGIDO -->
     <!-- ============================================== -->
-    <div id="sidebar" class="oculto">
+    <div id="sidebar">
         <button class="btn-pestaña activa" onclick="cambiarPestaña('movimientos')">📦 Movimientos</button>
         <button class="btn-pestaña" onclick="cambiarPestaña('transportadora')">🚛 Transportadora</button>
         <button class="btn-pestaña" onclick="cambiarPestaña('combustible')">⛽ Combustible</button>
@@ -199,7 +202,7 @@
     <!-- ============================================== -->
     <!-- CONTENIDO PRINCIPAL -->
     <!-- ============================================== -->
-    <div id="contenidoPrincipal" class="contenido expandido">
+    <div class="contenido">
 
         <!-- ============================================== -->
         <!-- PESTAÑA: MOVIMIENTOS -->
@@ -597,6 +600,39 @@
                 if (el && !el.value) el.value = hoy;
             });
         });
+
+        // CORREGIDA: Función para ABRIR/CERRAR el menú lateral
+        function alternarMenu() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('mostrar');
+        }
+
+        // CORREGIDA: Cambiar pestaña y CERRAR menú al seleccionar (en celular)
+        function cambiarPestaña(nombre) {
+            reiniciarTiempoSesion();
+            document.querySelectorAll('.btn-pestaña').forEach(b => b.classList.remove('activa'));
+            document.querySelectorAll('.pestaña').forEach(p => p.classList.add('oculto'));
+            event.target.classList.add('activa');
+            document.getElementById(`pest-${nombre}`).classList.remove('oculto');
+            
+            // Cerrar menú automáticamente al elegir pestaña
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('mostrar');
+            }
+
+            const titulos = {
+                movimientos: '📦 Movimientos de Canastillas',
+                transportadora: '🚛 Transportadora',
+                combustible: '⛽ Combustible',
+                mantenimientos: '🔧 Mantenimientos',
+                informes: '📊 Informes',
+                admin: '⚙️ Administración'
+            };
+            document.getElementById('tituloPestaña')?.textContent = titulos[nombre] || nombre;
+
+            if (nombre === 'mantenimientos') dibujarListaPlacasMant();
+            if (nombre === 'admin') cargarUsuariosSistema();
+        }
 
         // Cambiar subpestañas de Administración
         function cambiarSubpestañaAdmin(nombre) {
