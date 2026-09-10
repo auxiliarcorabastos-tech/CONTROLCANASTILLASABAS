@@ -103,6 +103,8 @@
         .oculto { display: none !important; }
         .flex { display: flex; }
         .gap-2 { gap: 0.5rem; }
+        .gap-3 { gap: 0.75rem; }
+        .mb-2 { margin-bottom: 0.5rem; }
         .mb-3 { margin-bottom: 0.75rem; }
         .mb-4 { margin-bottom: 1rem; }
         .mt-2 { margin-top: 0.5rem; }
@@ -191,11 +193,12 @@
             <!-- ============================================== -->
             <div id="pest-movimientos" class="pestaña">
                 <div class="tarjeta">
-                    <!-- FILTRO DE ESTADO -->
-                    <div class="flex gap-2 mb-4">
-                        <button class="btn-filtro-mov activa" onclick="cambiarFiltroMovimientos('todos')">📋 Todos</button>
-                        <button class="btn-filtro-mov" onclick="cambiarFiltroMovimientos('disponibles')">✅ Disponibles</button>
-                        <button class="btn-filtro-mov" onclick="cambiarFiltroMovimientos('enruta')">🚗 En Ruta</button>
+                    <!-- 📋 FILTRO DE SELECTORES → QUÉ VEHÍCULOS Y CONDUCTORES PUEDES ELEGIR -->
+                    <div class="flex gap-2 mb-4 flex-wrap">
+                        <span class="font-bold text-sm self-center">Filtrar Selector:</span>
+                        <button class="btn-filtro-mov activa" onclick="cambiarFiltroSelectores('todos')">📋 Todos</button>
+                        <button class="btn-filtro-mov" onclick="cambiarFiltroSelectores('disponibles')">✅ Disponibles</button>
+                        <button class="btn-filtro-mov" onclick="cambiarFiltroSelectores('enruta')">🚗 En Ruta</button>
                     </div>
 
                     <div class="grid grid-cols-3 mb-3">
@@ -206,7 +209,7 @@
                     <div class="grid grid-cols-3 mb-3">
                         <div class="form-group"><label>Hora de Salida</label><input type="time" id="horaSalida"></div>
                         <div class="form-group"><label>Hora de Llegada</label><input type="time" id="horaLlegada"></div>
-                        <div class="form-group"><label>Buscar</label><input type="text" id="buscarMov" placeholder="Placa o conductor" oninput="filtrarMovimientos()"></div>
+                        <div class="form-group"><label>Buscar Movimiento</label><input type="text" id="buscarMov" placeholder="Placa o conductor" oninput="filtrarListaMovimientos()"></div>
                     </div>
                     <div class="grid grid-cols-3 mb-3">
                         <div class="form-group"><label>📦 Canastillas que SALEN</label><input type="number" id="canSalidaTotal" placeholder="0"></div>
@@ -222,11 +225,11 @@
                         <textarea id="observaciones" rows="2" placeholder="Observaciones del recorrido..."></textarea>
                     </div>
                     <input type="hidden" id="idEditar">
-                    <div class="flex gap-2 mt-4">
+                    <div class="flex gap-2 mt-4 flex-wrap">
                         <button class="btn-exito" onclick="guardarMovimiento()">💾 Guardar Movimiento</button>
                         <button class="btn-primario" onclick="completarMovimiento()">✅ Completar y Limpiar</button>
                         <button class="btn-peligro" onclick="limpiarFormulario()">🗑️ Limpiar</button>
-                        <button id="btnFiltroMov" class="btn-filtro-mov" onclick="alternarFiltroMovimientos()">⏳ Ver Pendientes</button>
+                        <button id="btnFiltroPendientes" class="btn-filtro-mov" onclick="alternarFiltroPendientes()">⏳ Ver Pendientes</button>
                     </div>
                 </div>
 
@@ -323,7 +326,7 @@
 
                     <div class="tarjeta">
                         <h3 class="font-bold mb-3">📊 Consulta de Kilometraje</h3>
-                        <div class="flex gap-2 mb-3">
+                        <div class="flex gap-2 mb-3 flex-wrap">
                             <label>Desde: <input type="date" id="fechaInicioKm"></label>
                             <label>Hasta: <input type="date" id="fechaFinKm"></label>
                             <button class="btn-primario" onclick="cargarInformeKilometraje()">🔍 Consultar</button>
@@ -357,7 +360,7 @@
 
                     <div class="tarjeta">
                         <h3 class="font-bold mb-3">📊 Consulta de Tanqueo</h3>
-                        <div class="flex gap-2 mb-3">
+                        <div class="flex gap-2 mb-3 flex-wrap">
                             <label>Desde: <input type="date" id="fechaInicioTanqueo"></label>
                             <label>Hasta: <input type="date" id="fechaFinTanqueo"></label>
                             <button class="btn-primario" onclick="cargarInformeTanqueo()">🔍 Consultar</button>
