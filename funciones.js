@@ -36,6 +36,44 @@ const usuariosFijos = [
 ];
 
 // =====================================================
+// ===== 🔄 NAVEGACIÓN — PESTAÑAS =====
+// =====================================================
+function cambiarPestaña(nombre) {
+    // Ocultar todas las pestañas
+    document.querySelectorAll('.pestaña').forEach(p => p.classList.add('oculto'));
+    // Mostrar la seleccionada
+    const pestaña = document.getElementById(`pest-${nombre}`);
+    if (pestaña) pestaña.classList.remove('oculto');
+    // Marcar botón activo
+    document.querySelectorAll('.btn-pestaña').forEach(b => b.classList.remove('activa'));
+    event?.target?.classList.add('activa');
+    // Cargar datos específicos
+    if (nombre === 'movimientos') dibujarMovimientosHoy();
+    if (nombre === 'mantenimiento') dibujarListaPlacasMant();
+    if (nombre === 'combustible') { cambiarSubpestañaCombustible('kilometraje'); dibujarPendientesKilometraje(); }
+    if (nombre === 'informes') generarInformeMovimientos();
+    if (nombre === 'admin') cargarUsuariosSistema();
+}
+
+function cambiarSubpestañaMov(nombre) {
+    document.querySelectorAll('.btn-submov').forEach(b => b.classList.remove('activa'));
+    document.querySelectorAll('.subpestaña-mov').forEach(p => p.classList.add('oculto'));
+    const btn = Array.from(document.querySelectorAll('.btn-submov')).find(b => b.getAttribute('onclick')?.includes(`'${nombre}'`));
+    if (btn) btn.classList.add('activa');
+    const sub = document.getElementById(`submov-${nombre}`);
+    if (sub) sub.classList.remove('oculto');
+}
+
+function cambiarSubpestañaCombustible(nombre) {
+    document.querySelectorAll('.btn-subcombustible').forEach(b => b.classList.remove('activa'));
+    document.querySelectorAll('.subpestaña-combustible').forEach(p => p.classList.add('oculto'));
+    const btn = Array.from(document.querySelectorAll('.btn-subcombustible')).find(b => b.getAttribute('onclick')?.includes(`'${nombre}'`));
+    if (btn) btn.classList.add('activa');
+    const sub = document.getElementById(`subcomb-${nombre}`);
+    if (sub) sub.classList.remove('oculto');
+}
+
+// =====================================================
 // ===== 🔐 INICIO DE SESIÓN =====
 // =====================================================
 async function iniciarSesion() {
@@ -61,7 +99,7 @@ async function finalizarLogin() {
     const btnAdmin = document.getElementById('btnAdmin');
     if (btnAdmin) {
         if (usuarioActivo.rol === 'admin') {
-            btnAdmin.classList.remove('oculto'); // 👈 SOLO ADMIN LA VE
+            btnAdmin.classList.remove('oculto');
         } else {
             btnAdmin.classList.add('oculto');
         }
@@ -73,6 +111,7 @@ async function finalizarLogin() {
 
     await cargarDatosFirebase();
     reiniciarTiempoSesion();
+    cambiarPestaña('movimientos');
 
     // Actualización automática cada 10s
     setInterval(cargarDatosFirebase, 10000);
@@ -97,7 +136,6 @@ function cerrarSesion() {
     document.getElementById('passLogin').value = '';
     document.getElementById('mensajeError').textContent = '';
     document.getElementById('sidebar').classList.remove('mostrar');
-    cambiarPestaña('movimientos');
 }
 
 // =====================================================
@@ -137,7 +175,7 @@ async function cargarDatosFirebase() {
         dibujarMovimientosHoy();
         dibujarDisponibilidad();
         dibujarPendientesKilometraje();
-        dibujarListaPlacasMant(); // ✅ CARGAR MANTENIMIENTOS
+        dibujarListaPlacasMant();
 
     } catch (e) {
         console.error('Error cargando datos:', e);
@@ -148,7 +186,6 @@ async function cargarDatosFirebase() {
 // ===== 🔄 SELECTS =====
 // =====================================================
 function actualizarSelects() {
-    const hoy = new Date().toISOString().split('T')[0];
     const selVeh = ['vehiculoMov', 'vehiculoKm', 'vehiculoTanqueo'];
     selVeh.forEach(id => {
         const s = document.getElementById(id);
@@ -304,9 +341,8 @@ function dibujarMovimientosHoy() {
     const hoy = new Date().toISOString().split('T')[0];
     const buscado = (document.getElementById('buscarMov')?.value || '').toLowerCase();
 
-    // ⏳ PENDIENTES DE LLEGADA: SOLO los que NO tienen horaLlegada
+    // ⏳ SOLO pendientes = SIN hora de llegada
     const pendientes = movimientos.filter(m => m.fecha === hoy && !m.horaLlegada);
-    // 📋 TODOS LOS DE HOY
     const todos = movimientos.filter(m => {
         if (m.fecha !== hoy) return false;
         if (!buscado) return true;
@@ -428,19 +464,17 @@ function dibujarDisponibilidad() {
 }
 
 // =====================================================
-// ===== 🔧 MANTENIMIENTOS — CORREGIDO =====
+// ===== 🔧 MANTENIMIENTOS =====
 // =====================================================
 function dibujarListaPlacasMant() {
     const c = document.getElementById('listaPlacasMant');
     if (!c) return;
 
-    // ✅ UNIR VEHÍCULOS DE MOVIMIENTOS + TRANSPORTADORA
     const todasPlacas = [
         ...vehiculosMov.map(v => ({ placa: v.placa, tipo: v.tipo || 'Movimiento' })),
         ...vehiculosTransp.map(v => ({ placa: v.placa, tipo: v.tipo || 'Transp' }))
     ];
 
-    // Eliminar duplicados
     const unicas = [];
     const vistas = new Set();
     todasPlacas.forEach(v => {
@@ -687,8 +721,7 @@ async function cargarUsuariosSistema() {
             <td>${u.rol === 'admin' ? '🔴 Admin' : '🔵 Usuario'}</td>
             <td>${u.clave}</td>
             <td>
-                <button class="btn-editar text-xs py-1 px-2" onclick="alert('Edición disponible próximamente')">✏️</button>
-                <button class="btn-peligro text-xs py-1 px-2" onclick="eliminarUsuarioSistema('${u.id}')">🗑️</button>
+                <button class="btn-peligro text-xs py-1 px-2" onclick="eliminarUsuarioSistema('${u.id}')">🗑️ Eliminar</button>
             </td>
         </tr>`;
     });
