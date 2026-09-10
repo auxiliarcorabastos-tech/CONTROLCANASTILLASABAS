@@ -109,11 +109,52 @@
         .mb-4 { margin-bottom: 1rem; }
         .mt-2 { margin-top: 0.5rem; }
         .mt-4 { margin-top: 1rem; }
+        .my-4 { margin-top: 1rem; margin-bottom: 1rem; }
         .text-center { text-align: center; }
         .text-sm { font-size: 0.875rem; }
         .font-bold { font-weight: 700; }
         .grid { display: grid; gap: 0.75rem; }
         .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+        .rounded-full { border-radius: 9999px; }
+        .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+        .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+        .text-xs { font-size: 0.75rem; }
+        .text-lg { font-size: 1.125rem; }
+        .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+        .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+        .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+        .px-4 { padding-left: 1rem; padding-right: 1rem; }
+        .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+        .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+        .py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+        .border-b { border-bottom: 1px solid #e5e7eb; }
+        .border-t { border-top: 1px solid #e5e7eb; }
+        .border-l-4 { border-left-width: 4px; }
+        .border-green-500 { border-left-color: #22c55e; }
+        .border-yellow-500 { border-left-color: #eab308; }
+        .text-green-700 { color: #15803d; }
+        .text-yellow-600 { color: #ca8a04; }
+        .bg-green-100 { background-color: #dcfce7; }
+        .bg-yellow-100 { background-color: #fef9c3; }
+        .text-green-800 { color: #166534; }
+        .text-yellow-800 { color: #854d0e; }
+        .text-blue-700 { color: #1d4ed8; }
+        .text-gray-500 { color: #6b7280; }
+        .text-gray-800 { color: #1f2937; }
+        .max-h-80 { max-height: 20rem; }
+        .overflow-y-auto { overflow-y: auto; }
+        .justify-between { justify-content: space-between; }
+        .items-center { align-items: center; }
+        .items-start { align-items: flex-start; }
+        .self-center { align-self: center; }
+        .ml-2 { margin-left: 0.5rem; }
+        .ml-auto { margin-left: auto; }
+        .mr-2 { margin-right: 0.5rem; }
+        .hidden { display: none; }
+        .md\\:inline { display: none; }
+        @media (min-width: 768px) {
+            .md\\:inline { display: inline; }
+        }
 
         /* Modal Login */
         #modalLogin {
@@ -123,7 +164,6 @@
         .caja-login {
             background: white; padding: 2rem; border-radius: 12px; width: 92%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);
         }
-        #mensajeError { color: #dc2626; margin-top: 0.75rem; font-weight: 500; min-height: 1.4rem; }
 
         /* Celular */
         @media (max-width: 768px) {
@@ -192,51 +232,76 @@
             <!-- PESTAÑA: MOVIMIENTOS -->
             <!-- ============================================== -->
             <div id="pest-movimientos" class="pestaña">
-                <div class="tarjeta">
-                    <!-- 📋 FILTRO DE SELECTORES → SOLO INFORMATIVO, NO BLOQUEA -->
-                    <div class="flex gap-2 mb-4 flex-wrap">
-                        <span class="font-bold text-sm self-center">Estado:</span>
-                        <button class="btn-filtro-mov activa" onclick="cambiarFiltroSelectores('todos')">📋 Todos</button>
-                        <button class="btn-filtro-mov" onclick="cambiarFiltroSelectores('disponibles')">✅ Disponibles</button>
-                        <button class="btn-filtro-mov" onclick="cambiarFiltroSelectores('enruta')">🚗 En Ruta</button>
-                        <span class="text-xs text-gray-500 self-center ml-2">(Solo informativo, no bloquea)</span>
+                <!-- SUBPESTAÑAS INTERNAS -->
+                <div class="flex gap-2 mb-4 flex-wrap">
+                    <button class="btn-subcombustible activa" onclick="cambiarSubpestañaMov('registro')">📝 Registro de Movimientos</button>
+                    <button class="btn-subcombustible" onclick="cambiarSubpestañaMov('disponibilidad')">📊 Disponibilidad</button>
+                </div>
+
+                <!-- SUBPESTAÑA: REGISTRO (SIN FILTRO — TODO LIBRE) -->
+                <div id="submov-registro" class="subpestaña-combustible">
+                    <div class="tarjeta">
+                        <div class="grid grid-cols-3 mb-3">
+                            <div class="form-group"><label>Fecha</label><input type="date" id="fecha"></div>
+                            <div class="form-group"><label>Placa / Vehículo</label><select id="vehiculoMov"><option value="">Cargando...</option></select></div>
+                            <div class="form-group"><label>Conductor</label><select id="colaboradorConductor"><option value="">Cargando...</option></select></div>
+                        </div>
+                        <div class="grid grid-cols-3 mb-3">
+                            <div class="form-group"><label>Hora de Salida</label><input type="time" id="horaSalida"></div>
+                            <div class="form-group"><label>Hora de Llegada</label><input type="time" id="horaLlegada"></div>
+                            <div class="form-group"><label>Buscar Movimiento</label><input type="text" id="buscarMov" placeholder="Placa o conductor" oninput="filtrarListaMovimientos()"></div>
+                        </div>
+                        <div class="grid grid-cols-3 mb-3">
+                            <div class="form-group"><label>📦 Canastillas que SALEN</label><input type="number" id="canSalidaTotal" placeholder="0"></div>
+                            <div class="form-group"><label>📦 Canastillas que LLEGAN</label><input type="number" id="canLlegadaTotal" placeholder="0" readonly style="background:#eef2ff;"></div>
+                            <div class="form-group"><label>⚖️ Kilos TOTALES</label><input type="text" id="kilosTotales" placeholder="0" readonly style="background:#eef2ff;"></div>
+                        </div>
+                        <div class="form-group">
+                            <button class="btn-primario" onclick="agregarFilaRecogida()">➕ Agregar Recogida</button>
+                        </div>
+                        <div id="listaRecogidas" class="mb-3"></div>
+                        <div class="form-group">
+                            <label>Observaciones</label>
+                            <textarea id="observaciones" rows="2" placeholder="Observaciones del recorrido..."></textarea>
+                        </div>
+                        <input type="hidden" id="idEditar">
+                        <div class="flex gap-2 mt-4 flex-wrap">
+                            <button class="btn-exito" onclick="guardarMovimiento()">💾 Guardar Movimiento</button>
+                            <button class="btn-primario" onclick="completarMovimiento()">✅ Completar y Limpiar</button>
+                            <button class="btn-peligro" onclick="limpiarFormulario()">🗑️ Limpiar</button>
+                            <button id="btnFiltroPendientes" class="btn-filtro-mov" onclick="alternarFiltroPendientes()">⏳ Ver Pendientes</button>
+                        </div>
                     </div>
 
-                    <div class="grid grid-cols-3 mb-3">
-                        <div class="form-group"><label>Fecha</label><input type="date" id="fecha"></div>
-                        <div class="form-group"><label>Placa / Vehículo</label><select id="vehiculoMov"><option value="">Cargando...</option></select></div>
-                        <div class="form-group"><label>Conductor</label><select id="colaboradorConductor"><option value="">Cargando...</option></select></div>
-                    </div>
-                    <div class="grid grid-cols-3 mb-3">
-                        <div class="form-group"><label>Hora de Salida</label><input type="time" id="horaSalida"></div>
-                        <div class="form-group"><label>Hora de Llegada</label><input type="time" id="horaLlegada"></div>
-                        <div class="form-group"><label>Buscar Movimiento</label><input type="text" id="buscarMov" placeholder="Placa o conductor" oninput="filtrarListaMovimientos()"></div>
-                    </div>
-                    <div class="grid grid-cols-3 mb-3">
-                        <div class="form-group"><label>📦 Canastillas que SALEN</label><input type="number" id="canSalidaTotal" placeholder="0"></div>
-                        <div class="form-group"><label>📦 Canastillas que LLEGAN</label><input type="number" id="canLlegadaTotal" placeholder="0" readonly style="background:#eef2ff;"></div>
-                        <div class="form-group"><label>⚖️ Kilos TOTALES</label><input type="text" id="kilosTotales" placeholder="0" readonly style="background:#eef2ff;"></div>
-                    </div>
-                    <div class="form-group">
-                        <button class="btn-primario" onclick="agregarFilaRecogida()">➕ Agregar Recogida</button>
-                    </div>
-                    <div id="listaRecogidas" class="mb-3"></div>
-                    <div class="form-group">
-                        <label>Observaciones</label>
-                        <textarea id="observaciones" rows="2" placeholder="Observaciones del recorrido..."></textarea>
-                    </div>
-                    <input type="hidden" id="idEditar">
-                    <div class="flex gap-2 mt-4 flex-wrap">
-                        <button class="btn-exito" onclick="guardarMovimiento()">💾 Guardar Movimiento</button>
-                        <button class="btn-primario" onclick="completarMovimiento()">✅ Completar y Limpiar</button>
-                        <button class="btn-peligro" onclick="limpiarFormulario()">🗑️ Limpiar</button>
-                        <button id="btnFiltroPendientes" class="btn-filtro-mov" onclick="alternarFiltroPendientes()">⏳ Ver Pendientes</button>
+                    <div class="tarjeta">
+                        <h3 class="font-bold mb-3">📋 Movimientos Registrados HOY</h3>
+                        <div id="listaMovimientos"></div>
                     </div>
                 </div>
 
-                <div class="tarjeta">
-                    <h3 class="font-bold mb-3">📋 Movimientos Registrados HOY</h3>
-                    <div id="listaMovimientos"></div>
+                <!-- SUBPESTAÑA: DISPONIBILIDAD (SOLO CONSULTA) -->
+                <div id="submov-disponibilidad" class="subpestaña-combustible oculto">
+                    <div class="tarjeta">
+                        <h3 class="font-bold mb-3">📊 Estado de Disponibilidad</h3>
+                        
+                        <div class="mb-6">
+                            <h4 class="font-bold text-green-700 mb-2">✅ VEHÍCULOS DISPONIBLES</h4>
+                            <div id="vehiculosDisponibles" class="flex flex-wrap gap-2"></div>
+                        </div>
+                        <div class="mb-6">
+                            <h4 class="font-bold text-yellow-600 mb-2">🚗 VEHÍCULOS EN RUTA</h4>
+                            <div id="vehiculosEnRuta" class="flex flex-wrap gap-2"></div>
+                        </div>
+                        <hr class="my-4">
+                        <div class="mb-6">
+                            <h4 class="font-bold text-green-700 mb-2">✅ COLABORADORES DISPONIBLES</h4>
+                            <div id="colaboradoresDisponibles" class="flex flex-wrap gap-2"></div>
+                        </div>
+                        <div class="mb-6">
+                            <h4 class="font-bold text-yellow-600 mb-2">🚗 COLABORADORES EN RUTA</h4>
+                            <div id="colaboradoresEnRuta" class="flex flex-wrap gap-2"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
