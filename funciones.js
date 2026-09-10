@@ -106,6 +106,7 @@ async function finalizarLogin() {
     await cargarDatosCompleto();
     llenarSelects();
     cambiarPestaña('movimientos');
+    cambiarSubpestañaMov('registro');
     iniciarTemporizadorSesion();
     iniciarActualizacionAutomatica();
     await registrarAccion('Inicio de Sesión', 'Sistema', '');
@@ -162,56 +163,50 @@ function cambiarPestaña(nombre) {
     document.querySelectorAll('.pestaña').forEach(p => p.classList.add('oculto'));
     event.target.classList.add('activa');
     document.getElementById(`pest-${nombre}`).classList.remove('oculto');
-    document.getElementById('tituloPestaña').textContent = event.target.textContent;
     document.getElementById('sidebar').classList.remove('mostrar');
+    const titulos = {
+        movimientos: '📦 Movimientos',
+        transportadora: '🚛 Transportadora',
+        combustible: '⛽ Combustible',
+        mantenimientos: '🔧 Mantenimientos',
+        informes: '📊 Informes',
+        admin: '⚙️ Administración'
+    };
+    document.getElementById('tituloPestaña').textContent = titulos[nombre] || nombre;
 }
 
-// =====================================================
-// ===== 📋 SUBPESTAÑAS DE MOVIMIENTOS =====
-// =====================================================
 function cambiarSubpestañaMov(nombre) {
     document.querySelectorAll('.btn-subcombustible').forEach(b => b.classList.remove('activa'));
     document.querySelectorAll('.subpestaña-combustible').forEach(p => p.classList.add('oculto'));
     event.target.classList.add('activa');
     document.getElementById(`submov-${nombre}`).classList.remove('oculto');
-    
-    if (nombre === 'disponibilidad') {
-        dibujarDisponibilidad();
-    }
+    if (nombre === 'disponibilidad') calcularDisponibilidad();
 }
 
 // =====================================================
-// ===== 📊 DIBUJAR DISPONIBILIDAD =====
+// ===== 📦 CANASTILLAS DE SALIDA → LLEGADA =====
 // =====================================================
-function dibujarDisponibilidad() {
-    const placasEnRuta = movimientos.filter(m => !m.horaLlegada).map(m => m.placa);
-    const colsEnRuta = movimientos.filter(m => !m.horaLlegada).map(m => m.colaboradorConductor);
+function copiarCanastillasSalida() {
+    const sal = parseInt(document.getElementById('canSalidaTotal').value) || 0;
+    document.getElementById('canLlegadaTotal').value = sal;
+    actualizarTotalesRecogida();
+}
 
-    const todosVeh = vehiculosMov.filter(v => v.estado !== 'inactivo');
-    const dispVeh = todosVeh.filter(v => !placasEnRuta.includes(v.placa));
-    const rutaVeh = todosVeh.filter(v => placasEnRuta.includes(v.placa));
+// =====================================================
+// ===== 👤 QUIEN RECOGE = CONDUCTOR =====
+// =====================================================
+function actualizarQuienRecoge() {
+    const conductor = document.getElementById('colaboradorConductor').value;
+    listaRecogidas.forEach(r => r.quienRecoge = conductor);
+    dibujarListaRecogidas();
+}
 
-    const dv = document.getElementById('vehiculosDisponibles');
-    const rv = document.getElementById('vehiculosEnRuta');
-    if (dv) dv.innerHTML = dispVeh.length 
-        ? dispVeh.map(v => `<span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">${v.placa} — ${v.tipo}</span>`).join('')
-        : '<span class="text-gray-500">Ninguno disponible</span>';
-    if (rv) rv.innerHTML = rutaVeh.length 
-        ? rutaVeh.map(v => `<span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">${v.placa} — ${v.tipo}</span>`).join('')
-        : '<span class="text-gray-500">Ninguno en ruta</span>';
-
-    const todosCol = colaboradores.filter(c => (c.estado || 'activo') === 'activo');
-    const dispCol = todosCol.filter(c => !colsEnRuta.includes(c.nombre));
-    const rutaCol = todosCol.filter(c => colsEnRuta.includes(c.nombre));
-
-    const dc = document.getElementById('colaboradoresDisponibles');
-    const rc = document.getElementById('colaboradoresEnRuta');
-    if (dc) dc.innerHTML = dispCol.length 
-        ? dispCol.map(c => `<span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">${c.nombre}</span>`).join('')
-        : '<span class="text-gray-500">Ninguno disponible</span>';
-    if (rc) rc.innerHTML = rutaCol.length 
-        ? rutaCol.map(c => `<span class="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">${c.nombre}</span>`).join('')
-        : '<span class="text-gray-500">Ninguno en ruta</span>';
+// =====================================================
+// ===== 🔄 AL CAMBIAR VEHÍCULO → LIMPIAR RECOGIDAS =====
+// =====================================================
+function limpiarRecogidas() {
+    listaRecogidas = [];
+    dibujarListaRecogidas();
 }
 
 // =====================================================
@@ -359,11 +354,12 @@ function dibujarListaMovimientos() {
 }
 
 // =====================================================
-// ===== 📦 MOVIMIENTOS - FORMULARIO =====
+// ===== 📦 MOVIMIENTOS - RECOGIDAS =====
 // =====================================================
 function agregarFilaRecogida() {
     const id = Date.now();
-    listaRecogidas.push({ id, quienRecoge: '', recogeA: '', kilos: 0, canastillas: 0 });
+    const conductor = document.getElementById('colaboradorConductor').value || '';
+    listaRecogidas.push({ id, quienRecoge: conductor, recogeA: '', kilos: 0, canastillas: 0 });
     dibujarListaRecogidas();
 }
 
@@ -375,14 +371,16 @@ function quitarFilaRecogida(id) {
 function dibujarListaRecogidas() {
     const c = document.getElementById('listaRecogidas');
     if (!c) return;
+    const conductor = document.getElementById('colaboradorConductor').value || 'Selecciona conductor primero';
     const optCol = colaboradores.filter(c2=>(c2.estado||'activo')==='activo').map(c2=>`<option value="${c2.nombre}">${c2.nombre}</option>`).join('');
+    
     c.innerHTML = listaRecogidas.map(r => `
-    <div class="fila-recogida border rounded p-2 bg-gray-50">
-        <select onchange="listaRecogidas.find(x=>x.id===${r.id}).quienRecoge=this.value">
-            <option value="">Quien recoge...</option>${optCol}
-        </select>
-        <select onchange="listaRecogidas.find(x=>x.id===${r.id}).recogeA=this.value">
-            <option value="">Recoge a...</option>${optCol}
+    <div class="fila-recogida">
+        <label class="font-bold min-w-[100px]">Quién recoge:</label>
+        <input type="text" value="${conductor}" readonly style="background:#eef2ff; flex:1;">
+        <label class="font-bold min-w-[100px]">Recoge a:</label>
+        <select onchange="listaRecogidas.find(x=>x.id===${r.id}).recogeA=this.value" style="flex:1;">
+            <option value="">Selecciona colaborador...</option>${optCol}
         </select>
         <input type="number" placeholder="Kilos" oninput="listaRecogidas.find(x=>x.id===${r.id}).kilos=parseFloat(this.value)||0; actualizarTotalesRecogida()">
         <input type="number" placeholder="Canastillas" oninput="listaRecogidas.find(x=>x.id===${r.id}).canastillas=parseInt(this.value)||0; actualizarTotalesRecogida()">
@@ -393,12 +391,15 @@ function dibujarListaRecogidas() {
 
 function actualizarTotalesRecogida() {
     const totalKilos = listaRecogidas.reduce((s,r)=>s+(r.kilos||0),0);
-    const totalCan = listaRecogidas.reduce((s,r)=>s+(r.canastillas||0),0);
+    const totalCanRecogidas = listaRecogidas.reduce((s,r)=>s+(r.canastillas||0),0);
     const canSal = parseInt(document.getElementById('canSalidaTotal').value) || 0;
     document.getElementById('kilosTotales').value = totalKilos;
-    document.getElementById('canLlegadaTotal').value = totalCan + canSal;
+    document.getElementById('canLlegadaTotal').value = canSal + totalCanRecogidas;
 }
 
+// =====================================================
+// ===== 📦 MOVIMIENTOS - GUARDAR Y CARGAR =====
+// =====================================================
 async function guardarMovimiento() {
     reiniciarTiempoSesion();
     const fecha = document.getElementById('fecha').value;
@@ -490,6 +491,24 @@ async function eliminarMovimiento(id) {
     await registrarAccion('Eliminar Movimiento', 'Movimientos', `${m?.placa||''}`);
     alert('✅ Eliminado');
     await cargarDatosCompleto();
+}
+
+// =====================================================
+// ===== 📊 DISPONIBILIDAD =====
+// =====================================================
+function calcularDisponibilidad() {
+    const enRutaPlacas = new Set(movimientos.filter(m=>!m.horaLlegada).map(m=>m.placa));
+    const enRutaColabs = new Set(movimientos.filter(m=>!m.horaLlegada).map(m=>m.colaboradorConductor));
+
+    const dispVeh = vehiculosMov.filter(v=>!enRutaPlacas.has(v.placa) && v.estado!=='inactivo');
+    const rutaVeh = vehiculosMov.filter(v=>enRutaPlacas.has(v.placa));
+    const dispCol = colaboradores.filter(c=>!enRutaColabs.has(c.nombre) && (c.estado||'activo')==='activo');
+    const rutaCol = colaboradores.filter(c=>enRutaColabs.has(c.nombre));
+
+    document.getElementById('vehiculosDisponibles').innerHTML = dispVeh.length ? dispVeh.map(v=>`<span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">${v.placa}</span>`).join('') : '<span class="text-gray-500 text-sm">Ninguno</span>';
+    document.getElementById('vehiculosEnRuta').innerHTML = rutaVeh.length ? rutaVeh.map(v=>`<span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">${v.placa}</span>`).join('') : '<span class="text-gray-500 text-sm">Ninguno</span>';
+    document.getElementById('colaboradoresDisponibles').innerHTML = dispCol.length ? dispCol.map(c=>`<span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">${c.nombre}</span>`).join('') : '<span class="text-gray-500 text-sm">Ninguno</span>';
+    document.getElementById('colaboradoresEnRuta').innerHTML = rutaCol.length ? rutaCol.map(c=>`<span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">${c.nombre}</span>`).join('') : '<span class="text-gray-500 text-sm">Ninguno</span>';
 }
 // =====================================================
 // ===== 🚛 TRANSPORTADORA =====
@@ -610,8 +629,8 @@ async function guardarKilometrajeDiario() {
     const kmTarde = parseFloat(document.getElementById('kmTarde').value) || null;
     const colaborador = document.getElementById('quienRegistraKm').value;
 
-    if (!fecha || !placa || !colaborador) {
-        return alert('⚠️ Complete Fecha, Placa y Quien registra');
+    if (!fecha || !placa || !colaborador || kmManana === null) {
+        return alert('⚠️ Complete Fecha, Placa, Kilometraje de la Mañana y Quien registra');
     }
 
     const kmRecorridos = (kmManana !== null && kmTarde !== null) ? (kmTarde - kmManana) : null;
@@ -646,7 +665,7 @@ function dibujarPendientesKilometraje() {
         return;
     }
     c.innerHTML = pendientes.map(k => `
-    <div class="flex gap-2 items-center p-2 border rounded mb-2 bg-yellow-50">
+    <div class="flex gap-2 items-center p-2 border rounded mb-2 bg-yellow-50 flex-wrap">
         <span class="font-bold">${k.fecha} | ${k.placa}</span>
         <span class="text-sm">🌅 Mañana: ${k.kmManana} km</span>
         <button class="btn-primario text-xs py-1 px-2 ml-auto" onclick="completarKilometrajeTarde('${k.id}','${k.fecha}','${k.placa}',${k.kmManana})">✏️ Completar Tarde</button>
@@ -814,11 +833,10 @@ function verHistorialVehiculo(placa) {
     placaSeleccionada = placa;
     document.getElementById('placaMantSeleccionada').textContent = placa;
     document.getElementById('formIngresoTaller').classList.remove('oculto');
-    const datos = datosVehiculos.find(d => d.placa === placa);
+    const datos = vehiculosMov.find(d => d.placa === placa) || vehiculosTransp.find(d => d.placa === placa);
     document.getElementById('datosVehiculoSeleccionado').innerHTML = datos ? `
         <p><strong>Tipo:</strong> ${datos.tipo || '—'}</p>
         <p><strong>Marca:</strong> ${datos.marca || '—'}</p>
-        <p><strong>Último Mantenimiento:</strong> ${datos.ultimoMantenimiento || 'Sin registro'}</p>
     ` : '<p class="text-sm text-gray-500">Sin datos adicionales del vehículo</p>';
 
     const historial = historialMantenimientos.filter(h => h.placa === placa);
