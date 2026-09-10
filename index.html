@@ -10,524 +10,472 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        * { box-sizing: border-box; }
-        body { margin: 0; font-family: system-ui, sans-serif; background: #f8fafc; }
-        .oculto { display: none !important; }
-        .activa { background: #2563eb !important; color: white !important; }
-        .btn-pestaña { display: block; width: 100%; text-align: left; padding: 0.7rem 1rem; margin: 0.2rem 0; border: none; background: #e2e8f0; cursor: pointer; border-radius: 0.5rem; font-size: 0.95rem; }
-        .btn-pestaña:hover { background: #bfdbfe; }
-        .contenedor-principal { display: flex; min-height: 100vh; }
-        #sidebar { width: 240px; background: #f1f5f9; padding: 1rem; transition: transform 0.3s; }
-        #sidebar.mostrar { transform: translateX(0); }
-        .area-principal { flex: 1; padding: 1.2rem; }
-        .tarjeta { background: white; border-radius: 0.7rem; padding: 1.2rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-        input, select, textarea { width: 100%; padding: 0.6rem; margin: 0.3rem 0 0.8rem 0; border: 1px solid #cbd5e1; border-radius: 0.4rem; font-size: 0.95rem; }
-        button { padding: 0.6rem 1.2rem; border: none; border-radius: 0.4rem; cursor: pointer; font-weight: 500; }
-        .btn-primario { background: #2563eb; color: white; }
-        .btn-exito { background: #16a34a; color: white; }
-        .btn-peligro { background: #dc2626; color: white; }
-        .btn-naranja { background: #f97316; color: white; }
-        .fila-lista { padding: 0.7rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
-        .fila-recogida { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
-        .fila-recogida input, .fila-recogida select { flex: 1; margin: 0; }
-        .btn-quitar { background: #ef4444; color: white; padding: 0.4rem 0.6rem; }
-        .pendiente { border-left: 4px solid #f97316; background: #fff7ed; }
-        .completado { border-left: 4px solid #22c55e; background: #f0fdf4; }
-        .barra-superior { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; }
-        .btn-salir { background: #ef4444; color: white; }
-        .btn-actualizar { background: #10b981; color: white; }
-        .subpestaña-admin { padding: 0.5rem 0; }
-        .btn-subpestaña { margin: 0.2rem; padding: 0.4rem 0.8rem; font-size: 0.9rem; background: #e5e7eb; }
-        .btn-subcombustible { margin: 0.2rem; padding: 0.4rem 0.8rem; font-size: 0.9rem; background: #e5e7eb; }
-        .subpestaña-combustible { padding: 0.5rem 0; }
-        .estado-pendiente { color: #f97316; font-weight: bold; }
-        .estado-completado { color: #16a34a; font-weight: bold; }
-        .btn-editar { background: #3b82f6; color: white; padding: 0.3rem 0.5rem; font-size: 0.85rem; border-radius: 0.3rem; }
-        .btn-eliminar { background: #ef4444; color: white; padding: 0.3rem 0.5rem; font-size: 0.85rem; border-radius: 0.3rem; }
-
-        /* Móvil */
-        @media (max-width: 768px) {
-            #sidebar { position: fixed; z-index: 90; height: 100vh; transform: translateX(-105%); }
-            #sidebar.mostrar { transform: translateX(0); }
-            .btn-menu { display: block !important; }
+        :root {
+            --primario: #1e40af;
+            --secundario: #3b82f6;
+            --exito: #16a34a;
+            --advertencia: #f59e0b;
+            --peligro: #dc2626;
+            --fondo: #f8fafc;
+            --tarjeta: #ffffff;
+            --texto: #1f2937;
+            --borde: #e2e8f0;
         }
-        .btn-menu { display: none; position: fixed; top: 0.5rem; left: 0.5rem; z-index: 100; background: #2563eb; color: white; border-radius: 50%; width: 42px; height: 42px; padding: 0; font-size: 1.2rem; }
-        small { font-size: 0.75rem; color: #2563eb; }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        body { background: var(--fondo); color: var(--texto); }
+
+        /* Menú Lateral */
+        .contenedor-principal { display: flex; min-height: 100vh; }
+        #sidebar {
+            width: 260px; background: linear-gradient(180deg, #1e40af 0%, #1e3a8a 100%);
+            color: white; padding: 1rem 0; transition: transform 0.3s ease;
+            position: fixed; left: 0; top: 0; height: 100vh; z-index: 40;
+            box-shadow: 4px 0 12px rgba(0,0,0,0.15);
+        }
+        #sidebar.mostrar { transform: translateX(0); }
+        .btn-pestaña {
+            display: block; width: 100%; text-align: left; padding: 0.85rem 1.25rem;
+            background: transparent; border: none; color: #dbeafe; font-size: 0.95rem;
+            cursor: pointer; transition: all 0.2s; border-left: 3px solid transparent;
+        }
+        .btn-pestaña:hover, .btn-pestaña.activa {
+            background: rgba(255,255,255,0.12); color: white; border-left-color: #facc15;
+        }
+        .btn-pestaña.oculto { display: none !important; }
+
+        .area-contenido { flex: 1; margin-left: 260px; padding: 1.25rem; transition: margin-left 0.3s; }
+        .encabezado {
+            background: linear-gradient(90deg, #1e40af 0%, #3b82f6 100%);
+            color: white; padding: 1rem 1.5rem; margin: -1.25rem -1.25rem 1.25rem -1.25rem;
+            display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 20;
+        }
+        .btn-menu { display: none; background: transparent; border: none; color: white; font-size: 1.5rem; cursor: pointer; }
+        .btn-salir { background: #ef4444; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: 600; }
+
+        .pestaña { animation: aparecer 0.25s ease; }
+        .pestaña.oculto { display: none; }
+        @keyframes aparecer { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .tarjeta { background: white; border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); border: 1px solid var(--borde); }
+        .form-group { margin-bottom: 0.85rem; }
+        label { display: block; font-weight: 500; margin-bottom: 0.35rem; font-size: 0.9rem; color: #374151; }
+        input, select, textarea {
+            width: 100%; padding: 0.65rem 0.85rem; border: 1px solid var(--borde);
+            border-radius: 6px; font-size: 0.95rem; background: #fcfcfd;
+        }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+
+        button { cursor: pointer; border-radius: 6px; font-weight: 500; transition: all 0.2s; }
+        .btn-primario { background: #2563eb; color: white; border: none; padding: 0.6rem 1.1rem; }
+        .btn-primario:hover { background: #1d4ed8; }
+        .btn-exito { background: #16a34a; color: white; border: none; padding: 0.6rem 1.1rem; }
+        .btn-exito:hover { background: #15803d; }
+        .btn-peligro { background: #dc2626; color: white; border: none; padding: 0.6rem 1.1rem; }
+        .btn-peligro:hover { background: #b91c1c; }
+        .btn-editar { background: #f59e0b; color: #1f2937; border: none; padding: 0.4rem 0.7rem; font-size: 0.85rem; }
+        .btn-quitar { background: #fee2e2; color: #b91c1c; border: none; width: 32px; height: 32px; border-radius: 50%; font-weight: bold; }
+
+        .fila-lista {
+            padding: 0.9rem; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 0.6rem;
+            display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; background: white;
+        }
+        .fila-lista.pendiente { border-left: 4px solid #f59e0b; background: #fffbeb; }
+        .fila-lista.completado { border-left: 4px solid #16a34a; background: #f0fdf4; }
+        .estado-pendiente { display: inline-block; margin-left: 0.5rem; background: #fef3c7; color: #92400e; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+        .estado-completado { display: inline-block; margin-left: 0.5rem; background: #dcfce7; color: #166534; padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.8rem; font-weight: 600; }
+
+        .fila-recogida { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; }
+        .fila-recogida select, .fila-recogida input { flex: 1; min-width: 110px; }
+
+        .btn-filtro-mov { background: #e5e7eb; color: #374151; border: none; padding: 0.45rem 0.85rem; font-size: 0.9rem; }
+        .btn-filtro-mov.activa { background: #2563eb; color: white; }
+
+        .btn-subcombustible, .btn-subadmin { background: #e5e7eb; border: none; padding: 0.5rem 1rem; margin-right: 0.5rem; border-radius: 6px; }
+        .btn-subcombustible.activa, .btn-subadmin.activa { background: #2563eb; color: white; }
+        .subpestaña-combustible, .subpestaña-admin { margin-top: 1rem; }
+        .subpestaña-combustible.oculto, .subpestaña-admin.oculto { display: none; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 0.75rem; font-size: 0.88rem; }
+        th, td { border: 1px solid #d1d5db; padding: 0.5rem 0.65rem; text-align: left; }
+        th { background: #eff6ff; font-weight: 600; }
+        tr:nth-child(even) { background: #f9fafb; }
+
+        .oculto { display: none !important; }
+        .flex { display: flex; }
+        .gap-2 { gap: 0.5rem; }
+        .mb-3 { margin-bottom: 0.75rem; }
+        .mb-4 { margin-bottom: 1rem; }
+        .mt-2 { margin-top: 0.5rem; }
+        .mt-4 { margin-top: 1rem; }
+        .text-center { text-align: center; }
+        .text-sm { font-size: 0.875rem; }
+        .font-bold { font-weight: 700; }
+        .grid { display: grid; gap: 0.75rem; }
+        .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+        /* Modal Login */
+        #modalLogin {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; z-index: 100;
+        }
+        #modalLogin.oculto { display: none; }
+        .caja-login {
+            background: white; padding: 2rem; border-radius: 12px; width: 92%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+        #mensajeError { color: #dc2626; margin-top: 0.75rem; font-weight: 500; min-height: 1.4rem; }
+
+        /* Celular */
+        @media (max-width: 768px) {
+            .btn-menu { display: block; }
+            #sidebar { transform: translateX(-100%); width: 270px; }
+            #sidebar.mostrar { transform: translateX(0); }
+            .area-contenido { margin-left: 0; }
+            .grid-cols-3 { grid-template-columns: 1fr; }
+            .fila-lista { flex-direction: column; }
+            .fila-recogida { flex-direction: column; align-items: stretch; }
+        }
     </style>
 </head>
 <body>
 
-<!-- 🔘 Botón Menú Móvil -->
-<button class="btn-menu oculto" onclick="alternarMenu()">☰</button>
-
-<!-- 🔐 MODAL DE INICIO DE SESIÓN -->
-<div id="modalLogin" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);z-index:200;">
-    <div class="tarjeta" style="width:360px;max-width:94%;">
-        <h2 style="text-align:center;margin-bottom:1.5rem;">🔐 Iniciar Sesión</h2>
-        <div>
-            <label>Usuario / Correo</label>
-            <input type="text" id="correoLogin" placeholder="Tu usuario o correo">
-            <label>Contraseña</label>
-            <input type="password" id="passLogin" placeholder="Tu contraseña">
-            <button class="btn-primario" style="width:100%;margin-top:0.5rem;" onclick="ingresar()">Ingresar</button>
-            <p id="mensajeError" style="color:red;margin-top:0.8rem;text-align:center;"></p>
-            <p style="text-align:center;margin-top:1rem;"><a href="#" onclick="recuperarClave();return false;" style="color:#2563eb;">¿Olvidaste tu contraseña?</a></p>
+    <!-- ============================================== -->
+    <!-- MODAL DE INICIO DE SESIÓN -->
+    <!-- ============================================== -->
+    <div id="modalLogin">
+        <div class="caja-login">
+            <h2 class="text-2xl font-bold text-center mb-6 text-blue-800">🔐 Iniciar Sesión</h2>
+            <div class="form-group">
+                <label>Usuario o Correo</label>
+                <input type="text" id="correoLogin" placeholder="Escribe tu usuario">
+            </div>
+            <div class="form-group">
+                <label>Contraseña</label>
+                <input type="password" id="passLogin" placeholder="••••••••" onkeydown="if(event.key==='Enter')iniciarSesion()">
+            </div>
+            <button class="btn-primario w-full text-lg py-2" onclick="iniciarSesion()">Ingresar</button>
+            <p id="mensajeError"></p>
         </div>
     </div>
-</div>
 
-<!-- 🏠 CONTENEDOR PRINCIPAL -->
-<div class="contenedor-principal oculto">
+    <!-- ============================================== -->
+    <!-- CONTENEDOR PRINCIPAL -->
+    <!-- ============================================== -->
+    <div class="contenedor-principal oculto">
 
-    <!-- 📋 MENÚ LATERAL -->
-    <div id="sidebar">
-        <h3 style="text-align:center;margin-bottom:1rem;font-size:1.1rem;">📋 Módulos</h3>
-        <button class="btn-pestaña activa" onclick="cambiarPestaña('movimientos')">📦 Movimientos Canastillas</button>
-        <button class="btn-pestaña" onclick="cambiarPestaña('transportadora')">🚛 Transportadora</button>
-        <button class="btn-pestaña" onclick="cambiarPestaña('combustible')">⛽ Combustible</button>
-        <button class="btn-pestaña" onclick="cambiarPestaña('mantenimientos')">🔧 Mantenimientos</button>
-        <button class="btn-pestaña" onclick="cambiarPestaña('informes')">📊 Informes</button>
-        <button id="btnAdmin" class="btn-pestaña oculto" onclick="cambiarPestaña('admin')">⚙️ Administración</button>
-        <hr style="margin:1rem 0;">
-        <button class="btn-actualizar" style="width:100%;margin:0.3rem 0;" onclick="actualizarInformacion()">🔄 Actualizar Datos</button>
-        <p style="font-size:0.8rem;color:#64748b;margin-top:0.5rem;" id="textoUltimaActualizacion"></p>
-        <button class="btn-salir oculto" style="width:100%;margin-top:1rem;" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
-    </div>
-
-    <!-- 📐 ÁREA DE TRABAJO -->
-    <div class="area-principal">
-        <div class="barra-superior">
-            <h2 id="tituloPestaña" style="margin:0;">📦 Movimientos</h2>
+        <!-- MENÚ LATERAL -->
+        <div id="sidebar">
+            <div class="px-4 py-3 mb-4 border-b border-blue-400/30">
+                <h2 class="text-lg font-bold">📋 Módulos</h2>
+            </div>
+            <button class="btn-pestaña activa" onclick="cambiarPestaña('movimientos')">📦 Movimientos</button>
+            <button class="btn-pestaña" onclick="cambiarPestaña('transportadora')">🚛 Transportadora</button>
+            <button class="btn-pestaña" onclick="cambiarPestaña('combustible')">⛽ Combustible</button>
+            <button class="btn-pestaña" onclick="cambiarPestaña('mantenimientos')">🔧 Mantenimientos</button>
+            <button class="btn-pestaña" onclick="cambiarPestaña('informes')">📊 Informes</button>
+            <button id="btnAdmin" class="btn-pestaña oculto" onclick="cambiarPestaña('admin')">⚙️ Administración</button>
         </div>
 
-        <!-- ============================================== -->
-        <!-- PESTAÑA: MOVIMIENTOS CANASTILLAS -->
-        <!-- ============================================== -->
-        <div id="pest-movimientos" class="pestaña">
-            <div class="tarjeta">
-                <h3 class="font-bold mb-3">📝 Nuevo Movimiento</h3>
-                <input type="hidden" id="idEditar">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                        <label>Fecha</label>
-                        <input type="date" id="fecha">
-                    </div>
-                    <div>
-                        <label>Placa / Vehículo</label>
-                        <select id="vehiculoMov"></select>
-                    </div>
-                    <div>
-                        <label>Conductor</label>
-                        <select id="colaboradorConductor"></select>
-                    </div>
-                    <div>
-                        <label>Hora de Salida</label>
-                        <input type="time" id="horaSalida">
-                    </div>
-                    <div>
-                        <label>Hora de Llegada</label>
-                        <input type="time" id="horaLlegada">
-                    </div>
-                    <div>
-                        <label>Canastillas de Salida</label>
-                        <input type="number" id="canSalidaTotal" placeholder="0">
-                    </div>
-                    <div>
-                        <label>Canastillas de Llegada</label>
-                        <input type="number" id="canLlegadaTotal" placeholder="0">
-                    </div>
-                    <div>
-                        <label>Kilos Totales Recogidos <small>(Ejm: 150+75 → Enter)</small></label>
-                        <input type="text" id="kilosTotales" placeholder="0" onkeydown="calcularKilosTeclado(event)" onblur="calcularKilos()">
-                    </div>
-                </div>
-
-                <div style="margin-top:1rem;">
-                    <h4 class="font-bold">👥 Recogidas realizadas</h4>
-                    <button class="btn-primario" style="margin:0.5rem 0;" onclick="agregarFilaRecogida()">➕ Agregar Recogida</button>
-                    <div id="listaRecogidas"></div>
-                </div>
-
-                <div style="margin-top:1rem;">
-                    <label>Observaciones</label>
-                    <textarea id="observaciones" rows="2" placeholder="Observaciones..."></textarea>
-                </div>
-
-                <div style="margin-top:1rem;display:flex;gap:0.7rem;flex-wrap:wrap;">
-                    <button class="btn-exito" onclick="guardarMovimiento()">💾 Guardar Movimiento</button>
-                    <button class="btn-naranja" onclick="completarMovimiento()">✅ Completar Movimiento</button>
+        <!-- ÁREA DE CONTENIDO -->
+        <div class="area-contenido">
+            <div class="encabezado">
+                <button class="btn-menu" onclick="alternarMenu()">☰</button>
+                <h1 id="tituloPestaña" class="text-xl font-bold">📦 Movimientos</h1>
+                <div class="flex gap-2 items-center">
+                    <button class="btn-exito text-sm py-1 px-3" onclick="actualizarInformacion()">🔄 Actualizar</button>
+                    <span id="textoUltimaActualizacion" class="text-xs opacity-80 hidden md:inline"></span>
+                    <button class="btn-salir" onclick="cerrarSesion()">🚪 Salir</button>
                 </div>
             </div>
 
-            <div class="tarjeta">
-                <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.8rem;">
-                    <h3 class="font-bold" style="margin:0;">📋 Movimientos del Día</h3>
-                    <div>
-                        <button id="btnFiltroMov" class="btn-subpestaña" onclick="alternarFiltroMovimientos()">⏳ Ver Pendientes</button>
-                        <input type="text" id="buscarMov" placeholder="🔍 Buscar..." style="width:180px;margin:0 0.5rem;" oninput="filtrarMovimientos()">
+            <!-- ============================================== -->
+            <!-- PESTAÑA: MOVIMIENTOS -->
+            <!-- ============================================== -->
+            <div id="pest-movimientos" class="pestaña">
+                <div class="tarjeta">
+                    <!-- FILTRO DE ESTADO -->
+                    <div class="flex gap-2 mb-4">
+                        <button class="btn-filtro-mov activa" onclick="cambiarFiltroMovimientos('todos')">📋 Todos</button>
+                        <button class="btn-filtro-mov" onclick="cambiarFiltroMovimientos('disponibles')">✅ Disponibles</button>
+                        <button class="btn-filtro-mov" onclick="cambiarFiltroMovimientos('enruta')">🚗 En Ruta</button>
+                    </div>
+
+                    <div class="grid grid-cols-3 mb-3">
+                        <div class="form-group"><label>Fecha</label><input type="date" id="fecha"></div>
+                        <div class="form-group"><label>Placa / Vehículo</label><select id="vehiculoMov"><option value="">Cargando...</option></select></div>
+                        <div class="form-group"><label>Conductor</label><select id="colaboradorConductor"><option value="">Cargando...</option></select></div>
+                    </div>
+                    <div class="grid grid-cols-3 mb-3">
+                        <div class="form-group"><label>Hora de Salida</label><input type="time" id="horaSalida"></div>
+                        <div class="form-group"><label>Hora de Llegada</label><input type="time" id="horaLlegada"></div>
+                        <div class="form-group"><label>Buscar</label><input type="text" id="buscarMov" placeholder="Placa o conductor" oninput="filtrarMovimientos()"></div>
+                    </div>
+                    <div class="grid grid-cols-3 mb-3">
+                        <div class="form-group"><label>📦 Canastillas que SALEN</label><input type="number" id="canSalidaTotal" placeholder="0"></div>
+                        <div class="form-group"><label>📦 Canastillas que LLEGAN</label><input type="number" id="canLlegadaTotal" placeholder="0" readonly style="background:#eef2ff;"></div>
+                        <div class="form-group"><label>⚖️ Kilos TOTALES</label><input type="text" id="kilosTotales" placeholder="0" readonly style="background:#eef2ff;"></div>
+                    </div>
+                    <div class="form-group">
+                        <button class="btn-primario" onclick="agregarFilaRecogida()">➕ Agregar Recogida</button>
+                    </div>
+                    <div id="listaRecogidas" class="mb-3"></div>
+                    <div class="form-group">
+                        <label>Observaciones</label>
+                        <textarea id="observaciones" rows="2" placeholder="Observaciones del recorrido..."></textarea>
+                    </div>
+                    <input type="hidden" id="idEditar">
+                    <div class="flex gap-2 mt-4">
+                        <button class="btn-exito" onclick="guardarMovimiento()">💾 Guardar Movimiento</button>
+                        <button class="btn-primario" onclick="completarMovimiento()">✅ Completar y Limpiar</button>
+                        <button class="btn-peligro" onclick="limpiarFormulario()">🗑️ Limpiar</button>
+                        <button id="btnFiltroMov" class="btn-filtro-mov" onclick="alternarFiltroMovimientos()">⏳ Ver Pendientes</button>
                     </div>
                 </div>
-                <div id="listaMovimientos"></div>
-            </div>
-        </div>
 
-        <!-- ============================================== -->
-        <!-- PESTAÑA: TRANSPORTADORA -->
-        <!-- ============================================== -->
-        <div id="pest-transportadora" class="pestaña oculto">
-            <h3 class="font-bold mb-3">🚛 Transportadora</h3>
-
-            <!-- 👤 CONDUCTORES -->
-            <div class="tarjeta">
-                <h4 class="font-bold">👤 Gestión de Conductores</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                        <label>Nombre del Conductor</label>
-                        <input type="text" id="nombreConductor" placeholder="Nombre completo">
-                        <button class="btn-primario" style="margin-top:0.3rem;" onclick="agregarConductor()">➕ Agregar Conductor</button>
-                    </div>
+                <div class="tarjeta">
+                    <h3 class="font-bold mb-3">📋 Movimientos Registrados HOY</h3>
+                    <div id="listaMovimientos"></div>
                 </div>
-                <div id="listaConductoresTransp" style="margin-top:1rem;"></div>
             </div>
 
-            <!-- 🚗 VEHÍCULOS TRANSPORTADORA -->
-            <div class="tarjeta">
-                <h4 class="font-bold">🚗 Vehículos de Transportadora</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                        <label>Placa</label>
-                        <input type="text" id="placaVehiculoTransp" placeholder="ABC-123" style="text-transform:uppercase;">
+            <!-- ============================================== -->
+            <!-- PESTAÑA: TRANSPORTADORA -->
+            <!-- ============================================== -->
+            <div id="pest-transportadora" class="pestaña oculto">
+                <div class="tarjeta">
+                    <h3 class="font-bold mb-3">👤 Agregar Conductor</h3>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="nombreConductor" placeholder="Nombre del conductor" class="flex-1">
+                        <button class="btn-primario" onclick="agregarConductor()">Guardar</button>
                     </div>
-                    <div>
-                        <label>Tipo de Vehículo</label>
-                        <select id="tipoVehiculoTransp">
-                            <option value="">Seleccione tipo</option>
-                            <option>Motocicleta</option>
-                            <option>Automóvil</option>
-                            <option>Camioneta</option>
-                            <option>Camión</option>
-                            <option>Carguero</option>
+                    <div id="listaConductoresTransp" class="mb-6"></div>
+
+                    <h3 class="font-bold mb-3">🚛 Agregar Vehículo de Transportadora</h3>
+                    <div class="flex gap-2 mb-3">
+                        <input type="text" id="placaVehiculoTransp" placeholder="Placa" class="flex-1" style="max-width:140px;">
+                        <select id="tipoVehiculoTransp" class="flex-1">
+                            <option value="">Tipo de vehículo</option>
+                            <option>Moto</option>
                             <option>Vehículo de Tracción Humana (VTH)</option>
+                            <option>Carguero</option>
+                            <option>Camión</option>
+                            <option>Otro</option>
                         </select>
+                        <button class="btn-primario" onclick="agregarVehiculoTransp()">Guardar</button>
                     </div>
                 </div>
-                <button class="btn-primario" style="margin-top:0.3rem;" onclick="agregarVehiculoTransp()">➕ Agregar Vehículo</button>
-                <div id="listaVehiculosTransp" style="margin-top:1rem;"></div>
-            </div>
 
-            <!-- 📦 MOVIMIENTOS TRANSPORTADORA -->
-            <div class="tarjeta">
-                <h4 class="font-bold">📦 Movimientos de Canastillas</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                        <label>Fecha</label>
-                        <input type="date" id="fechaTransp">
-                    </div>
-                    <div>
-                        <label>Placa / Vehículo</label>
-                        <select id="vehiculoTransp"></select>
-                    </div>
-                    <div>
-                        <label>Conductor</label>
-                        <select id="conductorTransp"></select>
-                    </div>
-                    <div>
-                        <label>Hora de Salida</label>
-                        <input type="time" id="horaSalidaTransp">
-                    </div>
-                    <div>
-                        <label>Canastillas que Salen</label>
-                        <input type="number" id="canSalidaTransp" placeholder="0" oninput="verificarCanastillasSalida()">
-                    </div>
-                    <div>
-                        <label>Hora de Llegada</label>
-                        <input type="time" id="horaLlegadaTransp" placeholder="Al regresar">
-                    </div>
-                    <div>
-                        <label>Canastillas que Llegan</label>
-                        <input type="number" id="canLlegadaTransp" placeholder="0">
-                    </div>
-                </div>
-                <div style="margin-top:1rem;display:flex;gap:0.7rem;">
-                    <button class="btn-exito" onclick="guardarMovimientoTransp()">💾 Registrar Salida</button>
-                    <button class="btn-naranja oculto" id="btnCompletarTransp" onclick="completarMovimientoTransp()">✅ Registrar Llegada</button>
-                </div>
-                <input type="hidden" id="idEditarTransp">
-            </div>
-
-            <!-- 📊 HISTORIAL MOVIMIENTOS TRANSPORTADORA -->
-            <div class="tarjeta">
-                <h4 class="font-bold">📊 Historial de Movimientos</h4>
-                <div id="listaMovimientosTransp"></div>
-            </div>
-        </div>
-
-        <!-- ============================================== -->
-        <!-- PESTAÑA: COMBUSTIBLE -->
-        <!-- ============================================== -->
-        <div id="pest-combustible" class="pestaña oculto">
-            <div class="flex gap-2 mb-4">
-                <button class="btn-subcombustible activa" onclick="cambiarSubpestañaCombustible('kilometraje')">📏 Kilometraje Diario</button>
-                <button class="btn-subcombustible" onclick="cambiarSubpestañaCombustible('tanqueo')">⛽ Registro de Tanqueo</button>
-            </div>
-
-            <div id="subcomb-kilometraje" class="subpestaña-combustible">
-                <h3 class="font-bold mb-3">📏 Registro de Kilometraje</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                        <label>Fecha</label>
-                        <input type="date" id="fechaKm">
-                    </div>
-                    <div>
-                        <label>Placa</label>
-                        <select id="vehiculoKm"></select>
-                    </div>
-                    <div>
-                        <label>🌅 Kilometraje Mañana</label>
-                        <input type="number" id="kmManana" placeholder="Km al iniciar jornada">
-                    </div>
-                    <div>
-                        <label>🌇 Kilometraje Tarde</label>
-                        <input type="number" id="kmTarde" placeholder="Km al finalizar jornada">
-                    </div>
-                    <div>
-                        <label>Quién Registra</label>
-                        <select id="quienRegistraKm"></select>
-                    </div>
-                </div>
-                <button class="btn-primario" style="margin-top:0.5rem;" onclick="guardarKilometrajeDiario()">💾 Guardar Kilometraje</button>
-                <p class="text-sm text-gray-500 mt-1">💡 Puede guardar solo la mañana y completar la tarde después</p>
-
-                <hr class="my-4">
-                <h4 class="font-bold text-orange-600">⏳ Registros Pendientes (sin completar tarde)</h4>
-                <div id="pendientesKilometraje" class="mt-2 mb-4"></div>
-
-                <h4 class="font-bold">📊 Consulta por Fechas</h4>
-                <div class="grid grid-cols-2 gap-3">
-                    <div><label>Fecha Inicio</label><input type="date" id="fechaInicioKm"></div>
-                    <div><label>Fecha Fin</label><input type="date" id="fechaFinKm"></div>
-                </div>
-                <button class="btn-exito" style="margin-top:0.3rem;" onclick="cargarInformeKilometraje()">🔍 Consultar</button>
-                <button class="btn-naranja" style="margin-top:0.3rem;margin-left:0.5rem;" onclick="exportarKilometrajeExcel()">📥 Exportar Excel</button>
-                <div id="resultadoKilometraje" class="mt-3"></div>
-            </div>
-
-            <div id="subcomb-tanqueo" class="subpestaña-combustible oculto">
-                <h3 class="font-bold mb-3">⛽ Registro de Tanqueo</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                        <label>Fecha de Tanqueo</label>
-                        <input type="date" id="fechaTanqueo">
-                    </div>
-                    <div>
-                        <label>Placa</label>
-                        <select id="vehiculoTanqueo"></select>
-                    </div>
-                    <div>
-                        <label>Galones Cargados</label>
-                        <input type="number" step="0.01" id="galonesTanqueo" placeholder="0.00">
-                    </div>
-                    <div>
-                        <label>Estado del Tanque</label>
-                        <select id="estadoTanqueo">
-                            <option value="FULL">✅ Tanque Completo</option>
-                            <option value="PARCIAL">⛽ Carga Parcial</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>% Cargado (si es parcial)</label>
-                        <input type="number" id="porcentajeTanqueo" value="100" placeholder="100">
-                    </div>
-                    <div>
-                        <label>Quién Tanqueó</label>
-                        <select id="quienTanquea"></select>
-                    </div>
-                </div>
-                <button class="btn-primario" style="margin-top:0.5rem;" onclick="guardarRegistroTanqueo()">💾 Guardar Tanqueo</button>
-
-                <hr class="my-4">
-                <h4 class="font-bold">📊 Consulta por Fechas</h4>
-                <div class="grid grid-cols-2 gap-3">
-                    <div><label>Fecha Inicio</label><input type="date" id="fechaInicioTanqueo"></div>
-                    <div><label>Fecha Fin</label><input type="date" id="fechaFinTanqueo"></div>
-                </div>
-                <button class="btn-exito" style="margin-top:0.3rem;" onclick="cargarInformeTanqueo()">🔍 Consultar</button>
-                <button class="btn-naranja" style="margin-top:0.3rem;margin-left:0.5rem;" onclick="exportarTanqueoExcel()">📥 Exportar Excel</button>
-                <div id="resultadoTanqueo" class="mt-3"></div>
-            </div>
-        </div>
-
-        <!-- ============================================== -->
-        <!-- PESTAÑA: MANTENIMIENTOS -->
-        <!-- ============================================== -->
-        <div id="pest-mantenimientos" class="pestaña oculto">
-            <h3 class="font-bold mb-3">🔧 Datos y Mantenimiento de Vehículos</h3>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                <div>
-                    <label class="font-semibold">🚗 Seleccionar Placa</label>
-                    <select id="placaMantenimiento" onchange="cargarDatosVehiculo()"></select>
-                </div>
-                <div>
-                    <label class="font-semibold">Estado del Vehículo</label>
-                    <div id="estadoVehiculo" class="py-2 font-bold text-green-600">✅ En Servicio</div>
-                </div>
-            </div>
-
-            <div class="bg-blue-50 p-4 rounded mb-4 border border-blue-200">
-                <h4 class="font-bold text-blue-800 mb-3">📑 Documentos Obligatorios (Bogotá / Colombia)</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                        <label>📋 Técnico-Mecánica <span class="text-red-500">*</span></label>
-                        <input type="date" id="fechaTecnoMecanica">
-                        <div id="vencTecno" class="text-xs mt-1"></div>
-                    </div>
-                    <div>
-                        <label>🛡️ SOAT <span class="text-red-500">*</span></label>
-                        <input type="date" id="fechaSoat">
-                        <div id="vencSoat" class="text-xs mt-1"></div>
-                    </div>
-                    <div>
-                        <label>📄 Seguro RC <span class="text-red-500">*</span></label>
-                        <input type="date" id="fechaSeguro">
-                        <div id="vencSeguro" class="text-xs mt-1"></div>
-                    </div>
-                    <div>
-                        <label>📝 Pólizas / Observaciones</label>
-                        <input type="text" id="numDocumentos" placeholder="N° pólizas, entidades...">
-                    </div>
-                </div>
-                <button class="bg-blue-600 text-white px-4 py-2 rounded mt-3" onclick="guardarDatosVehiculo()">💾 Guardar Datos Vehículo</button>
-            </div>
-
-            <div class="bg-orange-50 p-4 rounded border border-orange-200">
-                <h4 class="font-bold text-orange-800 mb-3">🔧 Registro de Ingreso a Taller</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                        <label>📅 Fecha Ingreso a Taller</label>
-                        <input type="date" id="fechaIngresoTaller">
-                    </div>
-                    <div>
-                        <label>📅 Fecha de Entrega / Retorno</label>
-                        <input type="date" id="fechaEntregaTaller">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label>🔧 Trabajo Realizado / Diagnóstico</label>
-                        <textarea id="trabajoRealizado" rows="3" placeholder="Descripción de daños y reparaciones..."></textarea>
-                    </div>
-                    <div>
-                        <label>💰 Costo Reparación ($)</label>
-                        <input type="number" id="costoMantenimiento" placeholder="0">
-                    </div>
-                    <div>
-                        <label>👨‍🔧 Taller / Mecánico</label>
-                        <input type="text" id="nombreTaller" placeholder="Nombre del taller">
-                    </div>
-                </div>
-                <button class="bg-orange-600 text-white px-4 py-2 rounded mt-3" onclick="guardarMantenimiento()">💾 Registrar Mantenimiento</button>
-            </div>
-
-            <hr class="my-4">
-            <h4 class="font-bold">📊 Historial Completo</h4>
-            <button class="bg-green-600 text-white px-3 py-1 rounded mb-3" onclick="cargarHistorialCompleto()">🔄 Actualizar Historial</button>
-            <div id="historialMantenimientos"></div>
-        </div>
-
-        <!-- ============================================== -->
-        <!-- PESTAÑA: INFORMES -->
-        <!-- ============================================== -->
-        <div id="pest-informes" class="pestaña oculto">
-            <h3 class="font-bold mb-3">📊 Informes y Consultas</h3>
-            <div class="tarjeta">
-                <h4 class="font-bold">📦 Consulta de Movimientos</h4>
-                <div class="grid grid-cols-2 gap-3">
-                    <div><label>Fecha Inicio</label><input type="date" id="fechaInicioMov"></div>
-                    <div><label>Fecha Fin</label><input type="date" id="fechaFinMov"></div>
-                </div>
-                <button class="btn-exito" style="margin-top:0.3rem;" onclick="consultarMovimientos()">🔍 Consultar</button>
-                <button class="btn-naranja" style="margin-top:0.3rem;margin-left:0.5rem;" onclick="exportarMovimientosExcel()">📥 Exportar Excel</button>
-                <div id="resultadoMov" class="mt-3"></div>
-            </div>
-        </div>
-
-        <!-- ============================================== -->
-        <!-- PESTAÑA: ADMINISTRACIÓN -->
-        <!-- ============================================== -->
-        <div id="pest-admin" class="pestaña oculto">
-            <h3 class="font-bold mb-3">⚙️ Administración del Sistema</h3>
-            <div class="flex gap-2 mb-4">
-                <button class="btn-subpestaña activa" onclick="cambiarSubpestañaAdmin('colaboradores')">👥 Colaboradores</button>
-                <button class="btn-subpestaña" onclick="cambiarSubpestañaAdmin('vehiculos')">🚗 Vehículos</button>
-                <button class="btn-subpestaña" onclick="cambiarSubpestañaAdmin('usuarios')">👤 Usuarios</button>
-            </div>
-
-            <div id="sub-admin-colaboradores" class="subpestaña-admin">
                 <div class="tarjeta">
-                    <h4 class="font-bold">Agregar Colaborador</h4>
-                    <input type="text" id="nombreColabAdmin" placeholder="Nombre del colaborador">
-                    <button class="btn-primario" style="margin-top:0.3rem;" onclick="agregarColaboradorAdmin()">💾 Guardar</button>
+                    <h3 class="font-bold mb-3">📦 Movimientos de Transportadora</h3>
+                    <input type="hidden" id="idEditarTransp">
+                    <div class="grid grid-cols-3 mb-3">
+                        <div class="form-group"><label>Fecha</label><input type="date" id="fechaTransp"></div>
+                        <div class="form-group"><label>Placa / Vehículo</label><select id="vehiculoTransp"><option value="">Cargando...</option></select></div>
+                        <div class="form-group"><label>Conductor</label><select id="conductorTransp"><option value="">Cargando...</option></select></div>
+                    </div>
+                    <div class="grid grid-cols-3 mb-3">
+                        <div class="form-group"><label>Hora de Salida</label><input type="time" id="horaSalidaTransp"></div>
+                        <div class="form-group"><label>📦 Canastillas que SALEN</label><input type="number" id="canSalidaTransp" placeholder="0" oninput="verificarCanastillasSalida()"></div>
+                        <div class="form-group"><label>📦 Canastillas que LLEGAN</label><input type="number" id="canLlegadaTransp" placeholder="0"></div>
+                    </div>
+                    <div class="grid grid-cols-2 mb-3">
+                        <div class="form-group"><label>Hora de Llegada</label><input type="time" id="horaLlegadaTransp"></div>
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button class="btn-exito" onclick="guardarMovimientoTransp()">💾 Registrar Salida</button>
+                        <button id="btnCompletarTransp" class="btn-primario oculto" onclick="completarMovimientoTransp()">✅ Registrar Llegada</button>
+                    </div>
                 </div>
+
                 <div class="tarjeta">
-                    <h4 class="font-bold">Lista de Colaboradores</h4>
-                    <div id="listaColaboradoresAdmin"></div>
+                    <h3 class="font-bold mb-3">📋 Historial de Movimientos</h3>
+                    <div id="listaMovimientosTransp"></div>
                 </div>
             </div>
 
-            <div id="sub-admin-vehiculos" class="subpestaña-admin oculto">
+            <!-- ============================================== -->
+            <!-- PESTAÑA: COMBUSTIBLE -->
+            <!-- ============================================== -->
+            <div id="pest-combustible" class="pestaña oculto">
+                <div class="flex gap-2 mb-4">
+                    <button class="btn-subcombustible activa" onclick="cambiarSubpestañaCombustible('kilometraje')">📏 Kilometraje Diario</button>
+                    <button class="btn-subcombustible" onclick="cambiarSubpestañaCombustible('tanqueo')">⛽ Registro de Tanqueo</button>
+                </div>
+
+                <!-- KILOMETRAJE -->
+                <div id="subcomb-kilometraje" class="subpestaña-combustible">
+                    <div class="tarjeta">
+                        <h3 class="font-bold mb-3">📏 Registro de Kilometraje</h3>
+                        <div class="grid grid-cols-3 mb-3">
+                            <div class="form-group"><label>Fecha</label><input type="date" id="fechaKm"></div>
+                            <div class="form-group"><label>Placa</label><select id="vehiculoKm"><option value="">Cargando...</option></select></div>
+                            <div class="form-group"><label>Quien registra</label><select id="quienRegistraKm"><option value="">Cargando...</option></select></div>
+                        </div>
+                        <div class="grid grid-cols-2 mb-3">
+                            <div class="form-group"><label>🌅 Kilometraje de la Mañana</label><input type="number" id="kmManana" placeholder="Ej: 12500"></div>
+                            <div class="form-group"><label>🌇 Kilometraje de la Tarde</label><input type="number" id="kmTarde" placeholder="Se completa al finalizar el día"></div>
+                        </div>
+                        <button class="btn-exito" onclick="guardarKilometrajeDiario()">💾 Guardar Kilometraje</button>
+                    </div>
+
+                    <div class="tarjeta">
+                        <h3 class="font-bold mb-3">⏳ Pendientes por completar</h3>
+                        <div id="pendientesKilometraje"></div>
+                    </div>
+
+                    <div class="tarjeta">
+                        <h3 class="font-bold mb-3">📊 Consulta de Kilometraje</h3>
+                        <div class="flex gap-2 mb-3">
+                            <label>Desde: <input type="date" id="fechaInicioKm"></label>
+                            <label>Hasta: <input type="date" id="fechaFinKm"></label>
+                            <button class="btn-primario" onclick="cargarInformeKilometraje()">🔍 Consultar</button>
+                            <button class="btn-exito" onclick="exportarKilometrajeExcel()">📥 Excel</button>
+                        </div>
+                        <div id="resultadoKilometraje"></div>
+                    </div>
+                </div>
+
+                <!-- TANQUEO -->
+                <div id="subcomb-tanqueo" class="subpestaña-combustible oculto">
+                    <div class="tarjeta">
+                        <h3 class="font-bold mb-3">⛽ Registro de Tanqueo</h3>
+                        <div class="grid grid-cols-3 mb-3">
+                            <div class="form-group"><label>Fecha</label><input type="date" id="fechaTanqueo"></div>
+                            <div class="form-group"><label>Placa</label><select id="vehiculoTanqueo"><option value="">Cargando...</option></select></div>
+                            <div class="form-group"><label>Quien tanquea</label><select id="quienTanquea"><option value="">Cargando...</option></select></div>
+                        </div>
+                        <div class="grid grid-cols-3 mb-3">
+                            <div class="form-group"><label>Galones</label><input type="number" step="0.01" id="galonesTanqueo" placeholder="Ej: 15.5"></div>
+                            <div class="form-group"><label>Estado</label>
+                                <select id="estadoTanqueo">
+                                    <option value="FULL">✅ FULL — Tanque lleno</option>
+                                    <option value="PARCIAL">⚡ Parcial</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label>% Lleno</label><input type="number" id="porcentajeTanqueo" value="100" placeholder="100"></div>
+                        </div>
+                        <button class="btn-exito" onclick="guardarRegistroTanqueo()">💾 Guardar Tanqueo</button>
+                    </div>
+
+                    <div class="tarjeta">
+                        <h3 class="font-bold mb-3">📊 Consulta de Tanqueo</h3>
+                        <div class="flex gap-2 mb-3">
+                            <label>Desde: <input type="date" id="fechaInicioTanqueo"></label>
+                            <label>Hasta: <input type="date" id="fechaFinTanqueo"></label>
+                            <button class="btn-primario" onclick="cargarInformeTanqueo()">🔍 Consultar</button>
+                            <button class="btn-exito" onclick="exportarTanqueoExcel()">📥 Excel</button>
+                        </div>
+                        <div id="resultadoTanqueo"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- PESTAÑA: MANTENIMIENTOS -->
+            <!-- ============================================== -->
+            <div id="pest-mantenimientos" class="pestaña oculto">
                 <div class="tarjeta">
-                    <h4 class="font-bold">Agregar Vehículo (Movimientos)</h4>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div><label>Placa</label><input type="text" id="placaVehiculoMovAdmin" placeholder="ABC-123"></div>
-                        <div>
-                            <label>Tipo</label>
-                            <select id="tipoVehiculoMovAdmin">
-                                <option>Motocicleta</option>
-                                <option>Automóvil</option>
-                                <option>Camioneta</option>
-                                <option>Camión</option>
-                                <option>Carguero</option>
-                                <option>VTH</option>
-                            </select>
+                    <h3 class="font-bold mb-3">🔧 Placas Registradas</h3>
+                    <div id="listaPlacasMant" class="border rounded mb-4 max-h-80 overflow-y-auto"></div>
+
+                    <div id="formIngresoTaller" class="oculto border rounded p-4 bg-gray-50">
+                        <h4 class="font-bold mb-2">🚗 Vehículo: <span id="placaMantSeleccionada" class="text-blue-700"></span></h4>
+                        
+                        <div id="datosVehiculoSeleccionado" class="mb-4 p-3 bg-white rounded border"></div>
+
+                        <h5 class="font-bold mt-4 mb-2">📝 Historial de Mantenimiento</h5>
+                        <div id="historialVehiculoSeleccionado" class="mb-4"></div>
+
+                        <div id="btnEnviarTaller">
+                            <h5 class="font-bold mt-4 mb-2">🔧 Enviar a Taller</h5>
+                            <div class="grid grid-cols-3 gap-2 mb-3">
+                                <div class="form-group"><label>Fecha Ingreso</label><input type="date" id="fechaIngreso"></div>
+                                <div class="form-group"><label>Motivo</label><input type="text" id="motivoMant" placeholder="Ej: Cambio de aceite"></div>
+                                <div class="form-group"><label>Quien entrega</label><input type="text" id="quienEntrega"></div>
+                            </div>
+                            <button class="btn-peligro" onclick="registrarIngresoTaller()">🔧 Enviar a Taller</button>
                         </div>
                     </div>
-                    <button class="btn-primario" style="margin-top:0.3rem;" onclick="agregarVehiculoMovAdmin()">💾 Guardar Vehículo</button>
-                </div>
-                <div class="tarjeta">
-                    <h4 class="font-bold">Vehículos de Movimientos</h4>
-                    <div id="listaVehiculosMovAdmin"></div>
-                </div>
-                <div class="tarjeta">
-                    <h4 class="font-bold">Vehículos de Transportadora</h4>
-                    <div id="listaVehiculosTranspAdmin"></div>
-                </div>
-                <div class="tarjeta">
-                    <h4 class="font-bold">Conductores de Transportadora</h4>
-                    <div id="listaConductoresAdmin"></div>
                 </div>
             </div>
 
-            <div id="sub-admin-usuarios" class="subpestaña-admin oculto">
+            <!-- ============================================== -->
+            <!-- PESTAÑA: INFORMES -->
+            <!-- ============================================== -->
+            <div id="pest-informes" class="pestaña oculto">
                 <div class="tarjeta">
-                    <h4 class="font-bold">Crear Usuario del Sistema</h4>
-                    <div>
-                        <label>Correo</label>
-                        <input type="email" id="correoNuevo" placeholder="correo@ejemplo.com">
-                        <label>Contraseña (mínimo 6 caracteres)</label>
-                        <input type="password" id="passNuevo" placeholder="Contraseña">
-                        <label>Rol</label>
-                        <select id="rolNuevo">
-                            <option value="usuario">Usuario</option>
-                            <option value="admin">Administrador</option>
-                        </select>
-                        <button class="btn-primario" style="margin-top:0.5rem;" onclick="crearUsuario()">💾 Crear Usuario</button>
+                    <h3 class="font-bold mb-3">📊 Informe de Movimientos de Canastillas</h3>
+                    <div class="flex gap-2 mb-3 flex-wrap">
+                        <label>Fecha Inicio: <input type="date" id="fechaInicioMov"></label>
+                        <label>Fecha Fin: <input type="date" id="fechaFinMov"></label>
+                        <button class="btn-primario" onclick="generarInformeMovimientos()">🔍 Generar Informe</button>
+                        <button class="btn-exito" onclick="exportarExcel()">📥 Exportar Excel</button>
+                    </div>
+                    <div id="resultadoMovimientos"></div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- PESTAÑA: ADMINISTRACIÓN -->
+            <!-- ============================================== -->
+            <div id="pest-admin" class="pestaña oculto">
+                <div class="flex gap-2 mb-4">
+                    <button class="btn-subadmin activa" onclick="cambiarSubpestañaAdmin('colaboradores')">👥 Colaboradores</button>
+                    <button class="btn-subadmin" onclick="cambiarSubpestañaAdmin('vehiculos')">🚗 Vehículos</button>
+                    <button class="btn-subadmin" onclick="cambiarSubpestañaAdmin('tipos-vehiculo')">🏷️ Tipos de Vehículo</button>
+                </div>
+
+                <!-- COLABORADORES -->
+                <div id="subadmin-colaboradores" class="subpestaña-admin">
+                    <div class="tarjeta">
+                        <h3 class="font-bold mb-3">👥 Colaboradores del Sistema</h3>
+                        <div class="flex gap-2 mb-3">
+                            <input type="text" id="nombreColaboradorAdmin" placeholder="Nombre del colaborador" class="flex-1">
+                            <input type="hidden" id="idEditarColaborador">
+                            <button class="btn-exito" onclick="guardarColaborador()">💾 Guardar</button>
+                        </div>
+                        <table id="tablaColaboradores">
+                            <thead><tr><th>Nombre</th><th>Estado</th><th>Acciones</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- VEHÍCULOS -->
+                <div id="subadmin-vehiculos" class="subpestaña-admin oculto">
+                    <div class="tarjeta">
+                        <h3 class="font-bold mb-3">🚗 Vehículos de Movimiento</h3>
+                        <div class="grid grid-cols-3 gap-2 mb-3">
+                            <input type="text" id="placaVehiculoMov" placeholder="Placa">
+                            <select id="tipoVehiculoMov"><option value="">Tipo de vehículo</option></select>
+                            <input type="text" id="marcaVehiculoMov" placeholder="Marca">
+                        </div>
+                        <input type="hidden" id="idEditarVehiculoMov">
+                        <button class="btn-exito mb-3" onclick="guardarVehiculoMov()">💾 Guardar Vehículo</button>
+                        <table id="tablaVehiculosMov">
+                            <thead><tr><th>Placa</th><th>Tipo</th><th>Marca</th><th>Acciones</th></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- TIPOS DE VEHÍCULO -->
+                <div id="subadmin-tipos-vehiculo" class="subpestaña-admin oculto">
+                    <div class="tarjeta">
+                        <h3 class="font-bold mb-3">🏷️ Tipos de Vehículo</h3>
+                        <div class="flex gap-2 mb-3">
+                            <input type="text" id="nuevoTipoVehiculo" placeholder="Nuevo tipo de vehículo">
+                            <button class="btn-exito" onclick="agregarTipoVehiculo()">➕ Agregar</button>
+                        </div>
+                        <div id="listaTiposVehiculo"></div>
                     </div>
                 </div>
             </div>
+
         </div>
-
     </div>
-</div>
 
-<script src="funciones.js"></script>
+    <!-- ============================================== -->
+    <!-- ARCHIVO DE FUNCIONES -->
+    <!-- ============================================== -->
+    <script src="funciones.js"></script>
 </body>
 </html>
