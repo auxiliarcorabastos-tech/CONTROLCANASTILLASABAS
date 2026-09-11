@@ -1068,3 +1068,121 @@ function cambiarPestaña(nombre) {
         document.getElementById('formMantenimiento').classList.add('oculto');
     }
 }
+// =====================================================
+// ✅ EDITAR MOVIMIENTO SIN BORRAR NINGÚN DATO
+// =====================================================
+async function cargarMovimientoEditar(id) {
+    idEdicion = id;
+    const m = movimientos.find(x => x.id === id);
+    if (!m) {
+        alert('⚠️ Movimiento no encontrado');
+        return;
+    }
+
+    // ✅ SE MANTIENE LA FECHA ORIGINAL DEL MOVIMIENTO — NO SE CAMBIA
+    document.getElementById('fechaMov').value = m.fecha;
+
+    // ✅ CARGAMOS TODOS LOS DATOS EXACTAMENTE COMO ESTÁN GUARDADOS
+    document.getElementById('vehiculoMov').value = m.placa || '';
+    document.getElementById('conductorMov').value = m.conductor || '';
+    document.getElementById('horaSalida').value = m.horaSalida || '';
+    document.getElementById('horaLlegada').value = m.horaLlegada || '';
+    document.getElementById('canSalidaTotal').value = m.canastillasSalida || '';
+    document.getElementById('canLlegadaTotal').value = m.canastillasLlegada || '';
+    document.getElementById('observacionesMov').value = m.observaciones || '';
+
+    // ✅ CARGAMOS LAS RECOGIDAS SIN PERDER NINGÚN DATO
+    document.getElementById('listaRecogidas').innerHTML = '';
+    const recogidas = m.recogidas || [];
+    let totalCan = 0, totalBul = 0, totalKg = 0;
+
+    recogidas.forEach(r => {
+        // Sumar totales
+        if (r.tipo === 'canastilla') totalCan += r.cantidad || 0;
+        if (r.tipo === 'bulto') totalBul += r.cantidad || 0;
+        totalKg += r.kilos || 0;
+
+        // Crear fila con los datos guardados
+        const lista = document.getElementById('listaRecogidas');
+        const opciones = colaboradores.filter(c => (c.estado || 'activo') === 'activo')
+            .map(c => `<option value="${c.nombre}" ${c.nombre === r.recogeA ? 'selected' : ''}>${c.nombre}</option>`).join('');
+
+        const fila = document.createElement('div');
+        fila.className = 'fila-recogida';
+        fila.innerHTML = `
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0;padding:8px;background:#f9fafb;border-radius:6px;">
+            <label>Recoge a:</label>
+            <select name="recogeA" style="flex:1;min-width:150px;">
+                <option value="">Seleccione colaborador...</option>${opciones}
+            </select>
+            <label>Tipo:</label>
+            <select name="tipoUnidad" style="width:130px;" onchange="actualizarTotalesRecogidas()">
+                <option value="canastilla" ${r.tipo === 'canastilla' ? 'selected' : ''}>📦 Canastilla</option>
+                <option value="bulto" ${r.tipo === 'bulto' ? 'selected' : ''}>📥 Bulto</option>
+            </select>
+            <label>Cantidad:</label>
+            <input type="number" name="cantidad" value="${r.cantidad || 0}" placeholder="0" 
+                   style="width:80px;" oninput="actualizarTotalesRecogidas()">
+            <label>Kilos:</label>
+            <input type="number" name="kilos" value="${r.kilos || 0}" placeholder="0" 
+                   style="width:80px;" oninput="actualizarTotalesRecogidas()">
+            <button type="button" class="btn-peligro" onclick="this.parentElement.remove();actualizarTotalesRecogidas()">✕</button>
+        </div>`;
+        lista.appendChild(fila);
+    });
+
+    // ✅ ACTUALIZAMOS LOS TOTALES EN PANTALLA
+    document.getElementById('totalCanastillas').textContent = totalCan;
+    document.getElementById('totalBultos').textContent = totalBul;
+    const campoKilos = document.getElementById('kilosTotal');
+    if (campoKilos) campoKilos.value = totalKg || '';
+
+    // ✅ CAMBIAMOS A LA PESTAÑA DE EDICIÓN
+    cambiarSubpestañaMov('registro');
+}
+
+// =====================================================
+// ✅ GUARDAR CAMBIOS SIN BORRAR NADA
+// =====================================================
+async function guardarMovimiento() {
+    const fecha = document.getElementById('fechaMov').value;
+    const placa = document.getElementById('vehiculoMov').value;
+    const conductor = document.getElementById('conductorMov').value;
+    const horaSalida = document.getElementById('horaSalida').value;
+    const horaLlegada = document.getElementById('horaLlegada').value;
+    const canastillasSalida = parseInt(document.getElementById('canSalidaTotal').value) || 0;
+    const canastillasLlegada = parseInt(document.getElementById('canLlegadaTotal').value) || 0;
+    const observaciones = document.getElementById('observacionesMov').value;
+    const recogidas = obtenerRecogidasActuales();
+
+    if (!placa || !conductor || !horaSalida) {
+        return alert('⚠️ Complete Placa, Conductor y Hora de Salida');
+    }
+
+    const datos = {
+        fecha,
+        placa,
+        conductor,
+        horaSalida,
+        horaLlegada,
+        canastillasSalida,
+        canastillasLlegada,
+        recogidas,
+        observaciones,
+        usuarioEdicion: usuarioActivo?.nombre || 'Desconocido',
+        horaEdicion: new Date().toISOString()
+    };
+
+    if (idEdicion) {
+        // ✅ ACTUALIZAMOS SIN BORRAR LO DEMÁS
+        await db.collection('movimientos').doc(idEdicion).update(datos);
+        alert('✅ Movimiento ACTUALIZADO correctamente');
+    } else {
+        // ✅ CREAMOS NUEVO MOVIMIENTO
+        await db.collection('movimientos').add(datos);
+        alert('✅ Movimiento GUARDADO correctamente');
+    }
+
+    // ✅ LIMPIAMOS EL FORMULARIO SOLO DESPUÉS DE GUARDAR
+    limpiarFormularioMovimiento();
+}
