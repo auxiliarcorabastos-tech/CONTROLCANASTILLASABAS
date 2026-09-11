@@ -197,7 +197,7 @@ function actualizarSelects() {
     });
 
     const activos = colaboradores.filter(c => (c.estado || 'activo') === 'activo');
-    const selCol = ['conductorMov', 'quienRegistraKm', 'quienTanquea', 'recogio', 'colaboradorRecogido'];
+    const selCol = ['conductorMov', 'quienRegistraKm', 'quienTanquea', 'recogio', 'colaboradorRecogido', 'quienEntregaVehiculo', 'quienRecogeVehiculo'];
     selCol.forEach(id => {
         const s = document.getElementById(id);
         if (!s) return;
@@ -390,7 +390,7 @@ async function eliminarMov(id) {
     await cargarDatosFirebase();
 }
 // =====================================================
-// ===== 🚛 TRANSPORTADORA — Conductores, Vehículos y Movimientos =====
+// ===== 🚛 TRANSPORTADORA =====
 // =====================================================
 
 // ===== CONDUCTORES =====
@@ -635,8 +635,24 @@ async function eliminarMovimientoTransp(id) {
 }
 
 // =====================================================
-// ===== 🔧 MANTENIMIENTO — Documentos Bogotá =====
+// ===== 🔧 MANTENIMIENTO — 3 PESTAÑAS =====
 // =====================================================
+
+// ===== CAMBIAR SUBPESTAÑA =====
+function cambiarSubpestañaMant(nombre) {
+    document.querySelectorAll('.btn-submant').forEach(b => b.classList.remove('activa'));
+    document.querySelectorAll('.subpestaña-mant').forEach(p => p.classList.add('oculto'));
+    event?.target?.classList.add('activa');
+    document.getElementById(`submant-${nombre}`)?.classList.remove('oculto');
+    const placa = document.getElementById('placaSeleccionada').textContent;
+    if (placa && placa !== '—') {
+        if (nombre === 'general') dibujarInfoGeneralVehiculo(placa);
+        if (nombre === 'taller') dibujarHistorialTaller(placa);
+        if (nombre === 'seguros') dibujarHistorialSeguros(placa);
+    }
+}
+
+// ===== LISTA DE PLACAS =====
 function dibujarListaPlacasMant() {
     const c = document.getElementById('listaPlacasMant');
     if (!c) return;
@@ -664,59 +680,76 @@ function seleccionarPlacaMant(placa) {
     event.target.classList.add('activa');
     document.getElementById('placaSeleccionada').textContent = placa;
     document.getElementById('formMantenimiento').classList.remove('oculto');
-    document.getElementById('fechaIngreso').value = new Date().toISOString().split('T')[0];
-    dibujarHistorialPlaca(placa);
+    cambiarSubpestañaMant('general');
 }
 
-function dibujarHistorialPlaca(placa) {
-    const c = document.getElementById('historialVehiculo');
-    const hist = mantenimientos.filter(m => m.placa === placa).sort((a, b) => b.fecha.localeCompare(a.fecha));
-    if (hist.length === 0) {
-        c.innerHTML = '<p class="text-sm p-3">📭 Sin registros de mantenimiento para esta placa</p>';
-        return;
-    }
+function verVencimiento(fechaVenc) {
+    if (!fechaVenc) return '<span style="color:red;">⚠️ Sin registrar</span>';
+    const hoy = new Date();
+    const ven = new Date(fechaVenc + 'T23:59:59');
+    const dias = Math.ceil((ven - hoy) / (1000 * 60 * 60 * 24));
+    if (dias < 0) return `<span style="color:red;">❌ Vencido hace ${-dias} días</span>`;
+    if (dias <= 30) return `<span style="color:orange;">⚠️ Vence en ${dias} días</span>`;
+    return `<span style="color:green;">✅ Vence en ${dias} días</span>`;
+}
+
+// ===== 1️⃣ PESTAÑA: INFORMACIÓN GENERAL =====
+function dibujarInfoGeneralVehiculo(placa) {
+    const c = document.getElementById('infoGeneralVehiculo');
+    if (!c) return;
+
+    const kmVeh = kilometraje.filter(k => k.placa === placa).sort((a, b) => b.fecha.localeCompare(a.fecha));
+    const ultKm = kmVeh[0];
+    const tanVeh = tanqueo.filter(t => t.placa === placa).sort((a, b) => b.fecha.localeCompare(a.fecha));
+    const ultTan = tanVeh[0];
+    const mantVeh = mantenimientos.filter(m => m.placa === placa && m.tipo === 'taller').sort((a, b) => (b.fechaIngreso || '').localeCompare(a.fechaIngreso || ''));
+    const ultMant = mantVeh[0];
+    const docVeh = mantenimientos.filter(m => m.placa === placa && m.tipo === 'seguro');
+    const soat = docVeh.find(d => d.tipoDocumento === 'SOAT');
+    const tecno = docVeh.find(d => d.tipoDocumento === 'Tecno-mecánica');
+    const seguro = docVeh.find(d => d.tipoDocumento === 'Seguro');
+    const totalMant = mantVeh.reduce((s, m) => s + (parseFloat(m.valor) || 0), 0);
+
     c.innerHTML = `
-    <table class="tabla-datos" style="width:100%;border-collapse:collapse;margin-top:10px;">
-        <thead><tr style="background:#f0f0f0;">
-            <th style="border:1px solid #ccc;padding:6px;">Fecha Ingreso</th>
-            <th style="border:1px solid #ccc;padding:6px;">Documento / Requisito</th>
-            <th style="border:1px solid #ccc;padding:6px;">Quién Entregó</th>
-            <th style="border:1px solid #ccc;padding:6px;">Fecha Recogida</th>
-            <th style="border:1px solid #ccc;padding:6px;">Quién Recogió</th>
-            <th style="border:1px solid #ccc;padding:6px;">Diagnóstico / Observaciones</th>
-            <th style="border:1px solid #ccc;padding:6px;">Valor</th>
-            <th style="border:1px solid #ccc;padding:6px;">Estado</th>
-        </tr></thead><tbody>`;
-    hist.forEach(m => {
-        c.innerHTML += `
-        <tr>
-            <td style="border:1px solid #ccc;padding:6px;">${m.fechaIngreso || m.fecha || '-'}</td>
-            <td style="border:1px solid #ccc;padding:6px;">${m.tipoDocumento || m.motivo || '-'}</td>
-            <td style="border:1px solid #ccc;padding:6px;">${m.quienEntregó || '-'}</td>
-            <td style="border:1px solid #ccc;padding:6px;">${m.fechaRecogida || '⏳ Pendiente'}</td>
-            <td style="border:1px solid #ccc;padding:6px;">${m.quienRecogió || '⏳ Pendiente'}</td>
-            <td style="border:1px solid #ccc;padding:6px;">${m.diagnostico || '-'}</td>
-            <td style="border:1px solid #ccc;padding:6px;">${m.valor ? '$' + m.valor : '-'}</td>
-            <td style="border:1px solid #ccc;padding:6px;">${m.estado || '🔧 En Taller'}</td>
-        </tr>`;
-    });
-    c.innerHTML += '</tbody></table>';
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; margin-top:10px;">
+        <div style="background:#f0f7ff; padding:12px; border-radius:8px;">
+            <h4 style="font-weight:bold; margin-bottom:8px;">🚗 Datos del Vehículo</h4>
+            <p><strong>Placa:</strong> ${placa}</p>
+            <p><strong>Último Kilometraje:</strong> ${ultKm ? (ultKm.kmFinal || ultKm.kmInicial) + ' km' : 'Sin registro'}</p>
+            <p><strong>Último Combustible:</strong> ${ultTan ? ultTan.galones + ' galones / ' + ultTan.nivel : 'Sin registro'}</p>
+        </div>
+        <div style="background:#fff9e6; padding:12px; border-radius:8px;">
+            <h4 style="font-weight:bold; margin-bottom:8px;">📋 Vencimiento Documentos</h4>
+            <p><strong>SOAT:</strong> ${soat ? (soat.fechaVencimiento || 'Sin vencimiento') : 'Sin registrar'} ${verVencimiento(soat?.fechaVencimiento)}</p>
+            <p><strong>Tecno-mecánica:</strong> ${tecno ? (tecno.fechaVencimiento || 'Sin vencimiento') : 'Sin registrar'} ${verVencimiento(tecno?.fechaVencimiento)}</p>
+            <p><strong>Seguro:</strong> ${seguro ? (seguro.fechaVencimiento || 'Sin vencimiento') : 'Sin registrar'} ${verVencimiento(seguro?.fechaVencimiento)}</p>
+        </div>
+        <div style="background:#fff0f0; padding:12px; border-radius:8px;">
+            <h4 style="font-weight:bold; margin-bottom:8px;">🔧 Último Ingreso a Taller</h4>
+            <p><strong>Fecha Ingreso:</strong> ${ultMant?.fechaIngreso || 'Sin registro'}</p>
+            <p><strong>Diagnóstico:</strong> ${ultMant?.diagnostico || '—'}</p>
+            <p><strong>Costo:</strong> ${ultMant?.valor ? '$' + ultMant.valor : 'Sin registro'}</p>
+        </div>
+    </div>
+    <div style="background:#e6ffe6; padding:12px; border-radius:8px; margin-top:10px;">
+        <h4 style="font-weight:bold;">💰 COSTO TOTAL EN MANTENIMIENTOS Y REPARACIONES: $${totalMant.toFixed(0)}</h4>
+    </div>`;
 }
 
+// ===== 2️⃣ PESTAÑA: TALLER =====
 async function registrarIngresoTaller() {
     const placa = document.getElementById('placaSeleccionada').textContent;
-    const fechaIngreso = document.getElementById('fechaIngreso').value;
-    const tipoDocumento = document.getElementById('tipoDocumento').value;
+    const fechaIngreso = document.getElementById('fechaIngresoTaller').value;
     const quienEntregó = document.getElementById('quienEntregaVehiculo').value.trim();
     
-    if (!placa || !fechaIngreso || !tipoDocumento || !quienEntregó) {
-        return alert('⚠️ Complete todos los campos: Fecha, Documento y Quién entregó');
+    if (!placa || !fechaIngreso || !quienEntregó) {
+        return alert('⚠️ Complete: Fecha y Quién entregó el vehículo');
     }
 
     await db.collection('mantenimientos').add({
         placa,
+        tipo: 'taller',
         fechaIngreso,
-        tipoDocumento,
         quienEntregó,
         fechaRecogida: null,
         quienRecogió: '',
@@ -728,19 +761,22 @@ async function registrarIngresoTaller() {
         fechaCreacion: new Date()
     });
 
-    alert('✅ Ingreso registrado / Documento programado');
-    document.getElementById('tipoDocumento').value = '';
+    alert('✅ Ingreso a taller registrado');
+    document.getElementById('fechaIngresoTaller').value = new Date().toISOString().split('T')[0];
     document.getElementById('quienEntregaVehiculo').value = '';
-    dibujarHistorialPlaca(placa);
+    dibujarHistorialTaller(placa);
     await cargarDatosFirebase();
 }
 
 async function recogerVehiculo(id) {
     const fechaRecogida = new Date().toISOString().split('T')[0];
-    const quienRecogió = prompt('Nombre de quien recoge el vehículo:').trim();
-    if (!quienRecogió) return alert('⚠️ Debe escribir el nombre');
-    const diagnostico = prompt('Diagnóstico / Trabajos realizados:').trim() || 'Sin observaciones';
-    const valor = prompt('Valor del servicio / Mantenimiento:').trim() || '';
+    const quienRecogió = document.getElementById('quienRecogeVehiculo').value.trim();
+    const diagnostico = document.getElementById('diagnosticoTaller').value.trim();
+    const valor = document.getElementById('costoTaller').value.trim();
+
+    if (!quienRecogió || !diagnostico || !valor) {
+        return alert('⚠️ Complete: Quién recoge, Diagnóstico y Costo');
+    }
 
     await db.collection('mantenimientos').doc(id).update({
         fechaRecogida,
@@ -754,8 +790,104 @@ async function recogerVehiculo(id) {
 
     alert('✅ Vehículo recogido y registrado');
     const placa = document.getElementById('placaSeleccionada').textContent;
-    dibujarHistorialPlaca(placa);
+    document.getElementById('diagnosticoTaller').value = '';
+    document.getElementById('costoTaller').value = '';
+    document.getElementById('quienRecogeVehiculo').value = '';
+    dibujarHistorialTaller(placa);
+    dibujarInfoGeneralVehiculo(placa);
     await cargarDatosFirebase();
+}
+
+function dibujarHistorialTaller(placa) {
+    const c = document.getElementById('historialTaller');
+    const hist = mantenimientos.filter(m => m.placa === placa && m.tipo === 'taller').sort((a, b) => (b.fechaIngreso || '').localeCompare(a.fechaIngreso || ''));
+    if (hist.length === 0) {
+        c.innerHTML = '<p class="text-sm p-3">📭 Sin ingresos a taller para esta placa</p>';
+        return;
+    }
+    c.innerHTML = `
+    <table class="tabla-datos" style="width:100%;border-collapse:collapse;margin-top:10px;">
+        <thead><tr style="background:#f0f0f0;">
+            <th style="border:1px solid #ccc;padding:6px;">Fecha Ingreso</th>
+            <th style="border:1px solid #ccc;padding:6px;">Quién Entregó</th>
+            <th style="border:1px solid #ccc;padding:6px;">Fecha Recogida</th>
+            <th style="border:1px solid #ccc;padding:6px;">Quién Recogió</th>
+            <th style="border:1px solid #ccc;padding:6px;">Diagnóstico</th>
+            <th style="border:1px solid #ccc;padding:6px;">Costo</th>
+            <th style="border:1px solid #ccc;padding:6px;">Estado</th>
+        </tr></thead><tbody>`;
+    hist.forEach(m => {
+        c.innerHTML += `
+        <tr>
+            <td style="border:1px solid #ccc;padding:6px;">${m.fechaIngreso || '-'}</td>
+            <td style="border:1px solid #ccc;padding:6px;">${m.quienEntregó || '-'}</td>
+            <td style="border:1px solid #ccc;padding:6px;">${m.fechaRecogida || '⏳ Pendiente'}</td>
+            <td style="border:1px solid #ccc;padding:6px;">${m.quienRecogió || '⏳ Pendiente'}</td>
+            <td style="border:1px solid #ccc;padding:6px;">${m.diagnostico || '-'}</td>
+            <td style="border:1px solid #ccc;padding:6px;">${m.valor ? '$' + m.valor : '-'}</td>
+            <td style="border:1px solid #ccc;padding:6px;">${m.estado}</td>
+        </tr>`;
+    });
+    c.innerHTML += '</tbody></table>';
+}
+
+// ===== 3️⃣ PESTAÑA: SEGUROS Y DOCUMENTOS =====
+async function registrarDocumentoSeguro() {
+    const placa = document.getElementById('placaSeleccionada').textContent;
+    const tipoDoc = document.getElementById('tipoDocumentoSeguro').value;
+    const fechaEmision = document.getElementById('fechaEmisionDoc').value;
+    const fechaVencimiento = document.getElementById('fechaVencimientoDoc').value;
+
+    if (!placa || !tipoDoc || !fechaEmision || !fechaVencimiento) {
+        return alert('⚠️ Complete todos los campos: Tipo, Emisión y Vencimiento');
+    }
+
+    await db.collection('mantenimientos').add({
+        placa,
+        tipo: 'seguro',
+        tipoDocumento: tipoDoc,
+        fechaEmision,
+        fechaVencimiento,
+        estado: '✅ Vigente',
+        usuarioCreo: usuarioActivo.usuario,
+        nombreUsuario: usuarioActivo.nombre,
+        fechaCreacion: new Date()
+    });
+
+    alert(`✅ ${tipoDoc} registrado correctamente`);
+    document.getElementById('tipoDocumentoSeguro').value = 'SOAT';
+    document.getElementById('fechaEmisionDoc').value = '';
+    document.getElementById('fechaVencimientoDoc').value = '';
+    dibujarHistorialSeguros(placa);
+    dibujarInfoGeneralVehiculo(placa);
+    await cargarDatosFirebase();
+}
+
+function dibujarHistorialSeguros(placa) {
+    const c = document.getElementById('historialSeguros');
+    const hist = mantenimientos.filter(m => m.placa === placa && m.tipo === 'seguro').sort((a, b) => (b.fechaVencimiento || '').localeCompare(a.fechaVencimiento || ''));
+    if (hist.length === 0) {
+        c.innerHTML = '<p class="text-sm p-3">📭 Sin documentos registrados para esta placa</p>';
+        return;
+    }
+    c.innerHTML = `
+    <table class="tabla-datos" style="width:100%;border-collapse:collapse;margin-top:10px;">
+        <thead><tr style="background:#f0f0f0;">
+            <th style="border:1px solid #ccc;padding:6px;">Documento</th>
+            <th style="border:1px solid #ccc;padding:6px;">Fecha Emisión</th>
+            <th style="border:1px solid #ccc;padding:6px;">Fecha Vencimiento</th>
+            <th style="border:1px solid #ccc;padding:6px;">Estado</th>
+        </tr></thead><tbody>`;
+    hist.forEach(m => {
+        c.innerHTML += `
+        <tr>
+            <td style="border:1px solid #ccc;padding:6px;">${m.tipoDocumento}</td>
+            <td style="border:1px solid #ccc;padding:6px;">${m.fechaEmision || '-'}</td>
+            <td style="border:1px solid #ccc;padding:6px;">${m.fechaVencimiento || '-'}</td>
+            <td style="border:1px solid #ccc;padding:6px;">${verVencimiento(m.fechaVencimiento)}</td>
+        </tr>`;
+    });
+    c.innerHTML += '</tbody></table>';
 }
 
 // =====================================================
