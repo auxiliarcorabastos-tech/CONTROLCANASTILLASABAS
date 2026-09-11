@@ -773,3 +773,298 @@ function cambiarSubpestañaMant(nombre) {
 // =====================================================
 // ===== FIN DEL ARCHIVO =====
 // =====================================================
+// =====================================================
+// ===== ===== MANTENIMIENTO ===== =====
+// =====================================================
+let placaActivaMant = null;
+
+// Cargar lista de placas al entrar a la pestaña
+async function cargarListaPlacasMantenimiento() {
+    const caja = document.getElementById('listaPlacasMant');
+    if (!caja) return;
+    
+    // Unir placas de movimientos + transportadora
+    const todasPlacas = [];
+    vehiculosMov.forEach(v => { if (v.placa) todasPlacas.push(v.placa); });
+    vehiculosTransp.forEach(v => { if (v.placa) todasPlacas.push(v.placa); });
+    
+    // Quitar duplicados y ordenar
+    const placasUnicas = [...new Set(todasPlacas)].sort();
+    
+    if (placasUnicas.length === 0) {
+        caja.innerHTML = '<p class="text-sm text-gray-500">📭 No hay vehículos registrados</p>';
+        document.getElementById('formMantenimiento').classList.add('oculto');
+        return;
+    }
+    
+    caja.innerHTML = placasUnicas.map(p => 
+        `<button class="btn-placa ${placaActivaMant === p ? 'activa' : ''}" 
+         onclick="seleccionarPlacaMantenimiento('${p}')">🚗 ${p}</button>`
+    ).join('');
+}
+
+// Seleccionar placa y mostrar formulario
+async function seleccionarPlacaMantenimiento(placa) {
+    placaActivaMant = placa;
+    document.getElementById('placaSeleccionada').textContent = placa;
+    document.getElementById('formMantenimiento').classList.remove('oculto');
+    cargarListaPlacasMantenimiento(); // Resaltar placa activa
+    
+    // Cargar historial de esta placa
+    cargarHistorialTaller(placa);
+    cargarHistorialDocumentos(placa);
+    mostrarInfoGeneralVehiculo(placa);
+    
+    // Llenar selectores de persona
+    llenarSelectoresPersonaTaller();
+}
+
+// Mostrar información general del vehículo
+function mostrarInfoGeneralVehiculo(placa) {
+    const caja = document.getElementById('infoGeneralVehiculo');
+    const vehMov = vehiculosMov.find(v => v.placa === placa);
+    const vehTransp = vehiculosTransp.find(v => v.placa === placa);
+    const veh = vehMov || vehTransp;
+    
+    if (!veh) {
+        caja.innerHTML = '<p class="text-sm">Sin datos registrados</p>';
+        return;
+    }
+    
+    caja.innerHTML = `
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+        <div><strong>Placa:</strong> ${placa}</div>
+        <div><strong>Tipo:</strong> ${veh.tipo || 'No especificado'}</div>
+        <div><strong>Origen:</strong> ${vehMov ? 'Movimientos' : 'Transportadora'}</div>
+    </div>`;
+}
+
+// Llenar selectores con colaboradores
+function llenarSelectoresPersonaTaller() {
+    const opciones = colaboradores.filter(c => (c.estado || 'activo') === 'activo').map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
+    
+    const selEntrega = document.getElementById('quienEntregaVehiculo');
+    const selRecoge = document.getElementById('quienRecogeVehiculo');
+    
+    if (selEntrega) selEntrega.innerHTML = `<option value="">Seleccione...</option>${opciones}`;
+    if (selRecoge) selRecoge.innerHTML = `<option value="">Seleccione...</option>${opciones}`;
+}
+
+// Registrar ingreso al taller
+async function registrarIngresoTaller() {
+    if (!placaActivaMant) return alert('Seleccione una placa primero');
+    
+    const fechaIngreso = document.getElementById('fechaIngresoTaller').value;
+    const quienEntrega = document.getElementById('quienEntregaVehiculo').value;
+    
+    if (!fechaIngreso || !quienEntrega) {
+        return alert('⚠️ Complete Fecha de Ingreso y Quién Entrega');
+    }
+    
+    await db.collection('mantenimiento_taller').add({
+        placa: placaActivaMant,
+        tipo: 'INGRESO_TALLER',
+        fechaIngreso,
+        quienEntrega,
+        estado: 'EN_TALLER',
+        usuarioRegistro: usuarioActivo?.nombre || 'Desconocido',
+        fechaRegistro: new Date()
+    });
+    
+    alert('✅ Ingreso a taller registrado');
+    document.getElementById('fechaIngresoTaller').value = '';
+    document.getElementById('quienEntregaVehiculo').value = '';
+    cargarHistorialTaller(placaActivaMant);
+}
+
+// Registrar recogida del vehículo
+async function recogerVehiculo() {
+    if (!placaActivaMant) return alert('Seleccione una placa primero');
+    
+    const quienRecoge = document.getElementById('quienRecogeVehiculo').value;
+    const diagnostico = document.getElementById('diagnosticoTaller').value.trim();
+    const costo = parseFloat(document.getElementById('costoTaller').value) || 0;
+    
+    if (!quienRecoge || !diagnostico) {
+        return alert('⚠️ Complete Quién Recoge y Diagnóstico');
+    }
+    
+    await db.collection('mantenimiento_taller').add({
+        placa: placaActivaMant,
+        tipo: 'RECOGIDA_VEHICULO',
+        fechaRecogida: new Date().toISOString().split('T')[0],
+        quienRecoge,
+        diagnostico,
+        costo,
+        estado: 'EN_OPERACION',
+        usuarioRegistro: usuarioActivo?.nombre || 'Desconocido',
+        fechaRegistro: new Date()
+    });
+    
+    alert('✅ Recogida registrada. Vehículo en operación.');
+    document.getElementById('quienRecogeVehiculo').value = '';
+    document.getElementById('diagnosticoTaller').value = '';
+    document.getElementById('costoTaller').value = '';
+    cargarHistorialTaller(placaActivaMant);
+}
+
+// Cargar historial de taller
+async function cargarHistorialTaller(placa) {
+    const caja = document.getElementById('historialTaller');
+    if (!caja) return;
+    
+    const snap = await db.collection('mantenimiento_taller')
+        .where('placa', '==', placa)
+        .orderBy('fechaRegistro', 'desc')
+        .limit(20)
+        .get();
+    
+    const historial = [];
+    snap.forEach(doc => historial.push({ id: doc.id, ...doc.data() }));
+    
+    if (historial.length === 0) {
+        caja.innerHTML = '<p class="text-sm text-gray-500">📭 Sin historial de taller</p>';
+        return;
+    }
+    
+    caja.innerHTML = historial.map(h => `
+    <div class="p-2 mb-2 border rounded bg-gray-50 text-sm">
+        ${h.tipo === 'INGRESO_TALLER' 
+            ? `🔧 <strong>Ingreso a Taller</strong> — ${h.fechaIngreso}<br>Entregó: ${h.quienEntrega}` 
+            : `✅ <strong>Recogida del Taller</strong> — ${h.fechaRecogida || '—'}<br>Recogió: ${h.quienRecoge || '—'}<br>Diagnóstico: ${h.diagnostico || '—'}<br>Costo: $${h.costo || 0}`}
+    </div>`).join('');
+}
+
+// Registrar documento (SOAT, Tecno-mecánica, Seguro)
+async function registrarDocumentoSeguro() {
+    if (!placaActivaMant) return alert('Seleccione una placa primero');
+    
+    const tipo = document.getElementById('tipoDocumentoSeguro').value;
+    const emision = document.getElementById('fechaEmisionDoc').value;
+    const vencimiento = document.getElementById('fechaVencimientoDoc').value;
+    
+    if (!emision || !vencimiento) {
+        return alert('⚠️ Complete Fecha de Emisión y Vencimiento');
+    }
+    
+    await db.collection('mantenimiento_documentos').add({
+        placa: placaActivaMant,
+        tipo,
+        fechaEmision: emision,
+        fechaVencimiento: vencimiento,
+        usuarioRegistro: usuarioActivo?.nombre || 'Desconocido',
+        fechaRegistro: new Date()
+    });
+    
+    alert(`✅ ${tipo} registrado correctamente`);
+    document.getElementById('fechaEmisionDoc').value = '';
+    document.getElementById('fechaVencimientoDoc').value = '';
+    cargarHistorialDocumentos(placaActivaMant);
+}
+
+// Cargar historial de documentos
+async function cargarHistorialDocumentos(placa) {
+    const caja = document.getElementById('historialSeguros');
+    if (!caja) return;
+    
+    const snap = await db.collection('mantenimiento_documentos')
+        .where('placa', '==', placa)
+        .orderBy('fechaRegistro', 'desc')
+        .limit(20)
+        .get();
+    
+    const docs = [];
+    snap.forEach(doc => docs.push({ id: doc.id, ...doc.data() }));
+    
+    if (docs.length === 0) {
+        caja.innerHTML = '<p class="text-sm text-gray-500">📭 Sin documentos registrados</p>';
+        return;
+    }
+    
+    caja.innerHTML = docs.map(d => {
+        const hoy = new Date();
+        const ven = new Date(d.fechaVencimiento);
+        const dias = Math.ceil((ven - hoy) / (1000*60*60*24));
+        const alerta = dias <= 30 ? '🔴' : dias <= 90 ? '🟡' : '🟢';
+        return `
+        <div class="p-2 mb-2 border rounded text-sm">
+            ${alerta} <strong>${d.tipo}</strong><br>
+            Emisión: ${d.fechaEmision} | Vencimiento: ${d.fechaVencimiento}
+            ${dias <= 0 ? '<br>⚠️ Vencido' : dias <= 30 ? `<br>⚠️ Vence en ${dias} días` : ''}
+        </div>`;
+    }).join('');
+}
+
+// =====================================================
+// ===== CORRECCIÓN: CARGAR MOVIMIENTO SIN BORRAR FECHA =====
+// =====================================================
+async function cargarMovimientoEditar(id) {
+    idEdicion = id;
+    const m = movimientos.find(x => x.id === id);
+    if (!m) return;
+
+    // ✅ MANTENER LA FECHA ORIGINAL — NO se sobreescribe con hoy
+    document.getElementById('fechaMov').value = m.fecha; // 👈 ESTA ES LA CORRECCIÓN
+    document.getElementById('vehiculoMov').value = m.placa;
+    document.getElementById('conductorMov').value = m.conductor;
+    document.getElementById('horaSalida').value = m.horaSalida || '';
+    document.getElementById('horaLlegada').value = m.horaLlegada || '';
+    document.getElementById('canSalidaTotal').value = m.canastillasSalida || '';
+    document.getElementById('canLlegadaTotal').value = m.canastillasLlegada || '';
+    document.getElementById('observacionesMov').value = m.observaciones || '';
+
+    // ✅ Cargar recogidas guardadas sin perder los datos
+    document.getElementById('listaRecogidas').innerHTML = '';
+    const recogidas = m.recogidas || [];
+    let totalCan = 0, totalBul = 0, totalKg = 0;
+    recogidas.forEach(r => {
+        if (r.tipo === 'canastilla') totalCan += r.cantidad || 0;
+        if (r.tipo === 'bulto') totalBul += r.cantidad || 0;
+        totalKg += r.kilos || 0;
+        const lista = document.getElementById('listaRecogidas');
+        const opciones = colaboradores.filter(c => (c.estado || 'activo') === 'activo').map(c => `<option value="${c.nombre}" ${c.nombre===r.recogeA?'selected':''}>${c.nombre}</option>`).join('');
+        const div = document.createElement('div');
+        div.className = 'fila-recogida';
+        div.innerHTML = `
+        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0;padding:8px;background:#f9fafb;border-radius:6px;">
+            <label>Recoge a:</label>
+            <select name="recogeA" style="flex:1;min-width:150px;"><option value="">Seleccione colaborador...</option>${opciones}</select>
+            <label>Tipo:</label>
+            <select name="tipoUnidad" style="width:130px;" onchange="actualizarTotalesRecogidas()">
+                <option value="canastilla" ${r.tipo==='canastilla'?'selected':''}>📦 Canastilla</option>
+                <option value="bulto" ${r.tipo==='bulto'?'selected':''}>📥 Bulto</option>
+            </select>
+            <label>Cantidad:</label>
+            <input type="number" name="cantidad" value="${r.cantidad||0}" placeholder="0" style="width:80px;" oninput="actualizarTotalesRecogidas()">
+            <label>Kilos:</label>
+            <input type="number" name="kilos" value="${r.kilos||0}" placeholder="0" style="width:80px;" oninput="actualizarTotalesRecogidas()">
+            <button type="button" class="btn-peligro" onclick="this.parentElement.remove();actualizarTotalesRecogidas()">✕</button>
+        </div>`;
+        lista.appendChild(div);
+    });
+    document.getElementById('totalCanastillas').textContent = totalCan;
+    document.getElementById('totalBultos').textContent = totalBul;
+    document.getElementById('kilosTotal').value = totalKg || '';
+
+    cambiarSubpestañaMov('registro');
+}
+
+// =====================================================
+// ===== CARGAR PLACAS AL ENTRAR A MANTENIMIENTO =====
+// =====================================================
+// Reemplaza la función cambiarPestaña existente por esta:
+const cambiarPestañaOriginal = cambiarPestaña;
+function cambiarPestaña(nombre) {
+    document.querySelectorAll('.btn-pestaña').forEach(b => b.classList.remove('activa'));
+    document.querySelectorAll('.pestaña').forEach(p => p.classList.add('oculto'));
+    event.target.classList.add('activa');
+    document.getElementById(`pest-${nombre}`).classList.remove('oculto');
+    document.getElementById('sidebar').classList.remove('mostrar');
+    
+    // ✅ Si entra a Mantenimiento → cargar lista de placas
+    if (nombre === 'mantenimiento') {
+        cargarListaPlacasMantenimiento();
+        placaActivaMant = null;
+        document.getElementById('formMantenimiento').classList.add('oculto');
+    }
+}
