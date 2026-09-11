@@ -30,6 +30,7 @@ let datosVehiculos = [];
 let historialMantenimientos = [];
 let idEdicion = null;
 let idEdicionTransp = null;
+let placaActivaMant = null;
 let ultimosResultados = { movimientos: [], kilometraje: [], tanqueo: [] };
 
 const usuariosFijos = [
@@ -95,8 +96,6 @@ function cerrarSesion() {
 // ===== CARGA DE DATOS DESDE FIREBASE =====
 // =====================================================
 async function cargarDatosGenerales() {
-    const hoy = new Date().toISOString().split('T')[0];
-
     db.collection('movimientos').orderBy('fecha', 'desc').onSnapshot(snap => {
         movimientos = [];
         snap.forEach(doc => { movimientos.push({ id: doc.id, ...doc.data() }); });
@@ -159,6 +158,13 @@ function cambiarPestaña(nombre) {
     event.target.classList.add('activa');
     document.getElementById(`pest-${nombre}`).classList.remove('oculto');
     document.getElementById('sidebar').classList.remove('mostrar');
+
+    if (nombre === 'mantenimiento') {
+        cargarListaPlacasMantenimiento();
+        placaActivaMant = null;
+        const formMant = document.getElementById('formMantenimiento');
+        if (formMant) formMant.classList.add('oculto');
+    }
 }
 
 function cambiarSubpestañaMov(nombre) {
@@ -166,8 +172,7 @@ function cambiarSubpestañaMov(nombre) {
     document.querySelectorAll('.subpestaña-mov').forEach(p => p.classList.add('oculto'));
     event.target.classList.add('activa');
     document.getElementById(`submov-${nombre}`).classList.remove('oculto');
-    idEdicion = null;
-    limpiarFormularioMovimiento();
+    if (!idEdicion) limpiarFormularioMovimiento();
 }
 
 function cambiarSubpestañaTransp(nombre) {
@@ -178,1011 +183,759 @@ function cambiarSubpestañaTransp(nombre) {
     idEdicionTransp = null;
     limpiarFormularioMovimientoTransp();
 }
-
 // =====================================================
-// ===== MOVIMIENTOS - FUNCIONES DE APOYO =====
+// ===== MOVIMIENTOS DE CANASTILLAS =====
 // =====================================================
-function llenarSelectoresVehiculos() {
-    const sel = document.getElementById('vehiculoMov');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">Seleccione...</option>';
-    vehiculosMov.forEach(v => sel.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.tipo || 'Sin tipo'}</option>`);
-}
-
-function llenarSelectoresColaboradores() {
-    const sel = document.getElementById('conductorMov');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">Seleccione...</option>';
-    colaboradores.filter(c => (c.estado || 'activo') === 'activo').forEach(c => {
-        sel.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`;
-    });
-}
-
-function llenarSelectoresVehiculosTransp() {
-    const sel = document.getElementById('vehiculoTranspMov');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">Seleccione...</option>';
-    vehiculosTransp.forEach(v => sel.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.tipo || 'Sin tipo'}</option>`);
-}
-
-function dibujarMovimientosHoy() {
-    const hoy = new Date().toISOString().split('T')[0];
-    const caja = document.getElementById('listaMovTodos');
-    if (!caja) return;
-    const filtro = movimientos.filter(m => m.fecha === hoy);
-    if (filtro.length === 0) {
-        caja.innerHTML = '<p class="p-3 text-sm">📭 Sin movimientos hoy</p>';
-        return;
-    }
-    caja.innerHTML = filtro.map(m => filaMovHtml(m)).join('');
-}
-
-function dibujarMovimientosPendientes() {
-    const caja = document.getElementById('listaMovPendientes');
-    if (!caja) return;
-    const pend = movimientos.filter(m => !m.horaLlegada);
-    if (pend.length === 0) {
-        caja.innerHTML = '<p class="p-3 text-sm">✅ Sin movimientos pendientes</p>';
-        return;
-    }
-    caja.innerHTML = pend.map(m => filaMovHtml(m)).join('');
-}
-
-function filaMovHtml(m) {
-    return `
-    <div class="tarjeta">
-        <div class="flex flex-wrap gap-2">
-            <strong>📅 ${m.fecha}</strong> |
-            <strong>🚗 ${m.placa || '—'}</strong> |
-            <strong>👤 ${m.conductor || '—'}</strong> |
-            Salida: ${m.horaSalida || '—'} |
-            Llegada: ${m.horaLlegada || '⏳ Pendiente'} |
-            📦 Salida: ${m.canastillasSalida || 0} / Llegada: ${m.canastillasLlegada || 0}
-            <div class="mt-2">
-                <button class="btn-editar" style="padding:0.3rem 0.6rem;font-size:0.85rem;" onclick="cargarMovimientoEditar('${m.id}')">✏️ Editar</button>
-                ${!m.horaLlegada ? `<button class="btn-exito" style="padding:0.3rem 0.6rem;font-size:0.85rem;" onclick="cargarMovimientoEditar('${m.id}')">✅ Registrar Llegada</button>` : ''}
-                ${usuarioActivo?.rol==='admin' ? `<button class="btn-peligro" style="padding:0.3rem 0.6rem;font-size:0.85rem;" onclick="eliminarMovimiento('${m.id}')">🗑️ Eliminar</button>` : ''}
-            </div>
-        </div>
-    </div>`;
-}
-
-// =====================================================
-// ===== RECOGIDAS: AGREGAR, CALCULAR TOTALES =====
-// =====================================================
-function agregarRecogida() {
-    const lista = document.getElementById('listaRecogidas');
-    const opciones = colaboradores.filter(c => (c.estado || 'activo') === 'activo').map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
-    const div = document.createElement('div');
-    div.className = 'fila-recogida';
-    div.innerHTML = `
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0;padding:8px;background:#f9fafb;border-radius:6px;">
-            <label>Recoge a:</label>
-            <select name="recogeA" style="flex:1;min-width:150px;"><option value="">Seleccione colaborador...</option>${opciones}</select>
-            <label>Tipo:</label>
-            <select name="tipoUnidad" style="width:130px;" onchange="actualizarTotalesRecogidas()">
-                <option value="canastilla">📦 Canastilla</option>
-                <option value="bulto">📥 Bulto</option>
-            </select>
-            <label>Cantidad:</label>
-            <input type="number" name="cantidad" placeholder="0" style="width:80px;" oninput="actualizarTotalesRecogidas()">
-            <label>Kilos:</label>
-            <input type="number" name="kilos" placeholder="0" style="width:80px;" oninput="actualizarTotalesRecogidas()">
-            <button type="button" class="btn-peligro" onclick="this.parentElement.remove();actualizarTotalesRecogidas()">✕</button>
-        </div>`;
-    lista.appendChild(div);
-}
-
-function actualizarTotalesRecogidas() {
-    let totalCan = 0, totalBul = 0, totalKg = 0;
-    document.querySelectorAll('#listaRecogidas .fila-recogida').forEach(fila => {
-        const tipo = fila.querySelector('[name="tipoUnidad"]')?.value;
-        const cant = parseInt(fila.querySelector('[name="cantidad"]')?.value) || 0;
-        const kg = parseFloat(fila.querySelector('[name="kilos"]')?.value) || 0;
-        if (tipo === 'canastilla') totalCan += cant;
-        if (tipo === 'bulto') totalBul += cant;
-        totalKg += kg;
-    });
-    document.getElementById('totalCanastillas').textContent = totalCan;
-    document.getElementById('totalBultos').textContent = totalBul;
-    document.getElementById('kilosTotal').value = totalKg || '';
-}
-
-function obtenerRecogidasActuales() {
-    const conductorPrincipal = document.getElementById('conductorMov')?.value || '';
-    const lista = [];
-    document.querySelectorAll('#listaRecogidas .fila-recogida').forEach(fila => {
-        const recogeA = fila.querySelector('[name="recogeA"]')?.value || '';
-        const tipo = fila.querySelector('[name="tipoUnidad"]')?.value || 'canastilla';
-        const cantidad = parseInt(fila.querySelector('[name="cantidad"]')?.value) || 0;
-        const kilos = parseFloat(fila.querySelector('[name="kilos"]')?.value) || 0;
-        if (recogeA || cantidad || kilos) {
-            lista.push({ recogio: conductorPrincipal, recogeA, tipo, cantidad, kilos });
-        }
-    });
-    return lista;
-}
-
 function limpiarFormularioMovimiento() {
     const hoy = new Date().toISOString().split('T')[0];
-    document.getElementById('fechaMov').value = hoy;
+    document.getElementById('fechaMov')?.value = hoy;
+    document.getElementById('colaboradorMov').value = '';
     document.getElementById('vehiculoMov').value = '';
-    document.getElementById('conductorMov').value = '';
-    document.getElementById('horaSalida').value = '';
-    document.getElementById('horaLlegada').value = '';
-    document.getElementById('canSalidaTotal').value = '';
-    document.getElementById('canLlegadaTotal').value = '';
-    document.getElementById('listaRecogidas').innerHTML = '';
-    document.getElementById('totalCanastillas').textContent = '0';
-    document.getElementById('totalBultos').textContent = '0';
-    document.getElementById('kilosTotal').value = '';
+    document.getElementById('horaSalidaMov').value = '';
+    document.getElementById('horaLlegadaMov').value = '';
+    document.getElementById('canastillasSalidaMov').value = '';
+    document.getElementById('canastillasLlegadaMov').value = '';
     document.getElementById('observacionesMov').value = '';
+    document.getElementById('totalKilos').value = '';
+    document.getElementById('totalCanastillasLlegada').value = '';
     idEdicion = null;
+    document.getElementById('btnGuardarMov').textContent = '✅ Guardar Salida';
+    document.getElementById('btnCompletarMov').classList.add('oculto');
+    limpiarTablaRecogidas();
+}
+
+function limpiarTablaRecogidas() {
+    filasRecogida = [];
+    document.getElementById('tablaRecogidasCuerpo').innerHTML = '';
+    recalcularTotalesRecogida();
+}
+
+function agregarFilaRecogida() {
+    const cuerpo = document.getElementById('tablaRecogidasCuerpo');
+    const idx = filasRecogida.length;
+    filasRecogida.push({ colaborador: '', kilos: 0, canastillas: 0 });
+    const fila = document.createElement('tr');
+    fila.innerHTML = `
+        <td>
+            <select class="form-input" id="rec-col-${idx}" onchange="actualizarRecogida(${idx}, 'colaborador', this.value)">
+                <option value="">-- Seleccione --</option>
+                ${colaboradores.filter(c => c.estado !== 'inactivo').map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+            </select>
+        </td>
+        <td><input type="number" step="0.01" class="form-input" id="rec-kg-${idx}" oninput="actualizarRecogida(${idx}, 'kilos', this.value)"></td>
+        <td><input type="number" class="form-input" id="rec-cn-${idx}" oninput="actualizarRecogida(${idx}, 'canastillas', this.value)"></td>
+        <td><button class="btn-peligro" onclick="eliminarFilaRecogida(${idx})">🗑️</button></td>
+    `;
+    cuerpo.appendChild(fila);
+}
+
+function actualizarRecogida(idx, campo, valor) {
+    if (campo === 'kilos') valor = parseFloat(valor) || 0;
+    if (campo === 'canastillas') valor = parseInt(valor) || 0;
+    filasRecogida[idx][campo] = valor;
+    recalcularTotalesRecogida();
+}
+
+function eliminarFilaRecogida(idx) {
+    filasRecogida.splice(idx, 1);
+    dibujarTablaRecogidaCompleta();
+}
+
+function dibujarTablaRecogidaCompleta() {
+    const cuerpo = document.getElementById('tablaRecogidasCuerpo');
+    cuerpo.innerHTML = '';
+    filasRecogida.forEach((f, i) => {
+        const fila = document.createElement('tr');
+        fila.innerHTML = `
+            <td>
+                <select class="form-input" id="rec-col-${i}" onchange="actualizarRecogida(${i}, 'colaborador', this.value)">
+                    <option value="">-- Seleccione --</option>
+                    ${colaboradores.filter(c => c.estado !== 'inactivo').map(c => `<option value="${c.nombre}" ${f.colaborador === c.nombre ? 'selected' : ''}>${c.nombre}</option>`).join('')}
+                </select>
+            </td>
+            <td><input type="number" step="0.01" class="form-input" value="${f.kilos || 0}" oninput="actualizarRecogida(${i}, 'kilos', this.value)"></td>
+            <td><input type="number" class="form-input" value="${f.canastillas || 0}" oninput="actualizarRecogida(${i}, 'canastillas', this.value)"></td>
+            <td><button class="btn-peligro" onclick="eliminarFilaRecogida(${i})">🗑️</button></td>
+        `;
+        cuerpo.appendChild(fila);
+    });
+    recalcularTotalesRecogida();
+}
+
+function recalcularTotalesRecogida() {
+    const totalKg = filasRecogida.reduce((s, f) => s + (parseFloat(f.kilos) || 0), 0);
+    const totalCn = filasRecogida.reduce((s, f) => s + (parseInt(f.canastillas) || 0), 0);
+    document.getElementById('totalKilos').value = totalKg.toFixed(2);
+    document.getElementById('totalCanastillasLlegada').value = totalCn;
 }
 
 async function guardarMovimiento() {
     const fecha = document.getElementById('fechaMov').value;
+    const colaborador = document.getElementById('colaboradorMov').value;
     const placa = document.getElementById('vehiculoMov').value;
-    const conductor = document.getElementById('conductorMov').value;
-    const horaSalida = document.getElementById('horaSalida').value;
-    const horaLlegada = document.getElementById('horaLlegada').value;
-    const canastillasSalida = parseInt(document.getElementById('canSalidaTotal').value) || 0;
-    const canastillasLlegada = parseInt(document.getElementById('canLlegadaTotal').value) || 0;
-    const observaciones = document.getElementById('observacionesMov').value;
-    const recogidas = obtenerRecogidasActuales();
+    const horaSalida = document.getElementById('horaSalidaMov').value;
+    const horaLlegada = document.getElementById('horaLlegadaMov').value;
+    const canSalida = parseInt(document.getElementById('canastillasSalidaMov').value) || 0;
+    const canLlegada = parseInt(document.getElementById('canastillasLlegadaMov').value) || 0;
+    const obs = document.getElementById('observacionesMov').value;
+    const totalKg = parseFloat(document.getElementById('totalKilos').value) || 0;
 
-    if (!placa || !conductor || !horaSalida) return alert('⚠️ Complete Placa, Conductor y Hora de Salida');
+    if (!fecha || !colaborador || !placa || !horaSalida) {
+        return alert('⚠️ Complete Fecha, Colaborador, Vehículo y Hora de Salida');
+    }
 
     const datos = {
-        fecha, placa, conductor, horaSalida, horaLlegada,
-        canastillasSalida, canastillasLlegada,
-        recogidas, observaciones,
-        usuarioEdicion: usuarioActivo?.nombre || 'Desconocido',
-        horaEdicion: new Date().toISOString()
+        fecha, colaborador, placa,
+        horaSalida, horaLlegada,
+        canastillasSalida: canSalida,
+        canastillasLlegada: canLlegada,
+        totalKilos: totalKg,
+        recogidas: filasRecogida,
+        observaciones: obs,
+        usuarioRegistro: usuarioActivo.usuario,
+        fechaRegistro: new Date(),
+        completado: !!horaLlegada
     };
 
-    if (idEdicion) {
-        await db.collection('movimientos').doc(idEdicion).update(datos);
-        alert('✅ Movimiento actualizado');
-    } else {
-        await db.collection('movimientos').add(datos);
-        alert('✅ Movimiento guardado');
+    try {
+        if (idEdicion) {
+            await db.collection('movimientos').doc(idEdicion).update(datos);
+            alert('✅ Movimiento actualizado');
+        } else {
+            await db.collection('movimientos').add(datos);
+            alert('✅ Salida registrada');
+        }
+        limpiarFormularioMovimiento();
+    } catch (e) {
+        alert('❌ Error: ' + e.message);
     }
-    limpiarFormularioMovimiento();
-}
-
-async function cargarMovimientoEditar(id) {
-    idEdicion = id;
-    const m = movimientos.find(x => x.id === id);
-    if (!m) return;
-
-    document.getElementById('fechaMov').value = m.fecha;
-    document.getElementById('vehiculoMov').value = m.placa;
-    document.getElementById('conductorMov').value = m.conductor;
-    document.getElementById('horaSalida').value = m.horaSalida || '';
-    document.getElementById('horaLlegada').value = m.horaLlegada || '';
-    document.getElementById('canSalidaTotal').value = m.canastillasSalida || '';
-    document.getElementById('canLlegadaTotal').value = m.canastillasLlegada || '';
-    document.getElementById('observacionesMov').value = m.observaciones || '';
-
-    // Cargar recogidas guardadas
-    document.getElementById('listaRecogidas').innerHTML = '';
-    const recogidas = m.recogidas || [];
-    let totalCan = 0, totalBul = 0, totalKg = 0;
-    recogidas.forEach(r => {
-        if (r.tipo === 'canastilla') totalCan += r.cantidad || 0;
-        if (r.tipo === 'bulto') totalBul += r.cantidad || 0;
-        totalKg += r.kilos || 0;
-        const lista = document.getElementById('listaRecogidas');
-        const opciones = colaboradores.filter(c => (c.estado || 'activo') === 'activo').map(c => `<option value="${c.nombre}" ${c.nombre===r.recogeA?'selected':''}>${c.nombre}</option>`).join('');
-        const div = document.createElement('div');
-        div.className = 'fila-recogida';
-        div.innerHTML = `
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0;padding:8px;background:#f9fafb;border-radius:6px;">
-            <label>Recoge a:</label>
-            <select name="recogeA" style="flex:1;min-width:150px;"><option value="">Seleccione colaborador...</option>${opciones}</select>
-            <label>Tipo:</label>
-            <select name="tipoUnidad" style="width:130px;" onchange="actualizarTotalesRecogidas()">
-                <option value="canastilla" ${r.tipo==='canastilla'?'selected':''}>📦 Canastilla</option>
-                <option value="bulto" ${r.tipo==='bulto'?'selected':''}>📥 Bulto</option>
-            </select>
-            <label>Cantidad:</label>
-            <input type="number" name="cantidad" value="${r.cantidad||0}" placeholder="0" style="width:80px;" oninput="actualizarTotalesRecogidas()">
-            <label>Kilos:</label>
-            <input type="number" name="kilos" value="${r.kilos||0}" placeholder="0" style="width:80px;" oninput="actualizarTotalesRecogidas()">
-            <button type="button" class="btn-peligro" onclick="this.parentElement.remove();actualizarTotalesRecogidas()">✕</button>
-        </div>`;
-        lista.appendChild(div);
-    });
-    document.getElementById('totalCanastillas').textContent = totalCan;
-    document.getElementById('totalBultos').textContent = totalBul;
-    document.getElementById('kilosTotal').value = totalKg || '';
-
-    cambiarSubpestañaMov('registro');
 }
 
 async function completarMovimiento() {
-    if (!idEdicion) return alert('⚠️ Primero busque y seleccione un movimiento pendiente');
-    const horaLlegada = document.getElementById('horaLlegada').value;
-    const canLlegada = parseInt(document.getElementById('canLlegadaTotal').value) || 0;
-    if (!horaLlegada) return alert('⚠️ Debe registrar la Hora de Llegada');
+    if (!idEdicion) return alert('⚠️ Primero seleccione un movimiento');
+    await guardarMovimiento();
+}
 
-    await db.collection('movimientos').doc(idEdicion).update({
-        horaLlegada,
-        canastillasLlegada: canLlegada,
-        usuarioEdicion: usuarioActivo?.nombre || 'Desconocido',
-        horaEdicion: new Date().toISOString()
-    });
-    alert('✅ Movimiento completado');
-    limpiarFormularioMovimiento();
+function editarMovimiento(id) {
+    const m = movimientos.find(x => x.id === id);
+    if (!m) return;
+    idEdicion = id;
+    document.getElementById('fechaMov').value = m.fecha;
+    document.getElementById('colaboradorMov').value = m.colaborador;
+    document.getElementById('vehiculoMov').value = m.placa;
+    document.getElementById('horaSalidaMov').value = m.horaSalida;
+    document.getElementById('horaLlegadaMov').value = m.horaLlegada || '';
+    document.getElementById('canastillasSalidaMov').value = m.canastillasSalida || '';
+    document.getElementById('canastillasLlegadaMov').value = m.canastillasLlegada || '';
+    document.getElementById('observacionesMov').value = m.observaciones || '';
+    filasRecogida = m.recogidas ? [...m.recogidas] : [];
+    dibujarTablaRecogidaCompleta();
+    document.getElementById('btnGuardarMov').textContent = '💾 Guardar Cambios';
+    document.getElementById('btnCompletarMov').classList.remove('oculto');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 async function eliminarMovimiento(id) {
-    if (usuarioActivo?.rol !== 'admin') return alert('🔒 Solo administrador puede eliminar');
+    if (usuarioActivo.rol !== 'admin') return alert('🔒 Solo administrador puede eliminar');
     if (!confirm('¿Eliminar este movimiento?')) return;
     await db.collection('movimientos').doc(id).delete();
     alert('✅ Eliminado');
 }
 
-// =====================================================
-// ===== BÚSQUEDA DE MOVIMIENTOS =====
-// =====================================================
-function filtrarMovimientos() {
-    const placa = document.getElementById('buscarPlaca').value.trim().toUpperCase();
-    const conductor = document.getElementById('buscarConductor').value.trim().toUpperCase();
-    const fecha = document.getElementById('buscarFecha').value;
-
-    const pend = movimientos.filter(m => {
-        const okPlaca = !placa || (m.placa||'').toUpperCase().includes(placa);
-        const okCond = !conductor || (m.conductor||'').toUpperCase().includes(conductor);
-        const okFecha = !fecha || m.fecha === fecha;
-        return okPlaca && okCond && okFecha && !m.horaLlegada;
-    });
-    const todos = movimientos.filter(m => {
-        const okPlaca = !placa || (m.placa||'').toUpperCase().includes(placa);
-        const okCond = !conductor || (m.conductor||'').toUpperCase().includes(conductor);
-        const okFecha = !fecha || m.fecha === fecha;
-        return okPlaca && okCond && okFecha;
-    });
-
-    const cajaP = document.getElementById('listaMovPendientes');
-    const cajaT = document.getElementById('listaMovTodos');
-    if (cajaP) cajaP.innerHTML = pend.length ? pend.map(m => filaMovHtml(m)).join('') : '<p class="p-3">📭 Sin resultados</p>';
-    if (cajaT) cajaT.innerHTML = todos.length ? todos.map(m => filaMovHtml(m)).join('') : '<p class="p-3">📭 Sin resultados</p>';
+function dibujarMovimientosHoy() {
+    const hoy = new Date().toISOString().split('T')[0];
+    const tb = document.getElementById('tablaMovimientosHoyCuerpo');
+    if (!tb) return;
+    const filtro = movimientos.filter(m => m.fecha === hoy);
+    tb.innerHTML = filtro.map(m => `
+        <tr>
+            <td>${m.fecha}</td>
+            <td>${m.placa}</td>
+            <td>${m.colaborador}</td>
+            <td>${m.horaSalida}</td>
+            <td>${m.horaLlegada || '—'}</td>
+            <td>${m.canastillasSalida || 0}</td>
+            <td>${m.canastillasLlegada || 0}</td>
+            <td>${m.totalKilos || 0}</td>
+            <td>
+                <button class="btn-primario" onclick="editarMovimiento('${m.id}')">✏️</button>
+                ${usuarioActivo.rol==='admin'?`<button class="btn-peligro" onclick="eliminarMovimiento('${m.id}')">🗑️</button>`:''}
+            </td>
+        </tr>
+    `).join('') || '<tr><td colspan="9" class="text-center">📭 Sin movimientos hoy</td></tr>';
 }
 
-function limpiarBusqueda() {
-    document.getElementById('buscarPlaca').value = '';
-    document.getElementById('buscarConductor').value = '';
-    document.getElementById('buscarFecha').value = '';
-    dibujarMovimientosHoy();
-    dibujarMovimientosPendientes();
+function dibujarMovimientosPendientes() {
+    const tb = document.getElementById('tablaPendientesCuerpo');
+    if (!tb) return;
+    const pend = movimientos.filter(m => !m.completado);
+    tb.innerHTML = pend.map(m => `
+        <tr>
+            <td>${m.fecha}</td>
+            <td>${m.placa}</td>
+            <td>${m.colaborador}</td>
+            <td>${m.horaSalida}</td>
+            <td>⏳ Pendiente</td>
+            <td>${m.canastillasSalida}</td>
+            <td><button class="btn-exito" onclick="editarMovimiento('${m.id}')">✅ Completar</button></td>
+        </tr>
+    `).join('') || '<tr><td colspan="6" class="text-center">✅ Sin movimientos pendientes</td></tr>';
 }
+
 // =====================================================
-// ===== TRANSPORTADORA - CONDUCTORES =====
+// ===== TRANSPORTADORA =====
 // =====================================================
-function cambiarSubpestañaTransp(nombre) {
-    document.querySelectorAll('.btn-subtransp').forEach(b => b.classList.remove('activa'));
-    document.querySelectorAll('.subpestaña-transp').forEach(p => p.classList.add('oculto'));
-    event.target.classList.add('activa');
-    document.getElementById(`subtransp-${nombre}`).classList.remove('oculto');
+function limpiarFormularioMovimientoTransp() {
+    const hoy = new Date().toISOString().split('T')[0];
+    document.getElementById('fechaTransp').value = hoy;
+    document.getElementById('conductorTransp').value = '';
+    document.getElementById('vehiculoTransp').value = '';
+    document.getElementById('horaSalidaTransp').value = '';
+    document.getElementById('horaLlegadaTransp').value = '';
+    document.getElementById('canastillasSalidaTransp').value = '';
+    document.getElementById('canastillasLlegadaTransp').value = '';
     idEdicionTransp = null;
-    limpiarFormularioMovimientoTransp();
 }
 
 async function agregarConductorTransp() {
     const nombre = document.getElementById('nombreConductorTransp').value.trim();
-    if (!nombre) return alert('Escriba el nombre del conductor');
-    await db.collection('conductores_transportadora').add({ nombre, fechaCreacion: new Date() });
+    if (!nombre) return alert('Ingrese nombre del conductor');
+    await db.collection('conductores_transportadora').add({ nombre, estado: 'activo', fechaRegistro: new Date() });
     document.getElementById('nombreConductorTransp').value = '';
     alert('✅ Conductor agregado');
 }
 
-function dibujarConductoresTransp() {
-    const caja = document.getElementById('listaConductoresTransp');
-    if (!caja) return;
-    if (conductores.length === 0) {
-        caja.innerHTML = '<p class="p-3 text-sm">📭 Sin conductores registrados</p>';
-        return;
-    }
-    caja.innerHTML = conductores.map(c => `
-    <div class="tarjeta flex justify-between items-center">
-        <span>👤 ${c.nombre}</span>
-        <div>
-            ${usuarioActivo?.rol==='admin' ? `<button class="btn-peligro" style="padding:0.3rem 0.5rem;font-size:0.8rem;" onclick="db.collection('conductores_transportadora').doc('${c.id}').delete();alert('Eliminado')">🗑️</button>` : ''}
-        </div>
-    </div>`).join('');
-}
-
-// =====================================================
-// ===== TRANSPORTADORA - VEHÍCULOS =====
-// =====================================================
 async function agregarVehiculoTransp() {
     const placa = document.getElementById('placaVehiculoTransp').value.trim().toUpperCase();
     const tipo = document.getElementById('tipoVehiculoTransp').value;
     if (!placa || !tipo) return alert('Complete placa y tipo');
-    await db.collection('vehiculos_transportadora').add({ placa, tipo, fechaCreacion: new Date() });
+    await db.collection('vehiculos_transportadora').add({ placa, tipo, fechaRegistro: new Date() });
     document.getElementById('placaVehiculoTransp').value = '';
     document.getElementById('tipoVehiculoTransp').value = '';
-    alert('✅ Vehículo agregado');
-}
-
-function llenarSelectoresVehiculosTransp() {
-    const selVeh = document.getElementById('vehiculoTranspMov');
-    const selCond = document.getElementById('conductorTranspMov');
-    if (selVeh) {
-        selVeh.innerHTML = '<option value="">Seleccione...</option>';
-        vehiculosTransp.forEach(v => selVeh.innerHTML += `<option value="${v.placa}">${v.placa} - ${v.tipo}</option>`);
-    }
-    if (selCond) {
-        selCond.innerHTML = '<option value="">Seleccione...</option>';
-        conductores.forEach(c => selCond.innerHTML += `<option value="${c.nombre}">${c.nombre}</option>`);
-    }
-}
-
-// =====================================================
-// ===== TRANSPORTADORA - MOVIMIENTOS =====
-// =====================================================
-function limpiarFormularioMovimientoTransp() {
-    const hoy = new Date().toISOString().split('T')[0];
-    document.getElementById('fechaMovTransp').value = hoy;
-    document.getElementById('vehiculoTranspMov').value = '';
-    document.getElementById('conductorTranspMov').value = '';
-    document.getElementById('horaSalidaTransp').value = '';
-    document.getElementById('horaLlegadaTransp').value = '';
-    document.getElementById('canSalidaTransp').value = '';
-    document.getElementById('canLlegadaTransp').value = '';
-    document.getElementById('obsTransp').value = '';
-    idEdicionTransp = null;
+    alert('✅ Vehículo transportadora agregado');
 }
 
 async function guardarMovimientoTransp() {
-    const fecha = document.getElementById('fechaMovTransp').value;
-    const placa = document.getElementById('vehiculoTranspMov').value;
-    const conductor = document.getElementById('conductorTranspMov').value;
+    const fecha = document.getElementById('fechaTransp').value;
+    const conductor = document.getElementById('conductorTransp').value;
+    const placa = document.getElementById('vehiculoTransp').value;
     const horaSalida = document.getElementById('horaSalidaTransp').value;
     const horaLlegada = document.getElementById('horaLlegadaTransp').value;
-    const canSalida = parseInt(document.getElementById('canSalidaTransp').value) || 0;
-    const canLlegada = parseInt(document.getElementById('canLlegadaTransp').value) || 0;
-    const observaciones = document.getElementById('obsTransp').value;
+    const canSalida = parseInt(document.getElementById('canastillasSalidaTransp').value) || 0;
+    const canLlegada = parseInt(document.getElementById('canastillasLlegadaTransp').value) || 0;
 
-    if (!placa || !conductor || !horaSalida) return alert('⚠️ Complete placa, conductor y hora de salida');
+    if (!fecha || !conductor || !placa || !horaSalida) {
+        return alert('⚠️ Complete Fecha, Conductor, Vehículo y Hora de Salida');
+    }
 
     const datos = {
-        fecha, placa, conductor, horaSalida, horaLlegada,
-        canastillasSalida: canSalida, canastillasLlegada: canLlegada,
-        observaciones,
-        usuarioEdicion: usuarioActivo?.nombre || 'Desconocido',
-        horaEdicion: new Date().toISOString()
+        fecha, conductor, placa,
+        horaSalida, horaLlegada,
+        canastillasSalida: canSalida,
+        canastillasLlegada: canLlegada,
+        usuarioRegistro: usuarioActivo.usuario,
+        completado: !!horaLlegada
     };
 
     if (idEdicionTransp) {
         await db.collection('movimientos_transportadora').doc(idEdicionTransp).update(datos);
-        alert('✅ Movimiento actualizado');
+        alert('✅ Movimiento Transp actualizado');
     } else {
         await db.collection('movimientos_transportadora').add(datos);
-        alert('✅ Movimiento guardado');
+        alert('✅ Salida Transp registrada');
     }
     limpiarFormularioMovimientoTransp();
+}
+
+function dibujarConductoresTransp() {
+    const tb = document.getElementById('tablaConductoresTranspCuerpo');
+    if (!tb) return;
+    tb.innerHTML = conductores.map(c => `
+        <tr>
+            <td>${c.nombre}</td>
+            <td>${c.estado === 'activo' ? '✅ Activo' : '❌ Inactivo'}</td>
+        </tr>
+    `).join('');
 }
 
 function dibujarMovimientosTranspHoy() {
     const hoy = new Date().toISOString().split('T')[0];
-    const caja = document.getElementById('listaMovTranspTodos');
-    if (!caja) return;
+    const tb = document.getElementById('tablaMovTranspHoyCuerpo');
+    if (!tb) return;
     const filtro = movimientosTransp.filter(m => m.fecha === hoy);
-    if (filtro.length === 0) {
-        caja.innerHTML = '<p class="p-3 text-sm">📭 Sin movimientos hoy</p>';
-        return;
-    }
-    caja.innerHTML = filtro.map(m => filaMovTranspHtml(m)).join('');
+    tb.innerHTML = filtro.map(m => `
+        <tr>
+            <td>${m.fecha}</td>
+            <td>${m.placa}</td>
+            <td>${m.conductor}</td>
+            <td>${m.horaSalida}</td>
+            <td>${m.horaLlegada || '—'}</td>
+            <td>${m.canastillasSalida}</td>
+            <td>${m.canastillasLlegada || 0}</td>
+        </tr>
+    `).join('') || '<tr><td colspan="7" class="text-center">📭 Sin movimientos de transportadora hoy</td></tr>';
 }
 
 function dibujarMovimientosTranspPendientes() {
-    const caja = document.getElementById('listaMovTranspPendientes');
-    if (!caja) return;
-    const pend = movimientosTransp.filter(m => !m.horaLlegada);
-    if (pend.length === 0) {
-        caja.innerHTML = '<p class="p-3 text-sm">✅ Sin movimientos pendientes</p>';
-        return;
-    }
-    caja.innerHTML = pend.map(m => filaMovTranspHtml(m)).join('');
-}
-
-function filaMovTranspHtml(m) {
-    return `
-    <div class="tarjeta">
-        <div class="flex flex-wrap gap-2">
-            <strong>📅 ${m.fecha}</strong> |
-            <strong>🚗 ${m.placa || '—'}</strong> |
-            <strong>👤 ${m.conductor || '—'}</strong> |
-            Salida: ${m.horaSalida || '—'} |
-            Llegada: ${m.horaLlegada || '⏳ Pendiente'} |
-            📦 Salida: ${m.canastillasSalida || 0} / Llegada: ${m.canastillasLlegada || 0}
-        </div>
-    </div>`;
-}
-
-async function completarMovimientoTransp() {
-    if (!idEdicionTransp) return alert('⚠️ Primero seleccione un movimiento pendiente');
-    const horaLlegada = document.getElementById('horaLlegadaTransp').value;
-    const canLlegada = parseInt(document.getElementById('canLlegadaTransp').value) || 0;
-    if (!horaLlegada) return alert('⚠️ Registre la hora de llegada');
-
-    await db.collection('movimientos_transportadora').doc(idEdicionTransp).update({
-        horaLlegada, canastillasLlegada: canLlegada
-    });
-    alert('✅ Movimiento completado');
-    limpiarFormularioMovimientoTransp();
+    const tb = document.getElementById('tablaPendientesTranspCuerpo');
+    if (!tb) return;
+    const pend = movimientosTransp.filter(m => !m.completado);
+    tb.innerHTML = pend.map(m => `
+        <tr>
+            <td>${m.fecha}</td>
+            <td>${m.placa}</td>
+            <td>${m.conductor}</td>
+            <td>${m.horaSalida}</td>
+            <td>${m.canastillasSalida}</td>
+            <td><button class="btn-exito">✅ Completar</button></td>
+        </tr>
+    `).join('') || '<tr><td colspan="6" class="text-center">✅ Sin pendientes de transportadora</td></tr>';
 }
 
 // =====================================================
-// ===== COMBUSTIBLE - KILOMETRAJE =====
+// ===== COMBUSTIBLE: KILOMETRAJE Y TANQUEO =====
 // =====================================================
-function cambiarSubpestañaCombustible(nombre) {
-    document.querySelectorAll('.btn-subcombustible').forEach(b => b.classList.remove('activa'));
-    document.querySelectorAll('.subpestaña-combustible').forEach(p => p.classList.add('oculto'));
-    event.target.classList.add('activa');
-    document.getElementById(`subcomb-${nombre}`).classList.remove('oculto');
-}
-
 async function guardarKilometrajeDiario() {
     const fecha = document.getElementById('fechaKm').value;
     const placa = document.getElementById('vehiculoKm').value;
     const kmManana = parseFloat(document.getElementById('kmManana').value) || null;
     const kmTarde = parseFloat(document.getElementById('kmTarde').value) || null;
-    const colaborador = document.getElementById('quienRegistraKm').value;
 
-    if (!fecha || !placa || !kmManana || !colaborador) {
-        return alert('⚠️ Complete Fecha, Vehículo, Km Mañana y Quién Registra');
+    if (!fecha || !placa || kmManana === null) {
+        return alert('⚠️ Complete Fecha, Vehículo y Kilometraje de la Mañana');
     }
 
-    const kmRecorridos = (kmManana && kmTarde) ? (kmTarde - kmManana).toFixed(2) : null;
+    const kmRecorridos = (kmManana !== null && kmTarde !== null) ? (kmTarde - kmManana).toFixed(2) : null;
 
     await db.collection('kilometraje').add({
-        fecha, placa, kmManana, kmTarde, kmRecorridos, colaborador,
-        usuarioRegistro: usuarioActivo?.nombre || 'Desconocido',
+        fecha, placa,
+        kmManana, kmTarde,
+        kmRecorridos,
+        colaborador: usuarioActivo.nombre,
         fechaRegistro: new Date()
     });
     alert('✅ Kilometraje guardado');
-    document.getElementById('fechaKm').value = '';
-    document.getElementById('vehiculoKm').value = '';
     document.getElementById('kmManana').value = '';
     document.getElementById('kmTarde').value = '';
-    document.getElementById('quienRegistraKm').value = '';
 }
 
-// =====================================================
-// ===== COMBUSTIBLE - TANQUEO =====
-// =====================================================
-async function guardarRegistroTanqueo() {
+async function guardarTanqueo() {
     const fecha = document.getElementById('fechaTanqueo').value;
     const placa = document.getElementById('vehiculoTanqueo').value;
-    const galones = parseFloat(document.getElementById('galonesTanqueo').value) || 0;
+    const cantidad = parseFloat(document.getElementById('cantidadTanqueo').value) || 0;
     const estado = document.getElementById('estadoTanqueo').value;
-    const porcentaje = parseInt(document.getElementById('porcentajeTanqueo').value) || 100;
-    const quienTanquea = document.getElementById('quienTanquea').value;
 
-    if (!fecha || !placa || !galones || !quienTanquea) {
-        return alert('⚠️ Complete Fecha, Vehículo, Galones y Quién Tanquea');
+    if (!fecha || !placa || !cantidad) {
+        return alert('⚠️ Complete Fecha, Vehículo y Cantidad');
     }
 
     await db.collection('tanqueo').add({
-        fecha, placa, galones, estado, porcentaje, quienTanquea,
-        usuarioRegistro: usuarioActivo?.nombre || 'Desconocido',
+        fecha, placa, cantidad, estado,
+        colaborador: usuarioActivo.nombre,
         fechaRegistro: new Date()
     });
-    alert('✅ Tanqueo guardado');
-    document.getElementById('fechaTanqueo').value = '';
-    document.getElementById('vehiculoTanqueo').value = '';
-    document.getElementById('galonesTanqueo').value = '';
-    document.getElementById('quienTanquea').value = '';
+    alert('✅ Tanqueo registrado');
+    document.getElementById('cantidadTanqueo').value = '';
 }
 
 // =====================================================
-// ===== INFORMES =====
+// ===== MANTENIMIENTO VEHICULAR =====
 // =====================================================
-function generarInformeMovimientos() {
-    const fi = document.getElementById('fechaInicioMov').value;
-    const ff = document.getElementById('fechaFinMov').value;
-    if (!fi || !ff) return alert('Seleccione fechas de inicio y fin');
+function cargarListaPlacasMantenimiento() {
+    const tb = document.getElementById('listaPlacasMantCuerpo');
+    if (!tb) return;
+    const todasPlacas = [...new Set([...vehiculosMov.map(v => v.placa), ...vehiculosTransp.map(v => v.placa)])].sort();
+    tb.innerHTML = todasPlacas.map(p => {
+        const mant = historialMantenimientos.find(h => h.placa === p && h.estado === 'en-taller');
+        const estado = mant ? '🔧 En Taller' : '✅ Activo';
+        return `<tr><td>${p}</td><td>${estado}</td><td><button class="btn-primario" onclick="cargarFichaVehiculoMant('${p}')">📋 Ver / Editar</button></td></tr>`;
+    }).join('');
+}
 
-    const resultados = movimientos.filter(m => m.fecha >= fi && m.fecha <= ff);
-    const caja = document.getElementById('resultadoInformeMov');
-    if (!caja) return;
-    if (resultados.length === 0) {
-        caja.innerHTML = '<p class="p-3">📭 Sin movimientos en este período</p>';
-        return;
-    }
+async function cargarFichaVehiculoMant(placa) {
+    placaActivaMant = placa;
+    document.getElementById('formMantenimiento').classList.remove('oculto');
+    document.getElementById('placaMantenimiento').value = placa;
 
-    let totalCanSalida = 0, totalCanLlegada = 0;
-    resultados.forEach(m => {
-        totalCanSalida += m.canastillasSalida || 0;
-        totalCanLlegada += m.canastillasLlegada || 0;
+    const snap = await db.collection('mantenimientos').where('placa', '==', placa).orderBy('fechaRegistro', 'desc').get();
+    historialMantenimientos = [];
+    snap.forEach(d => { historialMantenimientos.push({ id: d.id, ...d.data() }); });
+
+    const ultimo = historialMantenimientos[0] || {};
+    document.getElementById('vencimientoSoat').value = ultimo.vencimientoSoat || '';
+    document.getElementById('vencimientoTecno').value = ultimo.vencimientoTecnoMecanica || '';
+    document.getElementById('ultimoKm').value = ultimo.ultimoKilometraje || '';
+    dibujarHistorialMantenimiento();
+}
+
+async function guardarDatosVehiculoMant() {
+    if (!placaActivaMant) return alert('Seleccione una placa primero');
+    const datos = {
+        placa: placaActivaMant,
+        vencimientoSoat: document.getElementById('vencimientoSoat').value,
+        vencimientoTecnoMecanica: document.getElementById('vencimientoTecno').value,
+        ultimoKilometraje: parseFloat(document.getElementById('ultimoKm').value) || 0,
+        fechaRegistro: new Date(),
+        usuarioRegistro: usuarioActivo.usuario
+    };
+    await db.collection('mantenimientos').add(datos);
+    alert('✅ Datos del vehículo guardados');
+    cargarFichaVehiculoMant(placaActivaMant);
+}
+
+async function enviarVehiculoTaller() {
+    if (!placaActivaMant) return alert('Seleccione una placa');
+    const fechaIngreso = document.getElementById('fechaIngresoTaller').value;
+    const quienLlevo = document.getElementById('quienLlevoVehiculo').value.trim();
+    const diagnostico = document.getElementById('diagnosticoTaller').value.trim();
+    const costo = parseFloat(document.getElementById('costoReparacion').value) || 0;
+
+    if (!fechaIngreso || !quienLlevo) return alert('⚠️ Complete Fecha y Quien llevó el vehículo');
+
+    await db.collection('mantenimientos').add({
+        placa: placaActivaMant,
+        tipo: 'ingreso-taller',
+        fechaIngreso, quienLlevo, diagnostico, costo,
+        estado: 'en-taller',
+        fechaRegistro: new Date(),
+        usuarioRegistro: usuarioActivo.usuario
+    });
+    alert('✅ Vehículo enviado a taller — queda inactivo');
+    cargarFichaVehiculoMant(placaActivaMant);
+}
+
+async function recibirVehiculoTaller() {
+    if (!placaActivaMant) return alert('Seleccione una placa');
+    const fechaEntrega = document.getElementById('fechaEntregaTaller').value;
+    const quienRecibio = document.getElementById('quienRecibioVehiculo').value.trim();
+    const observaciones = document.getElementById('obsFinalesTaller').value.trim();
+
+    if (!fechaEntrega || !quienRecibio) return alert('⚠️ Complete Fecha de entrega y Quien recibe');
+
+    await db.collection('mantenimientos').add({
+        placa: placaActivaMant,
+        tipo: 'salida-taller',
+        fechaEntrega, quienRecibio, observaciones,
+        estado: 'activo',
+        fechaRegistro: new Date(),
+        usuarioRegistro: usuarioActivo.usuario
+    });
+    alert('✅ Vehículo regresó a servicio');
+    cargarFichaVehiculoMant(placaActivaMant);
+}
+
+function dibujarHistorialMantenimiento() {
+    const tb = document.getElementById('historialMantCuerpo');
+    if (!tb) return;
+    tb.innerHTML = historialMantenimientos.map(h => `
+        <tr>
+            <td>${h.fechaIngreso || h.fechaEntrega || h.fechaRegistro?.toDate().toLocaleDateString() || '—'}</td>
+            <td>${h.tipo || 'Datos Generales'}</td>
+            <td>${h.diagnostico || h.observaciones || '—'}</td>
+            <td>${h.costo ? '$' + h.costo.toFixed(2) : '—'}</td>
+            <td>${h.estado === 'en-taller' ? '🔧 En Taller' : '✅ Activo'}</td>
+        </tr>
+    `).join('') || '<tr><td colspan="5" class="text-center">📭 Sin historial</td></tr>';
+}
+
+// =====================================================
+// ===== LLENADO DE SELECTORES =====
+// =====================================================
+function llenarSelectoresColaboradores() {
+    const activos = colaboradores.filter(c => c.estado !== 'inactivo');
+    document.querySelectorAll('select[id^="colaboradorMov"], select[id^="rec-col-"]').forEach(s => {
+        const sel = s.value;
+        s.innerHTML = '<option value="">-- Seleccione --</option>' + activos.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
+        s.value = sel;
+    });
+}
+
+function llenarSelectoresVehiculos() {
+    document.querySelectorAll('#vehiculoMov, #vehiculoKm, #vehiculoTanqueo').forEach(s => {
+        if (!s) return;
+        const sel = s.value;
+        s.innerHTML = '<option value="">-- Seleccione --</option>' + vehiculosMov.map(v => `<option value="${v.placa}">${v.placa} — ${v.tipo || 'Sin tipo'}</option>`).join('');
+        s.value = sel;
+    });
+}
+
+function llenarSelectoresVehiculosTransp() {
+    const s = document.getElementById('vehiculoTransp');
+    if (!s) return;
+    const sel = s.value;
+    s.innerHTML = '<option value="">-- Seleccione --</option>' + vehiculosTransp.map(v => `<option value="${v.placa}">${v.placa} — ${v.tipo}</option>`).join('');
+    s.value = sel;
+}
+
+// =====================================================
+// ===== EXPORTAR EXCEL =====
+// =====================================================
+function exportarExcel() {
+    const datos = movimientos.map(m => ({
+        Fecha: m.fecha,
+        Placa: m.placa,
+        Colaborador: m.colaborador,
+        HoraSalida: m.horaSalida,
+        HoraLlegada: m.horaLlegada || '',
+        CanastillasSalida: m.canastillasSalida,
+        CanastillasLlegada: m.canastillasLlegada || 0,
+        KilosTotales: m.totalKilos || 0,
+        Observaciones: m.observaciones || ''
+    }));
+    const hoja = XLSX.utils.json_to_sheet(datos);
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, "Movimientos");
+    XLSX.writeFile(libro, "Movimientos_Canastillas_" + new Date().toLocaleDateString().replaceAll('/', '-') + ".xlsx");
+}
+
+// =====================================================
+// ===== INICIO AUTOMÁTICO =====
+// =====================================================
+window.onload = function() {
+    document.getElementById('fechaMov').valueAsDate = new Date();
+    document.getElementById('fechaKm').valueAsDate = new Date();
+    document.getElementById('fechaTanqueo').valueAsDate = new Date();
+    document.getElementById('fechaTransp').valueAsDate = new Date();
+};
+// =====================================================
+// ===== ADMINISTRACIÓN: USUARIOS Y PERMISOS =====
+// =====================================================
+async function cargarUsuariosSistema() {
+    const tb = document.getElementById('tablaUsuariosAdminCuerpo');
+    if (!tb) return;
+    
+    const snap = await db.collection('usuarios').get();
+    let lista = [];
+    snap.forEach(doc => { lista.push({ id: doc.id, ...doc.data() }); });
+    
+    // Agregar usuarios fijos a la vista
+    usuariosFijos.forEach(u => {
+        lista.push({
+            id: "FIJO_" + u.usuario,
+            usuario: u.usuario,
+            nombre: u.nombre,
+            rol: u.rol,
+            modulos: u.modulos || ['movimientos'],
+            esFijo: true
+        });
     });
 
-    caja.innerHTML = `
-    <div class="tarjeta">
-        <p class="mb-2"><strong>Total Movimientos:</strong> ${resultados.length}</p>
-        <p class="mb-2">📦 <strong>Canastillas Salida:</strong> ${totalCanSalida}</p>
-        <p class="mb-2">📦 <strong>Canastillas Llegada:</strong> ${totalCanLlegada}</p>
-        <table class="tabla-datos" style="width:100%;border-collapse:collapse;margin-top:0.5rem;">
-            <thead><tr style="background:#e2e8f0;">
-                <th>Fecha</th><th>Placa</th><th>Conductor</th><th>Hora Salida</th><th>Hora Llegada</th><th>Can. Salida</th><th>Can. Llegada</th>
-            </tr></thead>
-            <tbody>
-                ${resultados.map(m => `
-                <tr>
-                    <td style="border:1px solid #ccc;padding:4px;">${m.fecha}</td>
-                    <td style="border:1px solid #ccc;padding:4px;">${m.placa}</td>
-                    <td style="border:1px solid #ccc;padding:4px;">${m.conductor}</td>
-                    <td style="border:1px solid #ccc;padding:4px;">${m.horaSalida||'—'}</td>
-                    <td style="border:1px solid #ccc;padding:4px;">${m.horaLlegada||'Pendiente'}</td>
-                    <td style="border:1px solid #ccc;padding:4px;">${m.canastillasSalida||0}</td>
-                    <td style="border:1px solid #ccc;padding:4px;">${m.canastillasLlegada||0}</td>
-                </tr>`).join('')}
-            </tbody>
-        </table>
-    </div>`;
+    tb.innerHTML = lista.map(u => `
+        <tr>
+            <td>${u.usuario}</td>
+            <td>${u.nombre || '—'}</td>
+            <td>${u.rol === 'admin' ? '👑 Administrador' : '👤 Usuario'}</td>
+            <td>${Array.isArray(u.modulos) ? u.modulos.join(', ') : 'Todos'}</td>
+            <td>
+                ${u.esFijo ? '<span class="text-xs">🔒 Fijo</span>' : `
+                    <button class="btn-primario" style="padding:0.2rem 0.4rem; font-size:0.75rem;" onclick="editarUsuarioSistema('${u.id}')">✏️ Editar</button>
+                    <button class="btn-peligro" style="padding:0.2rem 0.4rem; font-size:0.75rem;" onclick="eliminarUsuarioSistema('${u.id}')">🗑️</button>
+                `}
+            </td>
+        </tr>
+    `).join('') || '<tr><td colspan="5" class="text-center">📭 Sin usuarios registrados</td></tr>';
 }
 
-// =====================================================
-// ===== ADMINISTRACIÓN - USUARIOS =====
-// =====================================================
-async function guardarUsuarioSistema() {
-    if (usuarioActivo?.rol !== 'admin') return alert('🔒 Solo administrador');
-    const usuario = document.getElementById('usuarioNuevo').value.trim();
-    const clave = document.getElementById('claveNuevo').value;
+async function crearUsuarioSistema() {
+    if (usuarioActivo.rol !== 'admin') return alert('🔒 Solo administrador');
+
+    const usuario = document.getElementById('nuevoUsuario').value.trim().toLowerCase();
+    const clave = document.getElementById('nuevaClave').value;
     const nombre = document.getElementById('nombreCompletoUsuario').value.trim();
-    const rol = document.getElementById('rolUsuario').value;
+    const rol = document.getElementById('rolNuevoUsuario').value;
+    
+    const modulosSeleccionados = [];
+    if (document.getElementById('perm_movimientos')?.checked) modulosSeleccionados.push('movimientos');
+    if (document.getElementById('perm_transportadora')?.checked) modulosSeleccionados.push('transportadora');
+    if (document.getElementById('perm_combustible')?.checked) modulosSeleccionados.push('combustible');
+    if (document.getElementById('perm_mantenimiento')?.checked) modulosSeleccionados.push('mantenimiento');
+    if (document.getElementById('perm_informes')?.checked) modulosSeleccionados.push('informes');
+    if (document.getElementById('perm_admin')?.checked) modulosSeleccionados.push('administracion');
 
-    if (!usuario || !clave || !nombre) return alert('Complete todos los campos');
+    if (!usuario || !clave || !nombre) return alert('⚠️ Complete todos los campos obligatorios');
+    if (clave.length < 6) return alert('⚠️ La contraseña debe tener al menos 6 caracteres');
+    if (modulosSeleccionados.length === 0) return alert('⚠️ Seleccione al menos un módulo permitido');
 
-    await db.collection('usuarios').add({ usuario, clave, nombre, rol, fechaCreacion: new Date() });
-    alert('✅ Usuario creado');
-    document.getElementById('usuarioNuevo').value = '';
-    document.getElementById('claveNuevo').value = '';
-    document.getElementById('nombreCompletoUsuario').value = '';
+    try {
+        await db.collection('usuarios').add({
+            usuario, clave, nombre, rol,
+            modulos: modulosSeleccionados,
+            fechaCreacion: new Date(),
+            creadoPor: usuarioActivo.usuario
+        });
+        alert('✅ Usuario creado exitosamente');
+        document.getElementById('nuevoUsuario').value = '';
+        document.getElementById('nuevaClave').value = '';
+        document.getElementById('nombreCompletoUsuario').value = '';
+        cargarUsuariosSistema();
+    } catch (e) {
+        alert('❌ Error: ' + e.message);
+    }
 }
 
-async function cambiarContrasena() {
-    const actual = document.getElementById('claveActual').value;
-    const nueva1 = document.getElementById('claveNueva1').value;
-    const nueva2 = document.getElementById('claveNueva2').value;
+async function editarUsuarioSistema(uid) {
+    const nuevoRol = prompt('Ingrese nuevo rol: admin / usuario');
+    if (!nuevoRol) return;
+    const nuevaClave = prompt('Ingrese nueva contraseña (deje vacío para no cambiar):');
+    const nuevosModulos = prompt('Módulos permitidos separados por coma: movimientos,transportadora,combustible,mantenimiento,informes');
 
-    if (usuarioActivo?.clave && usuarioActivo.clave !== actual) return alert('⚠️ Contraseña actual incorrecta');
-    if (nueva1 !== nueva2) return alert('⚠️ Las contraseñas nuevas no coinciden');
-    if (!nueva1) return alert('Escriba la nueva contraseña');
+    const cambios = { rol: nuevoRol };
+    if (nuevaClave) cambios.clave = nuevaClave;
+    if (nuevosModulos) cambios.modulos = nuevosModulos.split(',').map(m => m.trim());
 
-    alert('✅ Contraseña cambiada correctamente');
-    document.getElementById('claveActual').value = '';
-    document.getElementById('claveNueva1').value = '';
-    document.getElementById('claveNueva2').value = '';
+    await db.collection('usuarios').doc(uid).update(cambios);
+    alert('✅ Usuario actualizado');
+    cargarUsuariosSistema();
+}
+
+async function eliminarUsuarioSistema(uid) {
+    if (!confirm('⚠️ ¿Eliminar este usuario? Esta acción no se puede deshacer.')) return;
+    await db.collection('usuarios').doc(uid).delete();
+    alert('✅ Usuario eliminado');
+    cargarUsuariosSistema();
 }
 
 // =====================================================
-// ===== MANTENIMIENTO =====
+// ===== COLABORADORES: AGREGAR, EDITAR, INACTIVAR =====
 // =====================================================
-function cambiarSubpestañaMant(nombre) {
-    document.querySelectorAll('.btn-submant').forEach(b => b.classList.remove('activa'));
-    document.querySelectorAll('.subpestaña-mant').forEach(p => p.classList.add('oculto'));
-    event.target.classList.add('activa');
-    document.getElementById(`submant-${nombre}`).classList.remove('oculto');
+async function guardarColaborador() {
+    const nombre = document.getElementById('nombreColaborador').value.trim();
+    if (!nombre) return alert('Ingrese nombre del colaborador');
+
+    const existe = colaboradores.find(c => c.nombre.trim().toLowerCase() === nombre.toLowerCase());
+    if (existe) return alert('⚠️ Este colaborador ya se encuentra registrado');
+
+    await db.collection('colaboradores').add({
+        nombre,
+        estado: 'activo',
+        fechaRegistro: new Date(),
+        usuarioRegistro: usuarioActivo.usuario
+    });
+    alert('✅ Colaborador agregado');
+    document.getElementById('nombreColaborador').value = '';
+}
+
+async function editarColaborador(id) {
+    const nuevoNombre = prompt('Nuevo nombre del colaborador:');
+    if (!nuevoNombre) return;
+    const nuevoEstado = confirm('¿Marcar como inactivo?') ? 'inactivo' : 'activo';
+
+    await db.collection('colaboradores').doc(id).update({
+        nombre: nuevoNombre.trim(),
+        estado: nuevoEstado
+    });
+    alert('✅ Colaborador actualizado');
+}
+
+async function inactivarColaborador(id) {
+    if (!confirm('¿Inactivar este colaborador? Ya no aparecerá en las listas.')) return;
+    await db.collection('colaboradores').doc(id).update({ estado: 'inactivo' });
+    alert('✅ Colaborador inactivado');
+}
+
+// =====================================================
+// ===== TIPOS DE VEHÍCULOS =====
+// =====================================================
+async function agregarTipoVehiculo() {
+    const tipo = document.getElementById('nuevoTipoVehiculo').value.trim();
+    if (!tipo) return alert('Ingrese tipo de vehículo');
+    
+    const tiposPermitidos = ['Carro', 'Moto', 'Carguero', 'VTH'];
+    if (!tiposPermitidos.includes(tipo) && !tipo.includes(' ')) {
+        // Permitir personalizados
+    }
+
+    await db.collection('tipos_vehiculo').add({
+        nombre: tipo,
+        fechaRegistro: new Date()
+    });
+    alert('✅ Tipo agregado');
+    document.getElementById('nuevoTipoVehiculo').value = '';
+}
+
+// =====================================================
+// ===== CIERRE DE SESIÓN POR INACTIVIDAD =====
+// =====================================================
+let temporizadorInactividad;
+const TIEMPO_INACTIVO = 60 * 60 * 1000; // 1 hora
+
+function reiniciarTemporizador() {
+    clearTimeout(temporizadorInactividad);
+    temporizadorInactividad = setTimeout(() => {
+        alert('⏰ Cierre de sesión por inactividad. Vuelva a ingresar.');
+        cerrarSesion();
+    }, TIEMPO_INACTIVO);
+}
+
+// Detectar actividad del usuario
+['mousemove', 'keydown', 'click', 'touchstart'].forEach(evento => {
+    document.addEventListener(evento, reiniciarTemporizador);
+});
+
+// =====================================================
+// ===== BOTÓN ACTUALIZAR DATOS =====
+// =====================================================
+async function actualizarDatosManual() {
+    const btn = document.getElementById('btnActualizarDatos');
+    if (btn) btn.textContent = '🔄 Actualizando...';
+    
+    await cargarDatosGenerales();
+    
+    if (btn) btn.textContent = '🔄 Actualizar Datos';
+    console.log('✅ Datos actualizados desde Firebase');
+}
+
+// =====================================================
+// ===== FILTROS Y BUSQUEDAS =====
+// =====================================================
+function filtrarMovimientosPorFecha() {
+    const fi = document.getElementById('fechaInicioConsulta')?.value;
+    const ff = document.getElementById('fechaFinConsulta')?.value;
+    if (!fi || !ff) return alert('Seleccione rango de fechas');
+
+    const filtrados = movimientos.filter(m => m.fecha >= fi && m.fecha <= ff);
+    const tb = document.getElementById('tablaConsultaResultado');
+    if (!tb) return;
+
+    tb.innerHTML = filtrados.map(m => `
+        <tr>
+            <td>${m.fecha}</td>
+            <td>${m.placa}</td>
+            <td>${m.colaborador}</td>
+            <td>${m.horaSalida}</td>
+            <td>${m.horaLlegada || '—'}</td>
+            <td>${m.canastillasSalida}</td>
+            <td>${m.canastillasLlegada || 0}</td>
+            <td>${m.totalKilos || 0}</td>
+        </tr>
+    `).join('') || '<tr><td colspan="8" class="text-center">📭 Sin resultados en este rango</td></tr>';
+}
+
+// =====================================================
+// ===== CALCULADORA DE KILOS EN TIEMPO REAL =====
+// =====================================================
+function calcularKilos() {
+    const valor1 = parseFloat(document.getElementById('calc_kg1')?.value) || 0;
+    const valor2 = parseFloat(document.getElementById('calc_kg2')?.value) || 0;
+    const operacion = document.getElementById('calc_op')?.value || '+';
+    let total = 0;
+    if (operacion === '+') total = valor1 + valor2;
+    if (operacion === '-') total = valor1 - valor2;
+    if (operacion === '*') total = valor1 * valor2;
+    if (operacion === '/') total = valor2 !== 0 ? (valor1 / valor2).toFixed(2) : '∞';
+    const res = document.getElementById('calc_resultado');
+    if (res) res.value = total;
+}
+
+function copiarResultadoCalc() {
+    const res = document.getElementById('calc_resultado')?.value;
+    if (res) {
+        document.getElementById('totalKilos').value = res;
+        alert('✅ Copiado al total de kilos');
+    }
 }
 
 // =====================================================
 // ===== FIN DEL ARCHIVO =====
 // =====================================================
-// =====================================================
-// ===== ===== MANTENIMIENTO ===== =====
-// =====================================================
-let placaActivaMant = null;
-
-// Cargar lista de placas al entrar a la pestaña
-async function cargarListaPlacasMantenimiento() {
-    const caja = document.getElementById('listaPlacasMant');
-    if (!caja) return;
-    
-    // Unir placas de movimientos + transportadora
-    const todasPlacas = [];
-    vehiculosMov.forEach(v => { if (v.placa) todasPlacas.push(v.placa); });
-    vehiculosTransp.forEach(v => { if (v.placa) todasPlacas.push(v.placa); });
-    
-    // Quitar duplicados y ordenar
-    const placasUnicas = [...new Set(todasPlacas)].sort();
-    
-    if (placasUnicas.length === 0) {
-        caja.innerHTML = '<p class="text-sm text-gray-500">📭 No hay vehículos registrados</p>';
-        document.getElementById('formMantenimiento').classList.add('oculto');
-        return;
-    }
-    
-    caja.innerHTML = placasUnicas.map(p => 
-        `<button class="btn-placa ${placaActivaMant === p ? 'activa' : ''}" 
-         onclick="seleccionarPlacaMantenimiento('${p}')">🚗 ${p}</button>`
-    ).join('');
-}
-
-// Seleccionar placa y mostrar formulario
-async function seleccionarPlacaMantenimiento(placa) {
-    placaActivaMant = placa;
-    document.getElementById('placaSeleccionada').textContent = placa;
-    document.getElementById('formMantenimiento').classList.remove('oculto');
-    cargarListaPlacasMantenimiento(); // Resaltar placa activa
-    
-    // Cargar historial de esta placa
-    cargarHistorialTaller(placa);
-    cargarHistorialDocumentos(placa);
-    mostrarInfoGeneralVehiculo(placa);
-    
-    // Llenar selectores de persona
-    llenarSelectoresPersonaTaller();
-}
-
-// Mostrar información general del vehículo
-function mostrarInfoGeneralVehiculo(placa) {
-    const caja = document.getElementById('infoGeneralVehiculo');
-    const vehMov = vehiculosMov.find(v => v.placa === placa);
-    const vehTransp = vehiculosTransp.find(v => v.placa === placa);
-    const veh = vehMov || vehTransp;
-    
-    if (!veh) {
-        caja.innerHTML = '<p class="text-sm">Sin datos registrados</p>';
-        return;
-    }
-    
-    caja.innerHTML = `
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-        <div><strong>Placa:</strong> ${placa}</div>
-        <div><strong>Tipo:</strong> ${veh.tipo || 'No especificado'}</div>
-        <div><strong>Origen:</strong> ${vehMov ? 'Movimientos' : 'Transportadora'}</div>
-    </div>`;
-}
-
-// Llenar selectores con colaboradores
-function llenarSelectoresPersonaTaller() {
-    const opciones = colaboradores.filter(c => (c.estado || 'activo') === 'activo').map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
-    
-    const selEntrega = document.getElementById('quienEntregaVehiculo');
-    const selRecoge = document.getElementById('quienRecogeVehiculo');
-    
-    if (selEntrega) selEntrega.innerHTML = `<option value="">Seleccione...</option>${opciones}`;
-    if (selRecoge) selRecoge.innerHTML = `<option value="">Seleccione...</option>${opciones}`;
-}
-
-// Registrar ingreso al taller
-async function registrarIngresoTaller() {
-    if (!placaActivaMant) return alert('Seleccione una placa primero');
-    
-    const fechaIngreso = document.getElementById('fechaIngresoTaller').value;
-    const quienEntrega = document.getElementById('quienEntregaVehiculo').value;
-    
-    if (!fechaIngreso || !quienEntrega) {
-        return alert('⚠️ Complete Fecha de Ingreso y Quién Entrega');
-    }
-    
-    await db.collection('mantenimiento_taller').add({
-        placa: placaActivaMant,
-        tipo: 'INGRESO_TALLER',
-        fechaIngreso,
-        quienEntrega,
-        estado: 'EN_TALLER',
-        usuarioRegistro: usuarioActivo?.nombre || 'Desconocido',
-        fechaRegistro: new Date()
-    });
-    
-    alert('✅ Ingreso a taller registrado');
-    document.getElementById('fechaIngresoTaller').value = '';
-    document.getElementById('quienEntregaVehiculo').value = '';
-    cargarHistorialTaller(placaActivaMant);
-}
-
-// Registrar recogida del vehículo
-async function recogerVehiculo() {
-    if (!placaActivaMant) return alert('Seleccione una placa primero');
-    
-    const quienRecoge = document.getElementById('quienRecogeVehiculo').value;
-    const diagnostico = document.getElementById('diagnosticoTaller').value.trim();
-    const costo = parseFloat(document.getElementById('costoTaller').value) || 0;
-    
-    if (!quienRecoge || !diagnostico) {
-        return alert('⚠️ Complete Quién Recoge y Diagnóstico');
-    }
-    
-    await db.collection('mantenimiento_taller').add({
-        placa: placaActivaMant,
-        tipo: 'RECOGIDA_VEHICULO',
-        fechaRecogida: new Date().toISOString().split('T')[0],
-        quienRecoge,
-        diagnostico,
-        costo,
-        estado: 'EN_OPERACION',
-        usuarioRegistro: usuarioActivo?.nombre || 'Desconocido',
-        fechaRegistro: new Date()
-    });
-    
-    alert('✅ Recogida registrada. Vehículo en operación.');
-    document.getElementById('quienRecogeVehiculo').value = '';
-    document.getElementById('diagnosticoTaller').value = '';
-    document.getElementById('costoTaller').value = '';
-    cargarHistorialTaller(placaActivaMant);
-}
-
-// Cargar historial de taller
-async function cargarHistorialTaller(placa) {
-    const caja = document.getElementById('historialTaller');
-    if (!caja) return;
-    
-    const snap = await db.collection('mantenimiento_taller')
-        .where('placa', '==', placa)
-        .orderBy('fechaRegistro', 'desc')
-        .limit(20)
-        .get();
-    
-    const historial = [];
-    snap.forEach(doc => historial.push({ id: doc.id, ...doc.data() }));
-    
-    if (historial.length === 0) {
-        caja.innerHTML = '<p class="text-sm text-gray-500">📭 Sin historial de taller</p>';
-        return;
-    }
-    
-    caja.innerHTML = historial.map(h => `
-    <div class="p-2 mb-2 border rounded bg-gray-50 text-sm">
-        ${h.tipo === 'INGRESO_TALLER' 
-            ? `🔧 <strong>Ingreso a Taller</strong> — ${h.fechaIngreso}<br>Entregó: ${h.quienEntrega}` 
-            : `✅ <strong>Recogida del Taller</strong> — ${h.fechaRecogida || '—'}<br>Recogió: ${h.quienRecoge || '—'}<br>Diagnóstico: ${h.diagnostico || '—'}<br>Costo: $${h.costo || 0}`}
-    </div>`).join('');
-}
-
-// Registrar documento (SOAT, Tecno-mecánica, Seguro)
-async function registrarDocumentoSeguro() {
-    if (!placaActivaMant) return alert('Seleccione una placa primero');
-    
-    const tipo = document.getElementById('tipoDocumentoSeguro').value;
-    const emision = document.getElementById('fechaEmisionDoc').value;
-    const vencimiento = document.getElementById('fechaVencimientoDoc').value;
-    
-    if (!emision || !vencimiento) {
-        return alert('⚠️ Complete Fecha de Emisión y Vencimiento');
-    }
-    
-    await db.collection('mantenimiento_documentos').add({
-        placa: placaActivaMant,
-        tipo,
-        fechaEmision: emision,
-        fechaVencimiento: vencimiento,
-        usuarioRegistro: usuarioActivo?.nombre || 'Desconocido',
-        fechaRegistro: new Date()
-    });
-    
-    alert(`✅ ${tipo} registrado correctamente`);
-    document.getElementById('fechaEmisionDoc').value = '';
-    document.getElementById('fechaVencimientoDoc').value = '';
-    cargarHistorialDocumentos(placaActivaMant);
-}
-
-// Cargar historial de documentos
-async function cargarHistorialDocumentos(placa) {
-    const caja = document.getElementById('historialSeguros');
-    if (!caja) return;
-    
-    const snap = await db.collection('mantenimiento_documentos')
-        .where('placa', '==', placa)
-        .orderBy('fechaRegistro', 'desc')
-        .limit(20)
-        .get();
-    
-    const docs = [];
-    snap.forEach(doc => docs.push({ id: doc.id, ...doc.data() }));
-    
-    if (docs.length === 0) {
-        caja.innerHTML = '<p class="text-sm text-gray-500">📭 Sin documentos registrados</p>';
-        return;
-    }
-    
-    caja.innerHTML = docs.map(d => {
-        const hoy = new Date();
-        const ven = new Date(d.fechaVencimiento);
-        const dias = Math.ceil((ven - hoy) / (1000*60*60*24));
-        const alerta = dias <= 30 ? '🔴' : dias <= 90 ? '🟡' : '🟢';
-        return `
-        <div class="p-2 mb-2 border rounded text-sm">
-            ${alerta} <strong>${d.tipo}</strong><br>
-            Emisión: ${d.fechaEmision} | Vencimiento: ${d.fechaVencimiento}
-            ${dias <= 0 ? '<br>⚠️ Vencido' : dias <= 30 ? `<br>⚠️ Vence en ${dias} días` : ''}
-        </div>`;
-    }).join('');
-}
-
-// =====================================================
-// ===== CORRECCIÓN: CARGAR MOVIMIENTO SIN BORRAR FECHA =====
-// =====================================================
-async function cargarMovimientoEditar(id) {
-    idEdicion = id;
-    const m = movimientos.find(x => x.id === id);
-    if (!m) return;
-
-    // ✅ MANTENER LA FECHA ORIGINAL — NO se sobreescribe con hoy
-    document.getElementById('fechaMov').value = m.fecha; // 👈 ESTA ES LA CORRECCIÓN
-    document.getElementById('vehiculoMov').value = m.placa;
-    document.getElementById('conductorMov').value = m.conductor;
-    document.getElementById('horaSalida').value = m.horaSalida || '';
-    document.getElementById('horaLlegada').value = m.horaLlegada || '';
-    document.getElementById('canSalidaTotal').value = m.canastillasSalida || '';
-    document.getElementById('canLlegadaTotal').value = m.canastillasLlegada || '';
-    document.getElementById('observacionesMov').value = m.observaciones || '';
-
-    // ✅ Cargar recogidas guardadas sin perder los datos
-    document.getElementById('listaRecogidas').innerHTML = '';
-    const recogidas = m.recogidas || [];
-    let totalCan = 0, totalBul = 0, totalKg = 0;
-    recogidas.forEach(r => {
-        if (r.tipo === 'canastilla') totalCan += r.cantidad || 0;
-        if (r.tipo === 'bulto') totalBul += r.cantidad || 0;
-        totalKg += r.kilos || 0;
-        const lista = document.getElementById('listaRecogidas');
-        const opciones = colaboradores.filter(c => (c.estado || 'activo') === 'activo').map(c => `<option value="${c.nombre}" ${c.nombre===r.recogeA?'selected':''}>${c.nombre}</option>`).join('');
-        const div = document.createElement('div');
-        div.className = 'fila-recogida';
-        div.innerHTML = `
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0;padding:8px;background:#f9fafb;border-radius:6px;">
-            <label>Recoge a:</label>
-            <select name="recogeA" style="flex:1;min-width:150px;"><option value="">Seleccione colaborador...</option>${opciones}</select>
-            <label>Tipo:</label>
-            <select name="tipoUnidad" style="width:130px;" onchange="actualizarTotalesRecogidas()">
-                <option value="canastilla" ${r.tipo==='canastilla'?'selected':''}>📦 Canastilla</option>
-                <option value="bulto" ${r.tipo==='bulto'?'selected':''}>📥 Bulto</option>
-            </select>
-            <label>Cantidad:</label>
-            <input type="number" name="cantidad" value="${r.cantidad||0}" placeholder="0" style="width:80px;" oninput="actualizarTotalesRecogidas()">
-            <label>Kilos:</label>
-            <input type="number" name="kilos" value="${r.kilos||0}" placeholder="0" style="width:80px;" oninput="actualizarTotalesRecogidas()">
-            <button type="button" class="btn-peligro" onclick="this.parentElement.remove();actualizarTotalesRecogidas()">✕</button>
-        </div>`;
-        lista.appendChild(div);
-    });
-    document.getElementById('totalCanastillas').textContent = totalCan;
-    document.getElementById('totalBultos').textContent = totalBul;
-    document.getElementById('kilosTotal').value = totalKg || '';
-
-    cambiarSubpestañaMov('registro');
-}
-
-// =====================================================
-// ===== CARGAR PLACAS AL ENTRAR A MANTENIMIENTO =====
-// =====================================================
-// Reemplaza la función cambiarPestaña existente por esta:
-const cambiarPestañaOriginal = cambiarPestaña;
-function cambiarPestaña(nombre) {
-    document.querySelectorAll('.btn-pestaña').forEach(b => b.classList.remove('activa'));
-    document.querySelectorAll('.pestaña').forEach(p => p.classList.add('oculto'));
-    event.target.classList.add('activa');
-    document.getElementById(`pest-${nombre}`).classList.remove('oculto');
-    document.getElementById('sidebar').classList.remove('mostrar');
-    
-    // ✅ Si entra a Mantenimiento → cargar lista de placas
-    if (nombre === 'mantenimiento') {
-        cargarListaPlacasMantenimiento();
-        placaActivaMant = null;
-        document.getElementById('formMantenimiento').classList.add('oculto');
-    }
-}
-// =====================================================
-// ✅ EDITAR MOVIMIENTO SIN BORRAR NINGÚN DATO
-// =====================================================
-async function cargarMovimientoEditar(id) {
-    idEdicion = id;
-    const m = movimientos.find(x => x.id === id);
-    if (!m) {
-        alert('⚠️ Movimiento no encontrado');
-        return;
-    }
-
-    // ✅ SE MANTIENE LA FECHA ORIGINAL DEL MOVIMIENTO — NO SE CAMBIA
-    document.getElementById('fechaMov').value = m.fecha;
-
-    // ✅ CARGAMOS TODOS LOS DATOS EXACTAMENTE COMO ESTÁN GUARDADOS
-    document.getElementById('vehiculoMov').value = m.placa || '';
-    document.getElementById('conductorMov').value = m.conductor || '';
-    document.getElementById('horaSalida').value = m.horaSalida || '';
-    document.getElementById('horaLlegada').value = m.horaLlegada || '';
-    document.getElementById('canSalidaTotal').value = m.canastillasSalida || '';
-    document.getElementById('canLlegadaTotal').value = m.canastillasLlegada || '';
-    document.getElementById('observacionesMov').value = m.observaciones || '';
-
-    // ✅ CARGAMOS LAS RECOGIDAS SIN PERDER NINGÚN DATO
-    document.getElementById('listaRecogidas').innerHTML = '';
-    const recogidas = m.recogidas || [];
-    let totalCan = 0, totalBul = 0, totalKg = 0;
-
-    recogidas.forEach(r => {
-        // Sumar totales
-        if (r.tipo === 'canastilla') totalCan += r.cantidad || 0;
-        if (r.tipo === 'bulto') totalBul += r.cantidad || 0;
-        totalKg += r.kilos || 0;
-
-        // Crear fila con los datos guardados
-        const lista = document.getElementById('listaRecogidas');
-        const opciones = colaboradores.filter(c => (c.estado || 'activo') === 'activo')
-            .map(c => `<option value="${c.nombre}" ${c.nombre === r.recogeA ? 'selected' : ''}>${c.nombre}</option>`).join('');
-
-        const fila = document.createElement('div');
-        fila.className = 'fila-recogida';
-        fila.innerHTML = `
-        <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0;padding:8px;background:#f9fafb;border-radius:6px;">
-            <label>Recoge a:</label>
-            <select name="recogeA" style="flex:1;min-width:150px;">
-                <option value="">Seleccione colaborador...</option>${opciones}
-            </select>
-            <label>Tipo:</label>
-            <select name="tipoUnidad" style="width:130px;" onchange="actualizarTotalesRecogidas()">
-                <option value="canastilla" ${r.tipo === 'canastilla' ? 'selected' : ''}>📦 Canastilla</option>
-                <option value="bulto" ${r.tipo === 'bulto' ? 'selected' : ''}>📥 Bulto</option>
-            </select>
-            <label>Cantidad:</label>
-            <input type="number" name="cantidad" value="${r.cantidad || 0}" placeholder="0" 
-                   style="width:80px;" oninput="actualizarTotalesRecogidas()">
-            <label>Kilos:</label>
-            <input type="number" name="kilos" value="${r.kilos || 0}" placeholder="0" 
-                   style="width:80px;" oninput="actualizarTotalesRecogidas()">
-            <button type="button" class="btn-peligro" onclick="this.parentElement.remove();actualizarTotalesRecogidas()">✕</button>
-        </div>`;
-        lista.appendChild(fila);
-    });
-
-    // ✅ ACTUALIZAMOS LOS TOTALES EN PANTALLA
-    document.getElementById('totalCanastillas').textContent = totalCan;
-    document.getElementById('totalBultos').textContent = totalBul;
-    const campoKilos = document.getElementById('kilosTotal');
-    if (campoKilos) campoKilos.value = totalKg || '';
-
-    // ✅ CAMBIAMOS A LA PESTAÑA DE EDICIÓN
-    cambiarSubpestañaMov('registro');
-}
-
-// =====================================================
-// ✅ GUARDAR CAMBIOS SIN BORRAR NADA
-// =====================================================
-async function guardarMovimiento() {
-    const fecha = document.getElementById('fechaMov').value;
-    const placa = document.getElementById('vehiculoMov').value;
-    const conductor = document.getElementById('conductorMov').value;
-    const horaSalida = document.getElementById('horaSalida').value;
-    const horaLlegada = document.getElementById('horaLlegada').value;
-    const canastillasSalida = parseInt(document.getElementById('canSalidaTotal').value) || 0;
-    const canastillasLlegada = parseInt(document.getElementById('canLlegadaTotal').value) || 0;
-    const observaciones = document.getElementById('observacionesMov').value;
-    const recogidas = obtenerRecogidasActuales();
-
-    if (!placa || !conductor || !horaSalida) {
-        return alert('⚠️ Complete Placa, Conductor y Hora de Salida');
-    }
-
-    const datos = {
-        fecha,
-        placa,
-        conductor,
-        horaSalida,
-        horaLlegada,
-        canastillasSalida,
-        canastillasLlegada,
-        recogidas,
-        observaciones,
-        usuarioEdicion: usuarioActivo?.nombre || 'Desconocido',
-        horaEdicion: new Date().toISOString()
-    };
-
-    if (idEdicion) {
-        // ✅ ACTUALIZAMOS SIN BORRAR LO DEMÁS
-        await db.collection('movimientos').doc(idEdicion).update(datos);
-        alert('✅ Movimiento ACTUALIZADO correctamente');
-    } else {
-        // ✅ CREAMOS NUEVO MOVIMIENTO
-        await db.collection('movimientos').add(datos);
-        alert('✅ Movimiento GUARDADO correctamente');
-    }
-
-    // ✅ LIMPIAMOS EL FORMULARIO SOLO DESPUÉS DE GUARDAR
-    limpiarFormularioMovimiento();
-}
+console.log('✅ Sistema cargado completamente — Versión 3.0');
