@@ -189,19 +189,31 @@ function cambiarSubpestañaTransp(nombre) {
 // =====================================================
 function limpiarFormularioMovimiento() {
     const hoy = new Date().toISOString().split('T')[0];
-    document.getElementById('fechaMov')?.value = hoy;
-    document.getElementById('colaboradorMov').value = '';
-    document.getElementById('vehiculoMov').value = '';
-    document.getElementById('horaSalidaMov').value = '';
-    document.getElementById('horaLlegadaMov').value = '';
-    document.getElementById('canastillasSalidaMov').value = '';
-    document.getElementById('canastillasLlegadaMov').value = '';
-    document.getElementById('observacionesMov').value = '';
-    document.getElementById('totalKilos').value = '';
-    document.getElementById('totalCanastillasLlegada').value = '';
+    const fechaMov = document.getElementById('fechaMov');
+    if (fechaMov) fechaMov.value = hoy;
+    const colaboradorMov = document.getElementById('colaboradorMov');
+    if (colaboradorMov) colaboradorMov.value = '';
+    const vehiculoMov = document.getElementById('vehiculoMov');
+    if (vehiculoMov) vehiculoMov.value = '';
+    const horaSalidaMov = document.getElementById('horaSalidaMov');
+    if (horaSalidaMov) horaSalidaMov.value = '';
+    const horaLlegadaMov = document.getElementById('horaLlegadaMov');
+    if (horaLlegadaMov) horaLlegadaMov.value = '';
+    const canastillasSalidaMov = document.getElementById('canastillasSalidaMov');
+    if (canastillasSalidaMov) canastillasSalidaMov.value = '';
+    const canastillasLlegadaMov = document.getElementById('canastillasLlegadaMov');
+    if (canastillasLlegadaMov) canastillasLlegadaMov.value = '';
+    const observacionesMov = document.getElementById('observacionesMov');
+    if (observacionesMov) observacionesMov.value = '';
+    const totalKilos = document.getElementById('totalKilos');
+    if (totalKilos) totalKilos.value = '';
+    const totalCanastillasLlegada = document.getElementById('totalCanastillasLlegada');
+    if (totalCanastillasLlegada) totalCanastillasLlegada.value = '';
     idEdicion = null;
-    document.getElementById('btnGuardarMov').textContent = '✅ Guardar Salida';
-    document.getElementById('btnCompletarMov').classList.add('oculto');
+    const btnGuardarMov = document.getElementById('btnGuardarMov');
+    if (btnGuardarMov) btnGuardarMov.textContent = '✅ Guardar Salida';
+    const btnCompletarMov = document.getElementById('btnCompletarMov');
+    if (btnCompletarMov) btnCompletarMov.classList.add('oculto');
     limpiarTablaRecogidas();
 }
 
