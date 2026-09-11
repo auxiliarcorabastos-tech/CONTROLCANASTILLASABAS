@@ -364,7 +364,7 @@ function dibujarMovimientosHoy() {
         <tr>
             <td>${m.fecha}</td>
             <td>${m.placa}</td>
-            <td>${m.colaborador}</td>
+            <td>${m.colaborador || m.conductor || '—'}</td>
             <td>${m.horaSalida}</td>
             <td>${m.horaLlegada || '—'}</td>
             <td>${m.canastillasSalida || 0}</td>
@@ -386,7 +386,7 @@ function dibujarMovimientosPendientes() {
         <tr>
             <td>${m.fecha}</td>
             <td>${m.placa}</td>
-            <td>${m.colaborador}</td>
+            <td>${m.colaborador || m.conductor || '—'}</td>
             <td>${m.horaSalida}</td>
             <td>⏳ Pendiente</td>
             <td>${m.canastillasSalida}</td>
