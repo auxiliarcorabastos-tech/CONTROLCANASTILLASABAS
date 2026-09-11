@@ -31,6 +31,7 @@ let historialMantenimientos = [];
 let idEdicion = null;
 let idEdicionTransp = null;
 let placaActivaMant = null;
+let filasRecogida = [];  // ← AGREGA ESTA LÍNEA
 let ultimosResultados = { movimientos: [], kilometraje: [], tanqueo: [] };
 
 const usuariosFijos = [
