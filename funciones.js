@@ -99,7 +99,7 @@ function cerrarSesion() {
 }
 
 // =====================================================
-// ===== CARGA AUTOMÁTICA DE DATOS DESDE FIREBASE =====
+// ===== CARGA DE DATOS DESDE FIREBASE =====
 // =====================================================
 async function cargarDatosGenerales() {
     db.collection('movimientos').orderBy('fecha', 'desc').onSnapshot(snap => {
@@ -136,14 +136,12 @@ async function cargarDatosGenerales() {
         snap.forEach(doc => { vehiculosTransp.push({ id: doc.id, ...doc.data() }); });
         rellenarSelectoresVehiculosTransp();
         dibujarTablaVehiculosTranspAdmin?.();
-        listarPlacasMantenimiento?.();
     });
 
     db.collection('conductores_transportadora').onSnapshot(snap => {
         conductores = [];
         snap.forEach(doc => { conductores.push({ id: doc.id, ...doc.data() }); });
         rellenarSelectoresConductoresTransp();
-        dibujarTablaConductoresTranspAdmin?.();
     });
 
     db.collection('kilometraje').onSnapshot(snap => {
@@ -156,7 +154,7 @@ async function cargarDatosGenerales() {
         snap.forEach(doc => { tanqueo.push({ id: doc.id, ...doc.data() }); });
     });
 
-    db.collection('mantenimiento').onSnapshot(snap => {
+    db.collection('mantenimientos').onSnapshot(snap => {
         mantenimientos = [];
         snap.forEach(doc => { mantenimientos.push({ id: doc.id, placa: doc.id, ...doc.data() }); });
         listarPlacasMantenimiento?.();
@@ -200,12 +198,12 @@ function rellenarSelectoresConductoresTransp() {
 }
 
 // =====================================================
-// ===== NAVEGACIÓN ENTRE PESTAÑAS =====
+// ===== NAVEGACIÓN PESTAÑAS ✅ CORREGIDO EVENT =====
 // =====================================================
-function cambiarPestaña(nombre) {
+function cambiarPestaña(nombre, event) {
     document.querySelectorAll('.btn-pestaña').forEach(b => b.classList.remove('activa'));
     document.querySelectorAll('.pestaña').forEach(p => p.classList.add('oculto'));
-    event.target.classList.add('activa');
+    if (event) event.target.classList.add('activa');
     document.getElementById(`pest-${nombre}`).classList.remove('oculto');
     document.querySelector('.sidebar').classList.add('oculto');
     document.querySelector('.contenido').classList.add('expandido');
@@ -213,32 +211,43 @@ function cambiarPestaña(nombre) {
     if (nombre === 'administracion') dibujarTablaUsuariosAdmin?.();
 }
 
-function cambiarSubpestañaMov(nombre) {
+function cambiarSubpestañaMov(nombre, event) {
     document.querySelectorAll('#pest-movimientos .btn-subpestaña').forEach(b => b.classList.remove('activa'));
     document.querySelectorAll('#pest-movimientos > div[id^="sub-"]').forEach(p => p.classList.add('oculto'));
-    event.target.classList.add('activa');
+    if (event) event.target.classList.add('activa');
     document.getElementById(`sub-${nombre}`).classList.remove('oculto');
 }
 
-function cambiarSubpestañaTransp(nombre) {
+function cambiarSubpestañaTransp(nombre, event) {
     document.querySelectorAll('#pest-transportadora .btn-subpestaña').forEach(b => b.classList.remove('activa'));
-    document.querySelectorAll('#pest-transportadora > div[id^="sub-transp-"]').forEach(p => p.classList.add('oculto'));
-    event.target.classList.add('activa');
+    document.querySelectorAll('#pest-transportadora > div[id^="sub-"]').forEach(p => p.classList.add('oculto'));
+    if (event) event.target.classList.add('activa');
     document.getElementById(`sub-transp-${nombre}`).classList.remove('oculto');
 }
 
-function cambiarSubpestañaCombustible(nombre) {
+function cambiarSubpestañaCombustible(nombre, event) {
     document.querySelectorAll('.btn-subcombustible').forEach(b => b.classList.remove('activa'));
-    document.querySelectorAll('#pest-combustible > div').forEach(p => p.classList.add('oculto'));
-    event.target.classList.add('activa');
+    document.querySelectorAll('#pest-combustible > div[id^="subcomb-"]').forEach(p => p.classList.add('oculto'));
+    if (event) event.target.classList.add('activa');
     document.getElementById(`subcomb-${nombre}`).classList.remove('oculto');
 }
 
-function cambiarSubAdmin(nombre) {
+function cambiarSubAdmin(nombre, event) {
     document.querySelectorAll('#pest-administracion .btn-subpestaña').forEach(b => b.classList.remove('activa'));
-    document.querySelectorAll('#pest-administracion > div[id^="sub-admin-"]').forEach(p => p.classList.add('oculto'));
-    event.target.classList.add('activa');
-    document.getElementById(`sub-admin-${nombre}`).classList.remove('oculto');
+    document.querySelectorAll('#pest-administracion > div[id^="subadmin-"]').forEach(p => p.classList.add('oculto'));
+    if (event) event.target.classList.add('activa');
+    document.getElementById(`subadmin-${nombre}`).classList.remove('oculto');
+}
+
+function cambiarSubFichaMant(nombre, event) {
+    document.querySelectorAll('#formMantenimiento .btn-subpestaña').forEach(b => b.classList.remove('activa'));
+    document.querySelectorAll('#formMantenimiento .subpestaña').forEach(p => p.classList.add('oculto'));
+    if (event) event.target.classList.add('activa');
+    document.getElementById(`ficha-${nombre}`).classList.remove('oculto');
+}
+
+function toggleMenu() {
+    document.getElementById('sidebar').classList.toggle('abierto');
 }
 
 // =====================================================
@@ -261,13 +270,11 @@ function limpiarFormularioMovimiento() {
     document.getElementById('btnCompletarMov').classList.add('oculto');
 }
 
-// ✅ AGREGAR FILA DE RECOGIDA
 function agregarFilaRecogida() {
     filasRecogida.push({ tipo: 'canastilla', cantidad: 0, kilos: 0, recogidoA: '' });
     dibujarTablaRecogidas();
 }
 
-// ✅ DIBUJAR TABLA DE RECOGIDAS
 function dibujarTablaRecogidas() {
     const tb = document.getElementById('tablaRecogidasCuerpo');
     if (!tb) return;
@@ -304,7 +311,6 @@ function dibujarTablaRecogidas() {
     calcularTotalesRecogida();
 }
 
-// ✅ CALCULAR TOTALES
 function calcularTotalesRecogida() {
     let totalUnidades = 0, totalKilos = 0;
     filasRecogida.forEach(f => {
@@ -315,7 +321,6 @@ function calcularTotalesRecogida() {
     document.getElementById('totalKilosRecogida').value = totalKilos.toFixed(2);
 }
 
-// ✅ GUARDAR MOVIMIENTO - VALIDACIÓN CORREGIDA
 async function guardarMovimiento() {
     const fecha = document.getElementById('fechaMov').value;
     const colaborador = document.getElementById('colaboradorMov').value;
@@ -326,18 +331,16 @@ async function guardarMovimiento() {
     const canastillasLlegada = parseInt(document.getElementById('canastillasLlegadaMov').value) || 0;
     const observaciones = document.getElementById('observacionesMov').value.trim();
 
-    // ✅ Campos obligatorios SIEMPRE
     if (!fecha || !colaborador || !placa || !horaSalida) {
         return alert('⚠️ Complete: Fecha, Colaborador, Placa y Hora de Salida');
     }
 
-    // ✅ SOLO exige canastillas de salida si es MOVIMIENTO NUEVO (NO al editar)
     if (!idEdicion && canastillasSalida <= 0) {
         return alert('⚠️ Canastillas de Salida debe ser mayor a 0');
     }
 
-    const totalUnidades = filasRecogida.reduce((s, f) => s + (f.cantidad||0), 0);
-    const totalKilos = filasRecogida.reduce((s, f) => s + (f.kilos||0), 0);
+    const totalUnidades = filasRecogida.reduce((s, f) => s + (f.cantidad || 0), 0);
+    const totalKilos = filasRecogida.reduce((s, f) => s + (f.kilos || 0), 0);
     const estado = horaLlegada && canastillasLlegada > 0 ? "Completado" : "Pendiente";
 
     const datos = {
@@ -366,12 +369,9 @@ async function guardarMovimiento() {
     }
 }
 
-// =====================================================
-// ===== EDITAR MOVIMIENTO =====
-// =====================================================
 function irAEditarMovimiento(id) {
     cambiarSubpestañaMov('crear');
-    setTimeout(() => editarMovimiento(id), 50);
+    setTimeout(() => editarMovimiento(id), 100);
 }
 
 function editarMovimiento(id) {
@@ -397,9 +397,8 @@ function editarMovimiento(id) {
         document.getElementById('btnCompletarMov').classList.add('oculto');
     }
 }
-
 // =====================================================
-// ===== DIBUJAR TABLAS =====
+// ===== DIBUJAR TABLAS MOVIMIENTOS =====
 // =====================================================
 function dibujarMovimientosHoy() {
     const hoy = new Date().toISOString().split('T')[0];
@@ -584,15 +583,7 @@ async function guardarTanqueo() {
 // =====================================================
 // ===== MANTENIMIENTO =====
 // =====================================================
-function cambiarSubFichaMant(nombre) {
-    document.querySelectorAll('#formMantenimiento .btn-subpestaña').forEach(b => b.classList.remove('activa'));
-    document.querySelectorAll('#formMantenimiento .subpestaña').forEach(p => p.classList.add('oculto'));
-    event.target.classList.add('activa');
-    document.getElementById(`ficha-${nombre}`).classList.remove('oculto');
-    if(nombre === 'historial') dibujarHistorialMantenimiento();
-}
-
-async function listarPlacasMantenimiento() {
+function listarPlacasMantenimiento() {
     const tb = document.getElementById('listaPlacasMantCuerpo');
     if(!tb) return;
     const todasPlacas = [...vehiculosMov, ...vehiculosTransp];
