@@ -170,7 +170,6 @@ function rellenarSelectoresColaboradores() {
     const activos = colaboradores.filter(c => c.estado !== "inactivo");
     const opciones = '<option value="">-- Seleccione --</option>' +
         activos.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
-
     ['colaboradorMov', 'quienLlevoVehiculo', 'quienRecibioVehiculo'].forEach(id => {
         const sel = document.getElementById(id);
         if (sel) sel.innerHTML = opciones;
@@ -180,7 +179,6 @@ function rellenarSelectoresColaboradores() {
 function rellenarSelectoresVehiculos() {
     const opciones = '<option value="">-- Seleccione --</option>' +
         vehiculosMov.map(v => `<option value="${v.placa}">${v.placa} - ${v.tipo || 'Sin tipo'}</option>`).join('');
-
     ['vehiculoMov', 'vehiculoKm', 'vehiculoTanqueo'].forEach(id => {
         const sel = document.getElementById(id);
         if (sel) sel.innerHTML = opciones;
@@ -215,7 +213,6 @@ function cambiarPestaña(nombre) {
     if (nombre === 'administracion') dibujarTablaUsuariosAdmin?.();
 }
 
-// ===== SUBPESTAÑAS MOVIMIENTOS =====
 function cambiarSubpestañaMov(nombre) {
     document.querySelectorAll('#pest-movimientos .btn-subpestaña').forEach(b => b.classList.remove('activa'));
     document.querySelectorAll('#pest-movimientos > div[id^="sub-"]').forEach(p => p.classList.add('oculto'));
@@ -223,7 +220,6 @@ function cambiarSubpestañaMov(nombre) {
     document.getElementById(`sub-${nombre}`).classList.remove('oculto');
 }
 
-// ===== SUBPESTAÑAS TRANSPORTADORA =====
 function cambiarSubpestañaTransp(nombre) {
     document.querySelectorAll('#pest-transportadora .btn-subpestaña').forEach(b => b.classList.remove('activa'));
     document.querySelectorAll('#pest-transportadora > div[id^="sub-transp-"]').forEach(p => p.classList.add('oculto'));
@@ -231,7 +227,6 @@ function cambiarSubpestañaTransp(nombre) {
     document.getElementById(`sub-transp-${nombre}`).classList.remove('oculto');
 }
 
-// ===== SUBPESTAÑAS COMBUSTIBLE =====
 function cambiarSubpestañaCombustible(nombre) {
     document.querySelectorAll('.btn-subcombustible').forEach(b => b.classList.remove('activa'));
     document.querySelectorAll('#pest-combustible > div').forEach(p => p.classList.add('oculto'));
@@ -239,13 +234,13 @@ function cambiarSubpestañaCombustible(nombre) {
     document.getElementById(`subcomb-${nombre}`).classList.remove('oculto');
 }
 
-// ===== SUBPESTAÑAS ADMINISTRACIÓN =====
 function cambiarSubAdmin(nombre) {
     document.querySelectorAll('#pest-administracion .btn-subpestaña').forEach(b => b.classList.remove('activa'));
     document.querySelectorAll('#pest-administracion > div[id^="sub-admin-"]').forEach(p => p.classList.add('oculto'));
     event.target.classList.add('activa');
     document.getElementById(`sub-admin-${nombre}`).classList.remove('oculto');
 }
+
 // =====================================================
 // ===== MOVIMIENTOS - CREAR / EDITAR =====
 // =====================================================
@@ -266,11 +261,13 @@ function limpiarFormularioMovimiento() {
     document.getElementById('btnCompletarMov').classList.add('oculto');
 }
 
+// ✅ AGREGAR FILA DE RECOGIDA
 function agregarFilaRecogida() {
     filasRecogida.push({ tipo: 'canastilla', cantidad: 0, kilos: 0, recogidoA: '' });
     dibujarTablaRecogidas();
 }
 
+// ✅ DIBUJAR TABLA DE RECOGIDAS
 function dibujarTablaRecogidas() {
     const tb = document.getElementById('tablaRecogidasCuerpo');
     if (!tb) return;
@@ -307,6 +304,7 @@ function dibujarTablaRecogidas() {
     calcularTotalesRecogida();
 }
 
+// ✅ CALCULAR TOTALES
 function calcularTotalesRecogida() {
     let totalUnidades = 0, totalKilos = 0;
     filasRecogida.forEach(f => {
@@ -317,6 +315,7 @@ function calcularTotalesRecogida() {
     document.getElementById('totalKilosRecogida').value = totalKilos.toFixed(2);
 }
 
+// ✅ GUARDAR MOVIMIENTO - VALIDACIÓN CORREGIDA
 async function guardarMovimiento() {
     const fecha = document.getElementById('fechaMov').value;
     const colaborador = document.getElementById('colaboradorMov').value;
@@ -327,19 +326,16 @@ async function guardarMovimiento() {
     const canastillasLlegada = parseInt(document.getElementById('canastillasLlegadaMov').value) || 0;
     const observaciones = document.getElementById('observacionesMov').value.trim();
 
-    // ✅ VALIDACIÓN CORREGIDA
+    // ✅ Campos obligatorios SIEMPRE
     if (!fecha || !colaborador || !placa || !horaSalida) {
         return alert('⚠️ Complete: Fecha, Colaborador, Placa y Hora de Salida');
     }
 
-    // ✅ SOLO exige canastillas de salida si es MOVIMIENTO NUEVO
+    // ✅ SOLO exige canastillas de salida si es MOVIMIENTO NUEVO (NO al editar)
     if (!idEdicion && canastillasSalida <= 0) {
         return alert('⚠️ Canastillas de Salida debe ser mayor a 0');
     }
 
-    // ✅ Si está EDITANDO/completando → NO exige canastillasSalida porque ya está guardada
-    // ... resto del código igual ...
-}
     const totalUnidades = filasRecogida.reduce((s, f) => s + (f.cantidad||0), 0);
     const totalKilos = filasRecogida.reduce((s, f) => s + (f.kilos||0), 0);
     const estado = horaLlegada && canastillasLlegada > 0 ? "Completado" : "Pendiente";
@@ -368,9 +364,10 @@ async function guardarMovimiento() {
     } catch (err) {
         alert('❌ Error: ' + err.message);
     }
+}
 
 // =====================================================
-// ===== EDITAR MOVIMIENTO DESDE TABLA =====
+// ===== EDITAR MOVIMIENTO =====
 // =====================================================
 function irAEditarMovimiento(id) {
     cambiarSubpestañaMov('crear');
@@ -380,7 +377,6 @@ function irAEditarMovimiento(id) {
 function editarMovimiento(id) {
     const m = movimientos.find(x => x.id === id);
     if (!m) return alert('⚠️ Movimiento no encontrado');
-
     idEdicion = id;
     document.getElementById('fechaMov').value = m.fecha;
     document.getElementById('colaboradorMov').value = m.colaborador;
@@ -390,7 +386,6 @@ function editarMovimiento(id) {
     document.getElementById('canastillasSalidaMov').value = m.canastillasSalida || '';
     document.getElementById('canastillasLlegadaMov').value = m.canastillasLlegada || '';
     document.getElementById('observacionesMov').value = m.observaciones || '';
-
     filasRecogida = m.recogidas || [];
     dibujarTablaRecogidas();
 
@@ -404,14 +399,13 @@ function editarMovimiento(id) {
 }
 
 // =====================================================
-// ===== DIBUJAR TABLAS DE MOVIMIENTOS =====
+// ===== DIBUJAR TABLAS =====
 // =====================================================
 function dibujarMovimientosHoy() {
     const hoy = new Date().toISOString().split('T')[0];
     const filtro = movimientos.filter(m => m.fecha === hoy);
     const tb = document.getElementById('tablaMovimientosHoyCuerpo');
     if (!tb) return;
-
     let salidas = 0, llegadas = 0, kilosTotal = 0;
     filtro.forEach(m => {
         salidas += m.canastillasSalida || 0;
@@ -421,7 +415,6 @@ function dibujarMovimientosHoy() {
     const elSal = document.getElementById('movSalidaHoy'); if(elSal) elSal.textContent = salidas;
     const elLleg = document.getElementById('movLlegadaHoy'); if(elLleg) elLleg.textContent = llegadas;
     const elKilos = document.getElementById('movTotalKilosHoy'); if(elKilos) elKilos.textContent = kilosTotal.toFixed(2);
-
     tb.innerHTML = filtro.map(m => `
         <tr>
             <td>${m.fecha}</td>
@@ -475,6 +468,7 @@ function dibujarTodosMovimientos() {
         </tr>
     `).join('') || '<tr><td colspan="10" class="text-center">📭 Sin movimientos registrados</td></tr>';
 }
+
 // =====================================================
 // ===== TRANSPORTADORA =====
 // =====================================================
@@ -524,6 +518,7 @@ async function guardarMovimientoTransp() {
         await db.collection('movimientos_transportadora').add(datos);
         alert('✅ Movimiento guardado');
     }
+
     document.getElementById('horaSalidaTransp').value = '';
     document.getElementById('horaLlegadaTransp').value = '';
     document.getElementById('canastillasSalidaTransp').value = '';
@@ -536,7 +531,6 @@ function dibujarMovimientosTranspHoy() {
     const filtro = movimientosTransp.filter(m => m.fecha === hoy);
     const tb = document.getElementById('tablaTranspHoyCuerpo');
     if(!tb) return;
-
     let sal = 0, lle = 0;
     filtro.forEach(m => { sal += m.canastillasSalida||0; lle += m.canastillasLlegada||0; });
     tb.innerHTML = filtro.map(m => `
@@ -554,7 +548,7 @@ function dibujarMovimientosTranspHoy() {
 }
 
 // =====================================================
-// ===== COMBUSTIBLE - KILOMETRAJE Y TANQUEO =====
+// ===== COMBUSTIBLE =====
 // =====================================================
 async function guardarKilometrajeDiario() {
     const fecha = document.getElementById('fechaKm').value;
@@ -627,7 +621,6 @@ async function cargarFichaMantenimiento(placa) {
     placaSeleccionadaMant = placa;
     document.getElementById('placaMant').textContent = placa;
     document.getElementById('formMantenimiento').classList.remove('oculto');
-
     const selLlevo = document.getElementById('quienLlevoVehiculo');
     const selRecibio = document.getElementById('quienRecibioVehiculo');
     const opcionesColab = '<option value="">-- Seleccione --</option>' +
@@ -672,27 +665,23 @@ async function enviarVehiculoATaller() {
     if(!fechaIngreso || !quienLlevo || !diagnostico) {
         return alert('⚠️ Complete: Fecha, Quién llevó y Diagnóstico');
     }
-
     const registro = {
         fechaIngreso, quienLlevo, diagnostico,
         fechaRetorno: null, quienRecibio: '',
         trabajosRealizados: '', costo: 0,
         estado: "En Taller", fechaRegistro: new Date()
     };
-
     const docRef = db.collection('mantenimiento').doc(placaSeleccionadaMant);
     const docSnap = await docRef.get();
     let historial = [];
     if(docSnap.exists) historial = docSnap.data().historial || [];
     historial.push(registro);
-
     await docRef.set({
         placa: placaSeleccionadaMant,
         estado: "En Taller", historial,
         fechaUltimoIngresoTaller: fechaIngreso,
         fechaActualizacion: new Date()
     }, { merge: true });
-
     alert('✅ Vehículo enviado a Taller — Queda INACTIVO');
     document.getElementById('fechaIngresoTaller').value = '';
     document.getElementById('quienLlevoVehiculo').value = '';
@@ -709,7 +698,6 @@ async function recibirVehiculoDeTaller() {
     if(!fechaRetorno || !quienRecibio || !trabajos) {
         return alert('⚠️ Complete: Fecha Retorno, Quién Recibió y Trabajos Realizados');
     }
-
     const docRef = db.collection('mantenimiento').doc(placaSeleccionadaMant);
     const docSnap = await docRef.get();
     if(!docSnap.exists) return alert('⚠️ No hay registro de ingreso a taller');
@@ -717,20 +705,17 @@ async function recibirVehiculoDeTaller() {
     const historial = datos.historial || [];
     const ultimo = historial.filter(h => !h.fechaRetorno).pop();
     if(!ultimo) return alert('⚠️ No hay ingreso pendiente por cerrar');
-
     ultimo.fechaRetorno = fechaRetorno;
     ultimo.quienRecibio = quienRecibio;
     ultimo.trabajosRealizados = trabajos;
     ultimo.costo = costo;
     const costoTotal = (datos.costoTotal || 0) + costo;
-
     await docRef.set({
         estado: "Activo", historial, costoTotal,
         ultimoKm: parseFloat(document.getElementById('ultimoKmMant').value) || 0,
         fechaUltimoRetornoTaller: fechaRetorno,
         fechaActualizacion: new Date()
     }, { merge: true });
-
     alert('✅ Vehículo recibido de Taller — Queda ACTIVO');
     document.getElementById('fechaRetornoTaller').value = '';
     document.getElementById('quienRecibioVehiculo').value = '';
