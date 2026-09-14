@@ -327,10 +327,19 @@ async function guardarMovimiento() {
     const canastillasLlegada = parseInt(document.getElementById('canastillasLlegadaMov').value) || 0;
     const observaciones = document.getElementById('observacionesMov').value.trim();
 
-    if (!fecha || !colaborador || !placa || !horaSalida || canastillasSalida <= 0) {
-        return alert('⚠️ Complete: Fecha, Colaborador, Placa, Hora Salida y Canastillas de Salida');
+    // ✅ VALIDACIÓN CORREGIDA
+    if (!fecha || !colaborador || !placa || !horaSalida) {
+        return alert('⚠️ Complete: Fecha, Colaborador, Placa y Hora de Salida');
     }
 
+    // ✅ SOLO exige canastillas de salida si es MOVIMIENTO NUEVO
+    if (!idEdicion && canastillasSalida <= 0) {
+        return alert('⚠️ Canastillas de Salida debe ser mayor a 0');
+    }
+
+    // ✅ Si está EDITANDO/completando → NO exige canastillasSalida porque ya está guardada
+    // ... resto del código igual ...
+}
     const totalUnidades = filasRecogida.reduce((s, f) => s + (f.cantidad||0), 0);
     const totalKilos = filasRecogida.reduce((s, f) => s + (f.kilos||0), 0);
     const estado = horaLlegada && canastillasLlegada > 0 ? "Completado" : "Pendiente";
@@ -359,7 +368,6 @@ async function guardarMovimiento() {
     } catch (err) {
         alert('❌ Error: ' + err.message);
     }
-}
 
 // =====================================================
 // ===== EDITAR MOVIMIENTO DESDE TABLA =====
