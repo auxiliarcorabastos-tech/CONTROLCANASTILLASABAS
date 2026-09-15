@@ -72,16 +72,14 @@ function cerrarSesion() {
 }
 
 // =====================================================
-// ===== 📂 CARGA DE DATOS DESDE FIREBASE =====
+// ===== 📂 CARGA DE DATOS DESDE FIREBASE (TIEMPO REAL) =====
 // =====================================================
 async function cargarDatosGenerales() {
     db.collection('movimientos').orderBy('fecha', 'desc').onSnapshot(snap => {
         movimientos = [];
         snap.forEach(doc => { movimientos.push({ id: doc.id, ...doc.data() }); });
-        if (document.getElementById('tituloFormMov')) {
-            if (typeof dibujarMovimientosHoy === 'function') dibujarMovimientosHoy();
-            if (typeof dibujarPendientes === 'function') dibujarPendientes();
-        }
+        if (typeof dibujarMovimientosHoy === 'function') dibujarMovimientosHoy();
+        if (typeof dibujarPendientes === 'function') dibujarPendientes();
     });
 
     db.collection('movimientos_transportadora').orderBy('fecha', 'desc').onSnapshot(snap => {
@@ -129,6 +127,7 @@ function cambiarPestaña(nombre) {
     btn.classList.add('activa');
 
     const contenido = document.getElementById('contenido');
+    if (!contenido) return;
     contenido.innerHTML = '';
 
     switch(nombre) {
@@ -156,14 +155,14 @@ function cambiarPestaña(nombre) {
             break;
     }
 
-    if (window.innerWidth <= 768) {
-        document.getElementById('sidebar').classList.add('oculto');
-        document.getElementById('contenido').classList.remove('sidebar-oculto');
+    // ✅ CERRAR MENÚ AUTOMÁTICAMENTE EN MÓVIL al elegir opción
+    if (typeof cerrarMenuEnMovil === 'function') {
+        cerrarMenuEnMovil();
     }
 }
 
 // =====================================================
-// ===== UTILIDADES =====
+// ===== 📅 UTILIDADES GENERALES =====
 // =====================================================
 function formatearFechaHoy() {
     return new Date().toISOString().split('T')[0];
