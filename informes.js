@@ -1,233 +1,744 @@
 // =====================================================
-// ===== 📊 MÓDULO INFORMES =====
-// ===== ⚠️ NO DECLARAR VARIABLES AQUÍ =====
+// ===== 📊 MÓDULO INFORMES — COMPLETO =====
 // =====================================================
 window.cargarModulo_informes = async function() {
-    const hoy = new Date().toISOString().split('T')[0];
-    const c = document.getElementById('contenido'); // ✅ CORREGIDO
-    if (!c) return; // ✅ Protección
+    const c = document.getElementById('contenido');
+    if (!c) return;
+
     c.innerHTML = `
-    <div class="flex gap-2 mb-4">
-        <button class="btn-subpestaña activa" onclick="cambiarSubInforme('movimientos', event)">📦 Movimientos</button>
-        <button class="btn-subpestaña" onclick="cambiarSubInforme('transportadora', event)">🚛 Transportadora</button>
-        <button class="btn-subpestaña" onclick="cambiarSubInforme('combustible', event)">⛽ Combustible</button>
-        <button class="btn-subpestaña" onclick="cambiarSubInforme('todos', event)">📋 Todos los Movimientos</button>
+    <div class="flex gap-2 mb-4 flex-wrap">
+        <button class="btn-subinforme activa" onclick="cambiarSubinforme('movimientos')">📦 Movimientos</button>
+        <button class="btn-subinforme" onclick="cambiarSubinforme('kilometraje')">📏 Kilometraje</button>
+        <button class="btn-subinforme" onclick="cambiarSubinforme('combustible')">⛽ Combustible</button>
+        <button class="btn-subinforme" onclick="cambiarSubinforme('transportadora')">🚛 Transportadora</button>
     </div>
 
-    <!-- MOVIMIENTOS -->
-    <div id="subinf-movimientos">
+    <!-- ============================================== -->
+    <!-- SUBINFORME: MOVIMIENTOS -->
+    <!-- ============================================== -->
+    <div id="informe-movimientos">
         <div class="tarjeta">
-            <h3 class="font-bold mb-3">📦 Informe de Movimientos</h3>
-            <div class="grid-2 mb-3">
-                <div class="grupo"><label>Fecha Inicio</label><input type="date" id="fechaInicioMov" value="${hoy}"></div>
-                <div class="grupo"><label>Fecha Fin</label><input type="date" id="fechaFinMov" value="${hoy}"></div>
+            <h3 class="font-bold mb-3">📊 Consulta de Movimientos</h3>
+            <div class="grid-2 mb-4">
+                <div class="grupo">
+                    <label>Fecha Inicio</label>
+                    <input type="date" id="infMovFechaInicio">
+                </div>
+                <div class="grupo">
+                    <label>Fecha Fin</label>
+                    <input type="date" id="infMovFechaFin">
+                </div>
+                <div class="grupo">
+                    <label>Placa</label>
+                    <select id="infMovPlaca">
+                        <option value="">— Todas las placas —</option>
+                        ${vehiculosMov.map(v => `<option value="${v.placa}">${v.placa}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="grupo">
+                    <label>Colaborador</label>
+                    <select id="infMovColaborador">
+                        <option value="">— Todos —</option>
+                        ${colaboradores.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                    </select>
+                </div>
             </div>
-            <button class="btn btn-primario" onclick="consultarMovimientos()">🔍 Consultar</button>
-            <button class="btn btn-exito ml-2" onclick="exportarExcelMovimientos()">📥 Exportar Excel</button>
+            <button class="btn btn-primario" onclick="ejecutarConsultaMovimientos()">🔍 Buscar</button>
+            
             <div id="resultadoMovimientos" class="mt-4"></div>
         </div>
     </div>
 
-    <!-- TRANSPORTADORA -->
-    <div id="subinf-transportadora" class="oculto">
+    <!-- ============================================== -->
+    <!-- SUBINFORME: KILOMETRAJE ✅ NUEVO -->
+    <!-- ============================================== -->
+    <div id="informe-kilometraje" class="oculto">
         <div class="tarjeta">
-            <h3 class="font-bold mb-3">🚛 Informe Transportadora</h3>
-            <div class="grid-2 mb-3">
-                <div class="grupo"><label>Fecha Inicio</label><input type="date" id="fechaInicioTransp" value="${hoy}"></div>
-                <div class="grupo"><label>Fecha Fin</label><input type="date" id="fechaFinTransp" value="${hoy}"></div>
+            <h3 class="font-bold mb-3">📊 Consulta de Kilometraje</h3>
+            <div class="grid-2 mb-4">
+                <div class="grupo">
+                    <label>Fecha Inicio</label>
+                    <input type="date" id="infKmFechaInicio">
+                </div>
+                <div class="grupo">
+                    <label>Fecha Fin</label>
+                    <input type="date" id="infKmFechaFin">
+                </div>
+                <div class="grupo">
+                    <label>Placa</label>
+                    <select id="infKmPlaca">
+                        <option value="">— Todas las placas —</option>
+                        ${vehiculosMov.map(v => `<option value="${v.placa}">${v.placa}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="grupo">
+                    <label>Colaborador</label>
+                    <select id="infKmColaborador">
+                        <option value="">— Todos —</option>
+                        ${colaboradores.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                    </select>
+                </div>
             </div>
-            <button class="btn btn-primario" onclick="consultarTransporte()">🔍 Consultar</button>
-            <button class="btn btn-exito ml-2" onclick="exportarExcelTransporte()">📥 Exportar Excel</button>
-            <div id="resultadoTransporte" class="mt-4"></div>
+            <button class="btn btn-primario" onclick="ejecutarConsultaKilometraje()">🔍 Buscar</button>
+            
+            <div id="resultadoKilometraje" class="mt-4"></div>
         </div>
     </div>
 
-    <!-- COMBUSTIBLE -->
-    <div id="subinf-combustible" class="oculto">
+    <!-- ============================================== -->
+    <!-- SUBINFORME: COMBUSTIBLE / TANQUEO -->
+    <!-- ============================================== -->
+    <div id="informe-combustible" class="oculto">
         <div class="tarjeta">
-            <h3 class="font-bold mb-3">⛽ Informe de Combustible</h3>
-            <div class="grid-2 mb-3">
-                <div class="grupo"><label>Fecha Inicio</label><input type="date" id="fechaInicioComb" value="${hoy}"></div>
-                <div class="grupo"><label>Fecha Fin</label><input type="date" id="fechaFinComb" value="${hoy}"></div>
+            <h3 class="font-bold mb-3">📊 Consulta de Tanqueo</h3>
+            <div class="grid-2 mb-4">
+                <div class="grupo">
+                    <label>Fecha Inicio</label>
+                    <input type="date" id="infTanqFechaInicio">
+                </div>
+                <div class="grupo">
+                    <label>Fecha Fin</label>
+                    <input type="date" id="infTanqFechaFin">
+                </div>
+                <div class="grupo">
+                    <label>Placa</label>
+                    <select id="infTanqPlaca">
+                        <option value="">— Todas las placas —</option>
+                        ${vehiculosMov.map(v => `<option value="${v.placa}">${v.placa}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="grupo">
+                    <label>Colaborador</label>
+                    <select id="infTanqColaborador">
+                        <option value="">— Todos —</option>
+                        ${colaboradores.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                    </select>
+                </div>
             </div>
-            <button class="btn btn-primario" onclick="consultarCombustible()">🔍 Consultar</button>
-            <button class="btn btn-exito ml-2" onclick="exportarExcelCombustible()">📥 Exportar Excel</button>
-            <div id="resultadoCombustible" class="mt-4"></div>
+            <button class="btn btn-primario" onclick="ejecutarConsultaTanqueo()">🔍 Buscar</button>
+            
+            <div id="resultadoTanqueo" class="mt-4"></div>
         </div>
     </div>
 
-    <!-- TODOS LOS MOVIMIENTOS -->
-    <div id="subinf-todos" class="oculto">
+    <!-- ============================================== -->
+    <!-- SUBINFORME: TRANSPORTADORA -->
+    <!-- ============================================== -->
+    <div id="informe-transportadora" class="oculto">
         <div class="tarjeta">
-            <h3 class="font-bold mb-3">📋 Todos los Movimientos Registrados</h3>
-            <div class="grid-2 mb-3">
-                <div class="grupo"><label>Fecha Inicio</label><input type="date" id="fechaInicioTodos" value="2026-01-01"></div>
-                <div class="grupo"><label>Fecha Fin</label><input type="date" id="fechaFinTodos" value="${hoy}"></div>
+            <h3 class="font-bold mb-3">📊 Consulta de Transportadora</h3>
+            <div class="grid-2 mb-4">
+                <div class="grupo">
+                    <label>Fecha Inicio</label>
+                    <input type="date" id="infTransFechaInicio">
+                </div>
+                <div class="grupo">
+                    <label>Fecha Fin</label>
+                    <input type="date" id="infTransFechaFin">
+                </div>
+                <div class="grupo">
+                    <label>Placa</label>
+                    <select id="infTransPlaca">
+                        <option value="">— Todas las placas —</option>
+                        ${vehiculosTransp.map(v => `<option value="${v.placa}">${v.placa}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="grupo">
+                    <label>Conductor</label>
+                    <select id="infTransConductor">
+                        <option value="">— Todos —</option>
+                        ${conductores.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                    </select>
+                </div>
             </div>
-            <button class="btn btn-primario" onclick="consultarTodosMovimientos()">🔍 Consultar</button>
-            <div id="resultadoTodos" class="mt-4"></div>
+            <button class="btn btn-primario" onclick="ejecutarConsultaTransportadora()">🔍 Buscar</button>
+            
+            <div id="resultadoTransportadora" class="mt-4"></div>
         </div>
     </div>
     `;
 };
 
-function cambiarSubInforme(nombre, evento) {
-    document.querySelectorAll('#subinf-movimientos, #subinf-transportadora, #subinf-combustible, #subinf-todos').forEach(d => d.classList.add('oculto'));
-    document.querySelectorAll('#contenidoDinamico .btn-subpestaña').forEach(b => b.classList.remove('activa'));
-    if (evento && evento.currentTarget) evento.currentTarget.classList.add('activa');
-    document.getElementById(`subinf-${nombre}`).classList.remove('oculto');
+// =====================================================
+// ===== CAMBIAR SUBINFORME =====
+// =====================================================
+function cambiarSubinforme(nombre) {
+    document.querySelectorAll('.btn-subinforme').forEach(b => b.classList.remove('activa'));
+    document.querySelectorAll('[id^="informe-"]').forEach(p => p.classList.add('oculto'));
+    event.target.classList.add('activa');
+    document.getElementById(`informe-${nombre}`).classList.remove('oculto');
 }
 
-// ===== CONSULTAS =====
-function consultarMovimientos() {
-    const fi = document.getElementById('fechaInicioMov').value;
-    const ff = document.getElementById('fechaFinMov').value;
-    if (!fi || !ff) return alert('⚠️ Seleccione fechas de inicio y fin');
-    const resultados = movimientos.filter(m => m.fecha >= fi && m.fecha <= ff);
-    ultimosResultados.movimientos = resultados;
+// =====================================================
+// ===== 📦 CONSULTA MOVIMIENTOS =====
+// =====================================================
+function ejecutarConsultaMovimientos() {
+    const fi = document.getElementById('infMovFechaInicio').value;
+    const ff = document.getElementById('infMovFechaFin').value;
+    const placa = document.getElementById('infMovPlaca').value;
+    const colaborador = document.getElementById('infMovColaborador').value;
+
+    if (!fi || !ff) return alert('Ingrese fechas de inicio y fin');
+
+    let res = movimientos.filter(m => m.fecha >= fi && m.fecha <= ff);
+    if (placa) res = res.filter(m => m.placa === placa);
+    if (colaborador) res = res.filter(m => m.colaborador === colaborador);
+
+    ultimosResultados.movimientos = res;
+    dibujarResultadoMovimientos(res);
+}
+
+function dibujarResultadoMovimientos(datos) {
     const c = document.getElementById('resultadoMovimientos');
-    if (!c) return;
-    if (resultados.length === 0) {
-        c.innerHTML = '<p class="text-center">📭 Sin movimientos en este período</p>';
+    if (datos.length === 0) {
+        c.innerHTML = '<p class="text-center text-gray-500">📭 Sin resultados</p>';
         return;
     }
-    let totalCanSalida = 0, totalCanLlegada = 0, totalKilos = 0;
-    resultados.forEach(m => {
-        totalCanSalida += m.canastillasSalida || 0;
-        totalCanLlegada += m.canastillasLlegada || 0;
-        totalKilos += m.totalKilos || 0;
-    });
-    c.innerHTML = `
-    <div class="resumen">
-        <span>📄 Registros: ${resultados.length}</span>
-        <span>📦 Salidas: ${totalCanSalida}</span>
-        <span>📦 Llegadas: ${totalCanLlegada}</span>
-        <span>⚖️ Kilos: ${totalKilos.toFixed(2)}</span>
-    </div>
-    <table class="tabla mt-3">
-        <thead><tr><th>Fecha</th><th>Placa</th><th>Conductor</th><th>Salida</th><th>Llegada</th><th>Canast. Salida</th><th>Canast. Llegada</th><th>Kilos</th></tr></thead>
-        <tbody>
-            ${resultados.map(m => `<tr><td>${m.fecha}</td><td>${m.placa}</td><td>${m.colaborador}</td><td>${m.horaSalida}</td><td>${m.horaLlegada||'—'}</td><td>${m.canastillasSalida||0}</td><td>${m.canastillasLlegada||0}</td><td>${m.totalKilos||0}</td></tr>`).join('')}
-        </tbody>
-    </table>`;
-}
 
-function consultarTransporte() {
-    const fi = document.getElementById('fechaInicioTransp').value;
-    const ff = document.getElementById('fechaFinTransp').value;
-    if (!fi || !ff) return alert('⚠️ Seleccione fechas de inicio y fin');
-    const resultados = movimientosTransp.filter(m => m.fecha >= fi && m.fecha <= ff);
-    ultimosResultados.transporte = resultados;
-    const c = document.getElementById('resultadoTransporte');
-    if (!c) return;
-    if (resultados.length === 0) {
-        c.innerHTML = '<p class="text-center">📭 Sin movimientos en este período</p>';
-        return;
-    }
-    let totalSal = 0, totalLleg = 0;
-    resultados.forEach(m => { totalSal += m.canastillasSalida||0; totalLleg += m.canastillasLlegada||0; });
     c.innerHTML = `
-    <div class="resumen">
-        <span>📄 Registros: ${resultados.length}</span>
-        <span>📦 Salidas: ${totalSal}</span>
-        <span>📦 Llegadas: ${totalLleg}</span>
-    </div>
-    <table class="tabla mt-3">
-        <thead><tr><th>Fecha</th><th>Placa</th><th>Conductor</th><th>Salida</th><th>Llegada</th><th>Canast. Salida</th><th>Canast. Llegada</th></tr></thead>
-        <tbody>
-            ${resultados.map(m => `<tr><td>${m.fecha}</td><td>${m.placa}</td><td>${m.conductor||'—'}</td><td>${m.horaSalida}</td><td>${m.horaLlegada||'—'}</td><td>${m.canastillasSalida||0}</td><td>${m.canastillasLlegada||0}</td></tr>`).join('')}
-        </tbody>
-    </table>`;
-}
-
-function consultarCombustible() {
-    const fi = document.getElementById('fechaInicioComb').value;
-    const ff = document.getElementById('fechaFinComb').value;
-    if (!fi || !ff) return alert('⚠️ Seleccione fechas de inicio y fin');
-    const resKm = kilometraje.filter(r => r.fecha >= fi && r.fecha <= ff);
-    const resTanq = tanqueo.filter(r => r.fecha >= fi && r.fecha <= ff);
-    ultimosResultados.kilometraje = resKm;
-    ultimosResultados.tanqueo = resTanq;
-    const c = document.getElementById('resultadoCombustible');
-    if (!c) return;
-    c.innerHTML = `
-    <h4 class="font-bold mt-2 mb-2">📏 Kilometraje</h4>
-    ${resKm.length===0?'<p>📭 Sin registros</p>':`
-    <table class="tabla"><thead><tr><th>Fecha</th><th>Placa</th><th>KM Mañana</th><th>KM Tarde</th><th>Recorridos</th><th>Colaborador</th></tr></thead>
-    <tbody>${resKm.map(r=>`<tr><td>${r.fecha}</td><td>${r.placa}</td><td>${r.kmManana??'—'}</td><td>${r.kmTarde??'—'}</td><td>${r.kmRecorridos??'—'}</td><td>${r.colaborador}</td></tr>`).join('')}</tbody></table>`}
-
-    <h4 class="font-bold mt-4 mb-2">⛽ Tanqueo</h4>
-    ${resTanq.length===0?'<p>📭 Sin registros</p>':`
-    <table class="tabla"><thead><tr><th>Fecha</th><th>Placa</th><th>Tipo</th><th>Cantidad</th><th>Quién tanqueó</th></tr></thead>
-    <tbody>${resTanq.map(r=>`<tr><td>${r.fecha}</td><td>${r.placa}</td><td>${r.tipo}</td><td>${r.cantidad}</td><td>${r.colaborador}</td></tr>`).join('')}</tbody></table>`}
+        <div class="mb-3 flex gap-2 flex-wrap">
+            <strong>${datos.length} registros encontrados</strong>
+            <button onclick="exportarExcel('movimientos')" class="btn" style="background:#dcfce7; color:#166534;">📥 Excel</button>
+            <button onclick="exportarPDF('movimientos')" class="btn" style="background:#fef3c7; color:#92400e;">📄 PDF</button>
+            <button onclick="exportarWord('movimientos')" class="btn" style="background:#dbeafe; color:#1e40af;">📝 Word</button>
+        </div>
+        <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+            <tr style="background:#f3f4f6;">
+                <th style="border:1px solid #ccc; padding:6px;">Fecha</th>
+                <th style="border:1px solid #ccc; padding:6px;">Placa</th>
+                <th style="border:1px solid #ccc; padding:6px;">Colaborador</th>
+                <th style="border:1px solid #ccc; padding:6px;">Hora Salida</th>
+                <th style="border:1px solid #ccc; padding:6px;">Hora Llegada</th>
+                <th style="border:1px solid #ccc; padding:6px;">Canastillas Salida</th>
+                <th style="border:1px solid #ccc; padding:6px;">Canastillas Llegada</th>
+                <th style="border:1px solid #ccc; padding:6px;">Kilos Totales</th>
+            </tr>
+            ${datos.map(m => `
+                <tr>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.fecha}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.placa}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.colaborador}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.horaSalida || '—'}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.horaLlegada || '—'}</td>
+                    <td style="border:1px solid #ccc; padding:6px; text-align:right;">${m.canastillasSalida || 0}</td>
+                    <td style="border:1px solid #ccc; padding:6px; text-align:right;">${m.canastillasLlegada || 0}</td>
+                    <td style="border:1px solid #ccc; padding:6px; text-align:right;">${m.totalKilos || 0}</td>
+                </tr>
+            `).join('')}
+        </table>
+        </div>
     `;
 }
 
-function consultarTodosMovimientos() {
-    const fi = document.getElementById('fechaInicioTodos').value;
-    const ff = document.getElementById('fechaFinTodos').value;
-    if (!fi || !ff) return alert('⚠️ Seleccione fechas de inicio y fin');
-    const mov1 = movimientos.filter(m => m.fecha >= fi && m.fecha <= ff);
-    const mov2 = movimientosTransp.filter(m => m.fecha >= fi && m.fecha <= ff);
-    const todos = [...mov1.map(m=>({...m, tipo:'Movimiento'})), ...mov2.map(m=>({...m, tipo:'Transporte'}))];
-    todos.sort((a,b)=>b.fecha.localeCompare(a.fecha));
-    const c = document.getElementById('resultadoTodos');
-    if (!c) return;
-    if (todos.length === 0) { c.innerHTML = '<p class="text-center">📭 Sin movimientos en este período</p>'; return; }
+// =====================================================
+// ===== 📏 CONSULTA KILOMETRAJE ✅ NUEVO =====
+// =====================================================
+function ejecutarConsultaKilometraje() {
+    const fi = document.getElementById('infKmFechaInicio').value;
+    const ff = document.getElementById('infKmFechaFin').value;
+    const placa = document.getElementById('infKmPlaca').value;
+    const colaborador = document.getElementById('infKmColaborador').value;
+
+    if (!fi || !ff) return alert('Ingrese fechas de inicio y fin');
+
+    let res = kilometraje.filter(k => k.fecha >= fi && k.fecha <= ff);
+    if (placa) res = res.filter(k => k.placa === placa);
+    if (colaborador) res = res.filter(k => k.colaborador === colaborador);
+
+    ultimosResultados.kilometraje = res;
+    dibujarResultadoKilometraje(res);
+}
+
+function dibujarResultadoKilometraje(datos) {
+    const c = document.getElementById('resultadoKilometraje');
+    if (datos.length === 0) {
+        c.innerHTML = '<p class="text-center text-gray-500">📭 Sin resultados</p>';
+        return;
+    }
+
+    const totalRecorrido = datos.reduce((s, k) => s + (k.kmRecorridos || 0), 0);
+
     c.innerHTML = `
-    <p class="mb-3 font-bold">Total registros: ${todos.length}</p>
-    <table class="tabla">
-        <thead><tr><th>Tipo</th><th>Fecha</th><th>Placa</th><th>Conductor</th><th>Salida</th><th>Llegada</th><th>Canast. Salida</th><th>Canast. Llegada</th><th>Kilos</th></tr></thead>
-        <tbody>
-            ${todos.map(m => `<tr><td>${m.tipo}</td><td>${m.fecha}</td><td>${m.placa}</td><td>${m.colaborador||m.conductor||'—'}</td><td>${m.horaSalida}</td><td>${m.horaLlegada||'—'}</td><td>${m.canastillasSalida||0}</td><td>${m.canastillasLlegada||0}</td><td>${m.totalKilos||'—'}</td></tr>`).join('')}
-        </tbody>
-    </table>`;
+        <div class="mb-3 flex gap-2 flex-wrap items-center">
+            <strong>${datos.length} registros — Total: ${totalRecorrido.toLocaleString()} km</strong>
+            <button onclick="exportarExcel('kilometraje')" class="btn" style="background:#dcfce7; color:#166534;">📥 Excel</button>
+            <button onclick="exportarPDF('kilometraje')" class="btn" style="background:#fef3c7; color:#92400e;">📄 PDF</button>
+            <button onclick="exportarWord('kilometraje')" class="btn" style="background:#dbeafe; color:#1e40af;">📝 Word</button>
+        </div>
+        <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+            <tr style="background:#f3f4f6;">
+                <th style="border:1px solid #ccc; padding:6px;">Fecha</th>
+                <th style="border:1px solid #ccc; padding:6px;">Placa</th>
+                <th style="border:1px solid #ccc; padding:6px;">KM Inicio</th>
+                <th style="border:1px solid #ccc; padding:6px;">KM Final</th>
+                <th style="border:1px solid #ccc; padding:6px;">Recorridos</th>
+                <th style="border:1px solid #ccc; padding:6px;">Colaborador</th>
+            </tr>
+            ${datos.map(k => `
+                <tr>
+                    <td style="border:1px solid #ccc; padding:6px;">${k.fecha}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${k.placa}</td>
+                    <td style="border:1px solid #ccc; padding:6px; text-align:right;">${k.kmInicio}</td>
+                    <td style="border:1px solid #ccc; padding:6px; text-align:right;">${k.kmFinal}</td>
+                    <td style="border:1px solid #ccc; padding:6px; text-align:right; font-weight:bold; color:#2563eb;">${k.kmRecorridos}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${k.colaborador}</td>
+                </tr>
+            `).join('')}
+            <tr style="background:#eff6ff; font-weight:bold;">
+                <td colspan="4" style="border:1px solid #ccc; padding:6px; text-align:right;">TOTAL RECORRIDO:</td>
+                <td style="border:1px solid #ccc; padding:6px; text-align:right;">${totalRecorrido.toLocaleString()}</td>
+                <td style="border:1px solid #ccc; padding:6px;"></td>
+            </tr>
+        </table>
+        </div>
+    `;
 }
 
-// ===== EXPORTAR EXCEL =====
-function exportarExcelMovimientos() {
-    if (!ultimosResultados.movimientos || ultimosResultados.movimientos.length === 0) return alert('⚠️ Primero consulte los datos');
-    const datos = ultimosResultados.movimientos.map(m => ({
-        Fecha: m.fecha, Placa: m.placa, Conductor: m.colaborador,
-        HoraSalida: m.horaSalida, HoraLlegada: m.horaLlegada||'',
-        CanastillasSalida: m.canastillasSalida||0, CanastillasLlegada: m.canastillasLlegada||0,
-        Kilos: m.totalKilos||0
-    }));
-    const hoja = XLSX.utils.json_to_sheet(datos);
-    const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, 'Movimientos');
-    XLSX.writeFile(libro, `Movimientos_${new Date().toISOString().slice(0,10)}.xlsx`);
+// =====================================================
+// ===== ⛽ CONSULTA TANQUEO =====
+// =====================================================
+function ejecutarConsultaTanqueo() {
+    const fi = document.getElementById('infTanqFechaInicio').value;
+    const ff = document.getElementById('infTanqFechaFin').value;
+    const placa = document.getElementById('infTanqPlaca').value;
+    const colaborador = document.getElementById('infTanqColaborador').value;
+
+    if (!fi || !ff) return alert('Ingrese fechas de inicio y fin');
+
+    let res = tanqueo.filter(t => t.fecha >= fi && t.fecha <= ff);
+    if (placa) res = res.filter(t => t.placa === placa);
+    if (colaborador) res = res.filter(t => t.colaborador === colaborador);
+
+    ultimosResultados.tanqueo = res;
+    dibujarResultadoTanqueo(res);
 }
 
-function exportarExcelTransporte() {
-    if (!ultimosResultados.transporte || ultimosResultados.transporte.length === 0) return alert('⚠️ Primero consulte los datos');
-    const datos = ultimosResultados.transporte.map(m => ({
-        Fecha: m.fecha, Placa: m.placa, Conductor: m.conductor||'',
-        HoraSalida: m.horaSalida, HoraLlegada: m.horaLlegada||'',
-        CanastillasSalida: m.canastillasSalida||0, CanastillasLlegada: m.canastillasLlegada||0
-    }));
-    const hoja = XLSX.utils.json_to_sheet(datos);
-    const libro = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(libro, hoja, 'Transporte');
-    XLSX.writeFile(libro, `Transporte_${new Date().toISOString().slice(0,10)}.xlsx`);
-}
-
-function exportarExcelCombustible() {
-    if ((!ultimosResultados.kilometraje || ultimosResultados.kilometraje.length === 0) &&
-        (!ultimosResultados.tanqueo || ultimosResultados.tanqueo.length === 0)) return alert('⚠️ Primero consulte los datos');
-    const libro = XLSX.utils.book_new();
-    if (ultimosResultados.kilometraje.length > 0) {
-        const datosKm = ultimosResultados.kilometraje.map(r => ({
-            Fecha: r.fecha, Placa: r.placa, KilometrajeMañana: r.kmManana||'', KilometrajeTarde: r.kmTarde||'',
-            KilometrosRecorridos: r.kmRecorridos||'', Colaborador: r.colaborador
-        }));
-        XLSX.utils.book_append_sheet(libro, XLSX.utils.json_to_sheet(datosKm), 'Kilometraje');
+function dibujarResultadoTanqueo(datos) {
+    const c = document.getElementById('resultadoTanqueo');
+    if (datos.length === 0) {
+        c.innerHTML = '<p class="text-center text-gray-500">📭 Sin resultados</p>';
+        return;
     }
-    if (ultimosResultados.tanqueo.length > 0) {
-        const datosTq = ultimosResultados.tanqueo.map(r => ({
-            Fecha: r.fecha, Placa: r.placa, Tipo: r.tipo, Cantidad: r.cantidad, Colaborador: r.colaborador
-        }));
-        XLSX.utils.book_append_sheet(libro, XLSX.utils.json_to_sheet(datosTq), 'Tanqueo');
+
+    c.innerHTML = `
+        <div class="mb-3 flex gap-2 flex-wrap">
+            <strong>${datos.length} registros encontrados</strong>
+            <button onclick="exportarExcel('tanqueo')" class="btn" style="background:#dcfce7; color:#166534;">📥 Excel</button>
+            <button onclick="exportarPDF('tanqueo')" class="btn" style="background:#fef3c7; color:#92400e;">📄 PDF</button>
+            <button onclick="exportarWord('tanqueo')" class="btn" style="background:#dbeafe; color:#1e40af;">📝 Word</button>
+        </div>
+        <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+            <tr style="background:#f3f4f6;">
+                <th style="border:1px solid #ccc; padding:6px;">Fecha</th>
+                <th style="border:1px solid #ccc; padding:6px;">Placa</th>
+                <th style="border:1px solid #ccc; padding:6px;">Nivel</th>
+                <th style="border:1px solid #ccc; padding:6px;">Colaborador</th>
+            </tr>
+            ${datos.map(t => `
+                <tr>
+                    <td style="border:1px solid #ccc; padding:6px;">${t.fecha}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${t.placa}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${t.nivel === 'full' ? '✅ Lleno' : t.nivel + '%'}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${t.colaborador}</td>
+                </tr>
+            `).join('')}
+        </table>
+        </div>
+    `;
+}
+
+// =====================================================
+// ===== 🚛 CONSULTA TRANSPORTADORA =====
+// =====================================================
+function ejecutarConsultaTransportadora() {
+    const fi = document.getElementById('infTransFechaInicio').value;
+    const ff = document.getElementById('infTransFechaFin').value;
+    const placa = document.getElementById('infTransPlaca').value;
+    const conductor = document.getElementById('infTransConductor').value;
+
+    if (!fi || !ff) return alert('Ingrese fechas de inicio y fin');
+
+    let res = movimientosTransp.filter(m => m.fecha >= fi && m.fecha <= ff);
+    if (placa) res = res.filter(m => m.placa === placa);
+    if (conductor) res = res.filter(m => m.conductor === conductor);
+
+    ultimosResultados.transportadora = res;
+    dibujarResultadoTransportadora(res);
+}
+
+function dibujarResultadoTransportadora(datos) {
+    const c = document.getElementById('resultadoTransportadora');
+    if (datos.length === 0) {
+        c.innerHTML = '<p class="text-center text-gray-500">📭 Sin resultados</p>';
+        return;
     }
-    XLSX.writeFile(libro, `Combustible_${new Date().toISOString().slice(0,10)}.xlsx`);
+
+    c.innerHTML = `
+        <div class="mb-3 flex gap-2 flex-wrap">
+            <strong>${datos.length} registros encontrados</strong>
+            <button onclick="exportarExcel('transportadora')" class="btn" style="background:#dcfce7; color:#166534;">📥 Excel</button>
+            <button onclick="exportarPDF('transportadora')" class="btn" style="background:#fef3c7; color:#92400e;">📄 PDF</button>
+            <button onclick="exportarWord('transportadora')" class="btn" style="background:#dbeafe; color:#1e40af;">📝 Word</button>
+        </div>
+        <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+            <tr style="background:#f3f4f6;">
+                <th style="border:1px solid #ccc; padding:6px;">Fecha</th>
+                <th style="border:1px solid #ccc; padding:6px;">Placa</th>
+                <th style="border:1px solid #ccc; padding:6px;">Conductor</th>
+                <th style="border:1px solid #ccc; padding:6px;">Hora Salida</th>
+                <th style="border:1px solid #ccc; padding:6px;">Hora Llegada</th>
+                <th style="border:1px solid #ccc; padding:6px;">Canastillas Salida</th>
+                <th style="border:1px solid #ccc; padding:6px;">Canastillas Llegada</th>
+            </tr>
+            ${datos.map(m => `
+                <tr>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.fecha}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.placa}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.conductor || '—'}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.horaSalida || '—'}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.horaLlegada || '—'}</td>
+                    <td style="border:1px solid #ccc; padding:6px; text-align:right;">${m.canastillasSalida || 0}</td>
+                    <td style="border:1px solid #ccc; padding:6px; text-align:right;">${m.canastillasLlegada || 0}</td>
+                </tr>
+            `).join('')}
+        </table>
+        </div>
+    `;
+}
+
+// =====================================================
+// ===== 📥 EXPORTAR EXCEL =====
+// =====================================================
+function exportarExcel(tipo) {
+    const datos = ultimosResultados[tipo];
+    if (!datos || datos.length === 0) return alert('Sin datos para exportar');
+
+    let filas = [];
+    let nombre = '';
+
+    switch(tipo) {
+        case 'movimientos':
+            nombre = 'Movimientos';
+            filas = datos.map(m => ({
+                Fecha: m.fecha, Placa: m.placa, Colaborador: m.colaborador,
+                HoraSalida: m.horaSalida || '', HoraLlegada: m.horaLlegada || '',
+                CanastillasSalida: m.canastillasSalida || 0, CanastillasLlegada: m.canastillasLlegada || 0,
+                KilosTotales: m.totalKilos || 0
+            }));
+            break;
+        case 'kilometraje':
+            nombre = 'Kilometraje';
+            filas = datos.map(k => ({
+                Fecha: k.fecha, Placa: k.placa,
+                KMInicio: k.kmInicio, KMFinal: k.kmFinal,
+                KMRecorridos: k.kmRecorridos, Colaborador: k.colaborador
+            }));
+            break;
+        case 'tanqueo':
+            nombre = 'Tanqueo';
+            filas = datos.map(t => ({
+                Fecha: t.fecha, Placa: t.placa,
+                NivelTanque: t.nivel === 'full' ? 'Lleno' : t.nivel + '%',
+                Colaborador: t.colaborador
+            }));
+            break;
+        case 'transportadora':
+            nombre = 'Transportadora';
+            filas = datos.map(m => ({
+                Fecha: m.fecha, Placa: m.placa, Conductor: m.conductor || '',
+                HoraSalida: m.horaSalida || '', HoraLlegada: m.horaLlegada || '',
+                CanastillasSalida: m.canastillasSalida || 0, CanastillasLlegada: m.canastillasLlegada || 0
+            }));
+            break;
+    }
+
+    const hoja = XLSX.utils.json_to_sheet(filas);
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, nombre);
+    XLSX.writeFile(libro, `${nombre}_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+// =====================================================
+// ===== 📄 EXPORTAR PDF =====
+// =====================================================
+function exportarPDF(tipo) {
+    const datos = ultimosResultados[tipo];
+    if (!datos || datos.length === 0) return alert('Sin datos para exportar');
+
+    let tablaHTML = '';
+    let titulo = '';
+
+    switch(tipo) {
+        case 'movimientos':
+            titulo = 'REPORTE DE MOVIMIENTOS';
+            tablaHTML = `
+            <table style="width:100%; border-collapse:collapse; font-size:11pt;">
+                <tr style="background:#e5e7eb;">
+                    <th style="border:1px solid #999; padding:8px;">Fecha</th>
+                    <th style="border:1px solid #999; padding:8px;">Placa</th>
+                    <th style="border:1px solid #999; padding:8px;">Colaborador</th>
+                    <th style="border:1px solid #999; padding:8px;">Hora Salida</th>
+                    <th style="border:1px solid #999; padding:8px;">Hora Llegada</th>
+                    <th style="border:1px solid #999; padding:8px;">Canastillas Salida</th>
+                    <th style="border:1px solid #999; padding:8px;">Canastillas Llegada</th>
+                    <th style="border:1px solid #999; padding:8px;">Kilos Totales</th>
+                </tr>
+                ${datos.map(m => `
+                <tr>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.fecha}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.placa}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.colaborador}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.horaSalida || '—'}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.horaLlegada || '—'}</td>
+                    <td style="border:1px solid #ccc; padding:6px; text-align:right;">${m.canastillasSalida || 0}</td>
+                    <td style="border:1px solid #ccc; padding:6px; text-align:right;">${m.canastillasLlegada || 0}</td>
+                    <td style="border:1px solid #ccc; padding:6px; text-align:right;">${m.totalKilos || 0}</td>
+                </tr>
+                `).join('')}
+            </table>`;
+            break;
+        case 'kilometraje':
+            titulo = 'REPORTE DE KILOMETRAJE';
+            const totalKm = datos.reduce((s, k) => s + (k.kmRecorridos || 0), 0);
+            tablaHTML = `
+            <table style="width:100%; border-collapse:collapse; font-size:11pt;">
+                <tr style="background:#e5e7eb;">
+                    <th style="border:1px solid #999; padding:8px;">Fecha</th>
+                    <th style="border:1px solid #999; padding:8px;">Placa</th>
+                    <th style="border:1px solid #999; padding:8px;">KM Inicio</th>
+                    <th style="border:1px solid #999; padding:8px;">KM Final</th>
+                    <th style="border:1px solid #999; padding:8px;">Recorridos</th>
+                    <th style="border:1px solid #999; padding:8px;">Colaborador</th>
+                </tr>
+                ${datos.map(k => `
+                <tr>
+                    <td style="border:1px solid #ccc; padding:6px;">${k.fecha}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${k.placa}</td>
+                    <td style="border:1px solid #ccc; padding:6px; text-align:right;">${k.kmInicio}</td>
+                    <td style="border:1px solid #ccc; padding:6px; text-align:right;">${k.kmFinal}</td>
+                    <td style="border:1px solid #ccc; padding:6px; text-align:right; font-weight:bold;">${k.kmRecorridos}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${k.colaborador}</td>
+                </tr>
+                `).join('')}
+                <tr style="background:#dbeafe; font-weight:bold;">
+                    <td colspan="4" style="border:1px solid #ccc; padding:8px; text-align:right;">TOTAL:</td>
+                    <td style="border:1px solid #ccc; padding:8px; text-align:right;">${totalKm.toLocaleString()}</td>
+                    <td style="border:1px solid #ccc; padding:8px;"></td>
+                </tr>
+            </table>`;
+            break;
+        case 'tanqueo':
+            titulo = 'REPORTE DE TANQUEO';
+            tablaHTML = `
+            <table style="width:100%; border-collapse:collapse; font-size:11pt;">
+                <tr style="background:#e5e7eb;">
+                    <th style="border:1px solid #999; padding:8px;">Fecha</th>
+                    <th style="border:1px solid #999; padding:8px;">Placa</th>
+                    <th style="border:1px solid #999; padding:8px;">Nivel de Tanque</th>
+                    <th style="border:1px solid #999; padding:8px;">Colaborador</th>
+                </tr>
+                ${datos.map(t => `
+                <tr>
+                    <td style="border:1px solid #ccc; padding:6px;">${t.fecha}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${t.placa}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${t.nivel === 'full' ? '✅ Lleno' : t.nivel + '%'}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${t.colaborador}</td>
+                </tr>
+                `).join('')}
+            </table>`;
+            break;
+        case 'transportadora':
+            titulo = 'REPORTE DE TRANSPORTADORA';
+            tablaHTML = `
+            <table style="width:100%; border-collapse:collapse; font-size:11pt;">
+                <tr style="background:#e5e7eb;">
+                    <th style="border:1px solid #999; padding:8px;">Fecha</th>
+                    <th style="border:1px solid #999; padding:8px;">Placa</th>
+                    <th style="border:1px solid #999; padding:8px;">Conductor</th>
+                    <th style="border:1px solid #999; padding:8px;">Hora Salida</th>
+                    <th style="border:1px solid #999; padding:8px;">Hora Llegada</th>
+                    <th style="border:1px solid #999; padding:8px;">Canastillas Salida</th>
+                    <th style="border:1px solid #999; padding:8px;">Canastillas Llegada</th>
+                </tr>
+                ${datos.map(m => `
+                <tr>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.fecha}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.placa}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.conductor || '—'}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.horaSalida || '—'}</td>
+                    <td style="border:1px solid #ccc; padding:6px;">${m.horaLlegada || '—'}</td>
+                    <td style="border:1px solid #ccc; padding:6px; text-align:right;">${m.canastillasSalida || 0}</td>
+                    <td style="border:1px solid #ccc; padding:6px; text-align:right;">${m.canastillasLlegada || 0}</td>
+                </tr>
+                `).join('')}
+            </table>`;
+            break;
+    }
+
+    const ventana = window.open('', '_blank');
+    ventana.document.write(`
+    <html>
+    <head>
+        <title>${titulo}</title>
+        <style>
+            body { font-family:Arial; padding:20px; }
+            h1 { text-align:center; color:#1f2937; }
+            .fecha { text-align:right; color:#6b7280; font-size:10pt; margin-bottom:20px; }
+        </style>
+    </head>
+    <body>
+        <h1>${titulo}</h1>
+        <p class="fecha">Generado: ${new Date().toLocaleString('es-CO')}</p>
+        ${tablaHTML}
+        <script>window.onload = function() { window.print(); }</script>
+    </body>
+    </html>
+    `);
+    ventana.document.close();
+}
+
+// =====================================================
+// ===== 📝 EXPORTAR WORD =====
+// =====================================================
+function exportarWord(tipo) {
+    const datos = ultimosResultados[tipo];
+    if (!datos || datos.length === 0) return alert('Sin datos para exportar');
+
+    let tablaHTML = '';
+    let titulo = '';
+
+    switch(tipo) {
+        case 'movimientos':
+            titulo = 'REPORTE DE MOVIMIENTOS';
+            tablaHTML = `
+            <table border="1" style="width:100%; border-collapse:collapse; font-size:11pt;">
+                <tr style="background:#e5e7eb;">
+                    <th style="padding:8px;">Fecha</th>
+                    <th style="padding:8px;">Placa</th>
+                    <th style="padding:8px;">Colaborador</th>
+                    <th style="padding:8px;">Hora Salida</th>
+                    <th style="padding:8px;">Hora Llegada</th>
+                    <th style="padding:8px;">Canastillas Salida</th>
+                    <th style="padding:8px;">Canastillas Llegada</th>
+                    <th style="padding:8px;">Kilos Totales</th>
+                </tr>
+                ${datos.map(m => `
+                <tr>
+                    <td style="padding:6px;">${m.fecha}</td>
+                    <td style="padding:6px;">${m.placa}</td>
+                    <td style="padding:6px;">${m.colaborador}</td>
+                    <td style="padding:6px;">${m.horaSalida || '—'}</td>
+                    <td style="padding:6px;">${m.horaLlegada || '—'}</td>
+                    <td style="padding:6px; text-align:right;">${m.canastillasSalida || 0}</td>
+                    <td style="padding:6px; text-align:right;">${m.canastillasLlegada || 0}</td>
+                    <td style="padding:6px; text-align:right;">${m.totalKilos || 0}</td>
+                </tr>
+                `).join('')}
+            </table>`;
+            break;
+        case 'kilometraje':
+            titulo = 'REPORTE DE KILOMETRAJE';
+            const totalKm = datos.reduce((s, k) => s + (k.kmRecorridos || 0), 0);
+            tablaHTML = `
+            <table border="1" style="width:100%; border-collapse:collapse; font-size:11pt;">
+                <tr style="background:#e5e7eb;">
+                    <th style="padding:8px;">Fecha</th>
+                    <th style="padding:8px;">Placa</th>
+                    <th style="padding:8px;">KM Inicio</th>
+                    <th style="padding:8px;">KM Final</th>
+                    <th style="padding:8px;">Recorridos</th>
+                    <th style="padding:8px;">Colaborador</th>
+                </tr>
+                ${datos.map(k => `
+                <tr>
+                    <td style="padding:6px;">${k.fecha}</td>
+                    <td style="padding:6px;">${k.placa}</td>
+                    <td style="padding:6px; text-align:right;">${k.kmInicio}</td>
+                    <td style="padding:6px; text-align:right;">${k.kmFinal}</td>
+                    <td style="padding:6px; text-align:right; font-weight:bold;">${k.kmRecorridos}</td>
+                    <td style="padding:6px;">${k.colaborador}</td>
+                </tr>
+                `).join('')}
+                <tr style="background:#dbeafe; font-weight:bold;">
+                    <td colspan="4" style="padding:8px; text-align:right;">TOTAL RECORRIDO:</td>
+                    <td style="padding:8px; text-align:right;">${totalKm.toLocaleString()}</td>
+                    <td style="padding:8px;"></td>
+                </tr>
+            </table>`;
+            break;
+        case 'tanqueo':
+            titulo = 'REPORTE DE TANQUEO';
+            tablaHTML = `
+            <table border="1" style="width:100%; border-collapse:collapse; font-size:11pt;">
+                <tr style="background:#e5e7eb;">
+                    <th style="padding:8px;">Fecha</th>
+                    <th style="padding:8px;">Placa</th>
+                    <th style="padding:8px;">Nivel de Tanque</th>
+                    <th style="padding:8px;">Colaborador</th>
+                </tr>
+                ${datos.map(t => `
+                <tr>
+                    <td style="padding:6px;">${t.fecha}</td>
+                    <td style="padding:6px;">${t.placa}</td>
+                    <td style="padding:6px;">${t.nivel === 'full' ? 'Lleno' : t.nivel + '%'}</td>
+                    <td style="padding:6px;">${t.colaborador}</td>
+                </tr>
+                `).join('')}
+            </table>`;
+            break;
+        case 'transportadora':
+            titulo = 'REPORTE DE TRANSPORTADORA';
+            tablaHTML = `
+            <table border="1" style="width:100%; border-collapse:collapse; font-size:11pt;">
+                <tr style="background:#e5e7eb;">
+                    <th style="padding:8px;">Fecha</th>
+                    <th style="padding:8px;">Placa</th>
+                    <th style="padding:8px;">Conductor</th>
+                    <th style="padding:8px;">Hora Salida</th>
+                    <th style="padding:8px;">Hora Llegada</th>
+                    <th style="padding:8px;">Canastillas Salida</th>
+                    <th style="padding:8px;">Canastillas Llegada</th>
+                </tr>
+                ${datos.map(m => `
+                <tr>
+                    <td style="padding:6px;">${m.fecha}</td>
+                    <td style="padding:6px;">${m.placa}</td>
+                    <td style="padding:6px;">${m.conductor || '—'}</td>
+                    <td style="padding:6px;">${m.horaSalida || '—'}</td>
+                    <td style="padding:6px;">${m.horaLlegada || '—'}</td>
+                    <td style="padding:6px; text-align:right;">${m.canastillasSalida || 0}</td>
+                    <td style="padding:6px; text-align:right;">${m.canastillasLlegada || 0}</td>
+                </tr>
+                `).join('')}
+            </table>`;
+            break;
+    }
+
+    const contenido = `
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head>
+<meta charset="utf-8">
+<style>
+    body { font-family:Arial; }
+    h1 { text-align:center; color:#1f2937; }
+</style>
+</head>
+<body>
+    <h1>${titulo}</h1>
+    <p style="text-align:right; color:#666; font-size:10pt;">Generado: ${new Date().toLocaleString('es-CO')}</p>
+    ${tablaHTML}
+</body>
+</html>`;
+
+    const blob = new Blob([contenido], { type: 'application/msword' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${titulo.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.doc`;
+    a.click();
+    URL.revokeObjectURL(url);
 }

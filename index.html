@@ -40,8 +40,37 @@
             transition: background .2s; 
         }
         .btn-menu:hover { background: rgba(255,255,255,.35); }
-        .usuario-info { font-size: 0.9rem; display: flex; align-items: center; gap: 0.6rem; }
-        .btn-cerrar { background: #ef4444; color: white; border: none; padding: 0.4rem 0.7rem; border-radius: 0.4rem; cursor: pointer; font-size: 0.85rem; }
+        .usuario-info { 
+            font-size: 0.9rem; 
+            display: flex; 
+            align-items: center; 
+            gap: 0.6rem; 
+            flex-wrap: wrap;
+        }
+        .btn-cerrar { 
+            background: #ef4444; 
+            color: white; 
+            border: none; 
+            padding: 0.4rem 0.7rem; 
+            border-radius: 0.4rem; 
+            cursor: pointer; 
+            font-size: 0.85rem; 
+        }
+        .btn-sm { 
+            padding: 0.4rem 0.7rem; 
+            font-size: 0.85rem; 
+            border: none; 
+            border-radius: 0.4rem; 
+            cursor: pointer; 
+            font-weight: 500; 
+            transition: background .2s;
+        }
+        .btn-actualizar { 
+            background: #16a34a; 
+            color: white; 
+        }
+        .btn-actualizar:hover { background: #15803d; }
+        .btn-actualizar:disabled { background: #86efac; cursor: not-allowed; }
 
         /* ✅ MENÚ LATERAL — CORREGIDO */
         #sidebar { 
@@ -56,10 +85,10 @@
             overflow-y: auto; 
             transition: transform .3s ease-in-out; 
             padding-top: 0.5rem; 
-            transform: translateX(-100%); /* Empieza FUERA de pantalla */
+            transform: translateX(-100%);
         }
-        #sidebar.mostrado { transform: translateX(0); } /* Entra a pantalla */
-        #sidebar.oculto { transform: translateX(-100%); } /* Se oculta */
+        #sidebar.mostrado { transform: translateX(0); }
+        #sidebar.oculto { transform: translateX(-100%); }
 
         .btn-pestaña { 
             display: block; 
@@ -125,6 +154,7 @@
         .font-bold { font-weight: 700; }
         .text-sm { font-size: 0.85rem; }
         .text-green-600 { color: #16a34a; }
+        .col-span-2 { grid-column: span 2; }
         .resumen { display: flex; gap: 1.2rem; flex-wrap: wrap; padding: 0.8rem; background: #eff6ff; border-radius: 0.5rem; font-weight: 500; }
 
         /* Tablas */
@@ -154,15 +184,35 @@
         .caja-login h2 { text-align: center; margin-bottom: 1.5rem; color: #1f2937; }
         #mensajeError { color: #dc2626; margin-top: 0.8rem; text-align: center; font-size: 0.9rem; min-height: 1.2rem; }
 
+        /* Aviso Modo Prueba */
+        #avisoPrueba {
+            background: #fef3c7; 
+            color: #92400e; 
+            padding: 6px 12px; 
+            font-size: 13px; 
+            font-weight: 600; 
+            text-align: center;
+            border-bottom: 2px solid #f59e0b;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            z-index: 99;
+        }
+
         /* ✅ RESPONSIVE PARA MÓVIL — CORREGIDO */
         @media (max-width: 768px) {
             #sidebar { width: 260px; transform: translateX(-100%); }
             #sidebar.mostrado { transform: translateX(0); }
-            #contenido { margin-left: 0; padding: 0.8rem; }
+            #contenido { margin-left: 0; padding: 0.8rem; padding-top: 10px; }
             .grid-2 { grid-template-columns: 1fr; }
-            header h1 { font-size: 1rem; }
+            header h1 { font-size: 0.9rem; }
+            .usuario-info { gap: 0.3rem; font-size: 0.8rem; }
+            .btn-sm { padding: 0.3rem 0.5rem; font-size: 0.75rem; }
+            .btn-cerrar { padding: 0.3rem 0.5rem; font-size: 0.75rem; }
             th, td { padding: 0.4rem 0.35rem; font-size: 0.8rem; }
             .resumen { flex-direction: column; gap: 0.3rem; }
+            #avisoPrueba { top: 56px; font-size: 11px; }
         }
     </style>
 </head>
@@ -185,11 +235,13 @@
         </div>
     </div>
 
-    <!-- ENCABEZADO PRINCIPAL -->
+    <!-- ENCABEZADO PRINCIPAL — CON BOTÓN ACTUALIZAR SIEMPRE VISIBLE -->
     <header id="encabezadoApp" class="oculto">
         <button class="btn-menu" id="btnMenu">☰</button>
         <h1>📦 Control de Movimientos</h1>
         <div class="usuario-info">
+            <!-- ✅ BOTÓN ACTUALIZAR FIJO ARRIBA -->
+            <button class="btn-sm btn-actualizar" onclick="refrescarTodo()">🔄 Actualizar</button>
             <span id="nombreUsuario"></span>
             <button class="btn-cerrar" onclick="cerrarSesion()">Salir</button>
         </div>
@@ -218,18 +270,17 @@
     <script src="informes.js"></script>
     <script src="admin.js"></script>
 
-    <!-- ✅ SCRIPT DEL MENÚ — CORREGIDO Y FUNCIONANDO -->
+    <!-- ✅ SCRIPT DEL MENÚ — CORREGIDO -->
     <script>
         const btnMenu = document.getElementById('btnMenu');
         const sidebar = document.getElementById('sidebar');
         const contenido = document.getElementById('contenido');
-        let menuAbierto = false; // Empieza CERRADO en móvil
+        let menuAbierto = false;
 
         function actualizarMenu() {
             if (!sidebar || !contenido) return;
 
             if (menuAbierto) {
-                // ABRIR menú
                 sidebar.classList.remove('oculto');
                 sidebar.classList.add('mostrado');
                 if (window.innerWidth <= 768) {
@@ -238,14 +289,12 @@
                     contenido.classList.remove('sidebar-oculto');
                 }
             } else {
-                // CERRAR menú
                 sidebar.classList.remove('mostrado');
                 sidebar.classList.add('oculto');
                 contenido.classList.add('sidebar-oculto');
             }
         }
 
-        // Al hacer clic en el botón ☰
         if (btnMenu) {
             btnMenu.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -255,7 +304,6 @@
             });
         }
 
-        // Al hacer clic en una pestaña → CERRAR menú en móvil
         function cerrarMenuEnMovil() {
             if (window.innerWidth <= 768) {
                 menuAbierto = false;
@@ -263,7 +311,6 @@
             }
         }
 
-        // Cerrar al tocar fuera del menú
         if (contenido) {
             contenido.addEventListener('click', () => {
                 if (window.innerWidth <= 768 && menuAbierto) {
@@ -273,21 +320,17 @@
             });
         }
 
-        // Ajustar automáticamente al cambiar tamaño de pantalla
         window.addEventListener('resize', () => {
             if (window.innerWidth > 768) {
-                // En PC: menú SIEMPRE visible
                 menuAbierto = true;
                 if (sidebar) sidebar.classList.remove('oculto', 'mostrado');
                 if (contenido) contenido.classList.remove('sidebar-oculto');
             } else {
-                // En móvil: menú SIEMPRE cerrado al empezar
                 menuAbierto = false;
                 actualizarMenu();
             }
         });
 
-        // Exponer para que se llame al cambiar pestaña
         window.cerrarMenuEnMovil = cerrarMenuEnMovil;
     </script>
 </body>

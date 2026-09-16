@@ -1,6 +1,5 @@
 // =====================================================
-// ===== 📦 MÓDULO MOVIMIENTOS =====
-// ===== ⚠️ SOLO USAR VARIABLES GLOBALES DECLARADAS EN funciones.js =====
+// ===== 📦 MÓDULO MOVIMIENTOS — VERSIÓN ACTUALIZADA =====
 // =====================================================
 window.cargarModulo_movimientos = async function() {
     const hoy = new Date().toISOString().split('T')[0];
@@ -34,7 +33,7 @@ window.cargarModulo_movimientos = async function() {
                     </div>
                     <div class="grupo">
                         <label>Conductor / Colaborador</label>
-                        <select id="colaboradorMov" required>
+                        <select id="colaboradorMov" required onchange="dibujarFilasRecogida()">
                             <option value="">-- Seleccione --</option>
                             ${colaboradores.map(c=>`<option value="${c.nombre}">${c.nombre}</option>`).join('')}
                         </select>
@@ -57,7 +56,7 @@ window.cargarModulo_movimientos = async function() {
                     </div>
                     <div class="grupo">
                         <label>Total Kilos Recogidos</label>
-                        <input type="number" id="totalKilosMov" min="0" step="0.01" value="0" readonly>
+                        <input type="number" id="totalKilosMov" min="0" step="0.01" value="0" readonly style="background:#f3f4f6;">
                     </div>
                 </div>
 
@@ -101,7 +100,7 @@ window.cargarModulo_movimientos = async function() {
     <!-- PENDIENTES POR LLEGAR -->
     <div id="submov-pendientes" class="oculto">
         <div class="tarjeta">
-            <h3 class="font-bold mb-3">⏳ Pendientes por Llegada</h3>
+            <h3 class="font-bold mb-3">⏳ Pendientes por Llegar</h3>
             <table class="tabla">
                 <thead>
                     <tr>
@@ -173,9 +172,7 @@ function dibujarPendientes() {
     const tb = document.getElementById('tablaPendientesCuerpo');
     if (!tb) return;
 
-    // ✅ SOLO muestra los que NO tienen Hora de Llegada
     const pendientes = movimientos.filter(m => !m.horaLlegada || m.horaLlegada === '');
-
     tb.innerHTML = pendientes.map(m => `
         <tr>
             <td><input type="checkbox" class="chk-pendiente" data-id="${m.id}"></td>
@@ -287,7 +284,12 @@ function editarMovimiento(id) {
     document.getElementById('canastillasLlegada').value = m.canastillasLlegada || 0;
     document.getElementById('totalKilosMov').value = m.totalKilos || 0;
 
-    filasRecogida = m.recogidas || [];
+    filasRecogida = (m.recogidas || []).map(r => ({
+        tipo: r.tipo || 'canastilla',
+        cantidad: r.cantidad || 0,
+        kilos: r.kilos || 0,
+        aQuien: r.aQuien || ''
+    }));
     dibujarFilasRecogida();
 
     document.getElementById('tituloFormMov').textContent = '✏️ Editar Movimiento';
@@ -314,21 +316,33 @@ async function guardarMovimiento() {
         horaSalida, horaLlegada,
         canastillasSalida, canastillasLlegada,
         totalKilos: calcularTotalKilos(),
-        recogidas: filasRecogida
+        recogidas: filasRecogida.map(r => ({
+            tipo: r.tipo,
+            cantidad: r.cantidad,
+            kilos: r.kilos,
+            aQuien: r.aQuien,
+            quienRecoge: colaborador // ← Se guarda automáticamente sin mostrarse
+        }))
     };
 
     try {
         if (idEdicion) {
-            // ✅ ACTUALIZAR
             await db.collection('movimientos').doc(idEdicion).update(datos);
             alert('✅ Movimiento ACTUALIZADO — Se completó y salió de Pendientes ✅');
         } else {
-            // ✅ CREAR NUEVO
-            await db.collection('movimientos').add(datos);
+            if (usuarioActivo?.rol === 'prueba') {
+                datos.esPrueba = true;
+                datos.usuarioPrueba = usuarioActivo.usuario;
+                const ref = await db.collection('movimientos').add(datos);
+                if (typeof idsCreadosPorPrueba !== 'undefined') {
+                    idsCreadosPorPrueba.push({ coleccion: 'movimientos', id: ref.id });
+                }
+            } else {
+                await db.collection('movimientos').add(datos);
+            }
             alert('✅ Movimiento GUARDADO');
         }
 
-        // ✅ LIMPIAR FORMULARIO
         limpiarFormularioMov();
 
     } catch (error) {
@@ -346,16 +360,22 @@ function limpiarFormularioMov() {
 }
 
 // =====================================================
-// ===== FILAS DE RECOGIDA =====
+// ===== FILAS DE RECOGIDA — SOLO COLABORADORES =====
 // =====================================================
 function agregarFilaRecogida() {
-    filasRecogida.push({ tipo: 'canastilla', cantidad: 0, kilos: 0, quienRecoge: '', aQuien: '' });
+    filasRecogida.push({
+        tipo: 'canastilla',
+        cantidad: 0,
+        kilos: 0,
+        aQuien: ''
+    });
     dibujarFilasRecogida();
 }
 
 function dibujarFilasRecogida() {
     const area = document.getElementById('areaRecogidas');
     if (!area) return;
+
     area.innerHTML = filasRecogida.map((f, i) => `
         <div class="grid-2 tarjeta p-2 mb-2">
             <div>
@@ -376,13 +396,13 @@ function dibujarFilasRecogida() {
                 <label>Kilos</label>
                 <input type="number" step="0.01" min="0" value="${f.kilos}" onchange="filasRecogida[${i}].kilos=parseFloat(this.value)||0; calcularTotalKilos()">
             </div>
-            <div>
-                <label>Quién Recoge</label>
-                <input type="text" value="${f.quienRecoge}" onchange="filasRecogida[${i}].quienRecoge=this.value">
-            </div>
             <div class="col-span-2">
                 <label>Recoge a:</label>
-                <input type="text" value="${f.aQuien}" onchange="filasRecogida[${i}].aQuien=this.value">
+                <select onchange="filasRecogida[${i}].aQuien=this.value">
+                    <option value="">-- Seleccione colaborador --</option>
+                    ${colaboradores.map(c => `<option value="${c.nombre}" ${f.aQuien===c.nombre?'selected':''}>${c.nombre}</option>`).join('')}
+                    <!-- ✅ Solo colaboradores, sin conductores de transportadora -->
+                </select>
             </div>
             <button type="button" class="btn btn-peligro btn-sm" onclick="filasRecogida.splice(${i},1); dibujarFilasRecogida(); calcularTotalKilos()">🗑️ Quitar</button>
         </div>
