@@ -12,7 +12,6 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
         body { background: #f0f4f8; }
-
         /* Encabezado */
         header { 
             background: linear-gradient(135deg, #1e40af, #3b82f6); 
@@ -70,9 +69,7 @@
             color: white; 
         }
         .btn-actualizar:hover { background: #15803d; }
-        .btn-actualizar:disabled { background: #86efac; cursor: not-allowed; }
-
-        /* ✅ MENÚ LATERAL — CORREGIDO */
+        /* MENÚ LATERAL — CORREGIDO */
         #sidebar { 
             position: fixed; 
             top: 60px; 
@@ -85,11 +82,9 @@
             overflow-y: auto; 
             transition: transform .3s ease-in-out; 
             padding-top: 0.5rem; 
-            transform: translateX(-100%);
         }
-        #sidebar.mostrado { transform: translateX(0); }
         #sidebar.oculto { transform: translateX(-100%); }
-
+        #sidebar.mostrado { transform: translateX(0); }
         .btn-pestaña { 
             display: block; 
             width: 100%; 
@@ -105,17 +100,15 @@
         }
         .btn-pestaña:hover { background: #eff6ff; color: #1d4ed8; }
         .btn-pestaña.activa { background: #dbeafe; color: #1d4ed8; border-left-color: #2563eb; font-weight: 600; }
-
-        /* ✅ CONTENIDO PRINCIPAL */
+        /* CONTENIDO PRINCIPAL */
         #contenido { 
-            margin-left: 260px; 
+            margin-left: 0; 
             margin-top: 60px; 
             padding: 1.2rem; 
             transition: margin-left .3s ease; 
             min-height: calc(100vh - 60px); 
         }
-        #contenido.sidebar-oculto { margin-left: 0; }
-
+        #contenido.con-sidebar { margin-left: 260px; }
         /* Tarjetas y botones */
         .tarjeta { background: white; border-radius: 0.7rem; box-shadow: 0 2px 8px rgba(0,0,0,.06); padding: 1.2rem; margin-bottom: 1.2rem; }
         .oculto { display: none !important; }
@@ -128,12 +121,8 @@
         .btn-peligro:hover { background: #b91c1c; }
         .btn-amarillo { background: #f59e0b; color: #1f2937; }
         .btn-amarillo:hover { background: #d97706; }
-        .btn-sm { padding: 0.3rem 0.5rem; font-size: 0.8rem; }
         .btn-subpestaña { background: #e5e7eb; padding: 0.5rem 1rem; border-radius: 0.4rem; cursor: pointer; margin-right: 0.5rem; margin-bottom: 0.5rem; border: none; }
         .btn-subpestaña.activa { background: #2563eb; color: white; }
-        .btn-subcombustible { background: #e5e7eb; padding: 0.5rem 1rem; border-radius: 0.4rem; cursor: pointer; margin-right: 0.5rem; margin-bottom: 0.5rem; border: none; }
-        .btn-subcombustible.activa { background: #2563eb; color: white; }
-
         /* Formularios */
         .grupo { margin-bottom: 1rem; }
         label { display: block; margin-bottom: 0.35rem; font-weight: 500; color: #374151; font-size: 0.9rem; }
@@ -149,20 +138,15 @@
         .mt-2 { margin-top: 0.5rem; }
         .mt-3 { margin-top: 0.8rem; }
         .mt-4 { margin-top: 1.2rem; }
-        .ml-2 { margin-left: 0.5rem; }
         .text-center { text-align: center; }
         .font-bold { font-weight: 700; }
         .text-sm { font-size: 0.85rem; }
-        .text-green-600 { color: #16a34a; }
         .col-span-2 { grid-column: span 2; }
-        .resumen { display: flex; gap: 1.2rem; flex-wrap: wrap; padding: 0.8rem; background: #eff6ff; border-radius: 0.5rem; font-weight: 500; }
-
         /* Tablas */
         table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
         th, td { padding: 0.6rem 0.8rem; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 0.9rem; }
         th { background: #f3f4f6; font-weight: 600; }
         tr:hover { background: #f9fafb; }
-
         /* Página de Login */
         #pantallaLogin { 
             position: fixed; 
@@ -183,41 +167,17 @@
         }
         .caja-login h2 { text-align: center; margin-bottom: 1.5rem; color: #1f2937; }
         #mensajeError { color: #dc2626; margin-top: 0.8rem; text-align: center; font-size: 0.9rem; min-height: 1.2rem; }
-
-        /* Aviso Modo Prueba */
-        #avisoPrueba {
-            background: #fef3c7; 
-            color: #92400e; 
-            padding: 6px 12px; 
-            font-size: 13px; 
-            font-weight: 600; 
-            text-align: center;
-            border-bottom: 2px solid #f59e0b;
-            position: fixed;
-            top: 60px;
-            left: 0;
-            right: 0;
-            z-index: 99;
-        }
-
-        /* ✅ RESPONSIVE PARA MÓVIL — CORREGIDO */
+        /* RESPONSIVE */
         @media (max-width: 768px) {
-            #sidebar { width: 260px; transform: translateX(-100%); }
-            #sidebar.mostrado { transform: translateX(0); }
             #contenido { margin-left: 0; padding: 0.8rem; padding-top: 10px; }
             .grid-2 { grid-template-columns: 1fr; }
             header h1 { font-size: 0.9rem; }
             .usuario-info { gap: 0.3rem; font-size: 0.8rem; }
-            .btn-sm { padding: 0.3rem 0.5rem; font-size: 0.75rem; }
-            .btn-cerrar { padding: 0.3rem 0.5rem; font-size: 0.75rem; }
             th, td { padding: 0.4rem 0.35rem; font-size: 0.8rem; }
-            .resumen { flex-direction: column; gap: 0.3rem; }
-            #avisoPrueba { top: 56px; font-size: 11px; }
         }
     </style>
 </head>
 <body>
-
     <!-- PANTALLA DE INICIO DE SESIÓN -->
     <div id="pantallaLogin">
         <div class="caja-login">
@@ -235,12 +195,11 @@
         </div>
     </div>
 
-    <!-- ENCABEZADO PRINCIPAL — CON BOTÓN ACTUALIZAR SIEMPRE VISIBLE -->
+    <!-- ENCABEZADO PRINCIPAL -->
     <header id="encabezadoApp" class="oculto">
         <button class="btn-menu" id="btnMenu">☰</button>
         <h1>📦 Control de Movimientos</h1>
         <div class="usuario-info">
-            <!-- ✅ BOTÓN ACTUALIZAR FIJO ARRIBA -->
             <button class="btn-sm btn-actualizar" onclick="refrescarTodo()">🔄 Actualizar</button>
             <span id="nombreUsuario"></span>
             <button class="btn-cerrar" onclick="cerrarSesion()">Salir</button>
@@ -260,7 +219,7 @@
     <!-- CONTENEDOR PRINCIPAL -->
     <div id="contenido" class="oculto"></div>
 
-    <!-- ✅ ORDEN DE CARGA — NO CAMBIAR -->
+    <!-- ORDEN DE CARGA — NO CAMBIAR -->
     <script src="firebase.js"></script>
     <script src="funciones.js"></script>
     <script src="movimientos.js"></script>
@@ -270,28 +229,27 @@
     <script src="informes.js"></script>
     <script src="admin.js"></script>
 
-    <!-- ✅ SCRIPT DEL MENÚ — CORREGIDO -->
+    <!-- CONTROL DEL MENÚ LATERAL -->
     <script>
         const btnMenu = document.getElementById('btnMenu');
         const sidebar = document.getElementById('sidebar');
         const contenido = document.getElementById('contenido');
-        let menuAbierto = false;
 
         function actualizarMenu() {
-            if (!sidebar || !contenido) return;
-
+            if (!sidebar || !contenido || typeof menuAbierto === 'undefined') return;
+            
             if (menuAbierto) {
                 sidebar.classList.remove('oculto');
                 sidebar.classList.add('mostrado');
-                if (window.innerWidth <= 768) {
-                    contenido.classList.add('sidebar-oculto');
+                if (window.innerWidth > 768) {
+                    contenido.classList.add('con-sidebar');
                 } else {
-                    contenido.classList.remove('sidebar-oculto');
+                    contenido.classList.remove('con-sidebar');
                 }
             } else {
                 sidebar.classList.remove('mostrado');
                 sidebar.classList.add('oculto');
-                contenido.classList.add('sidebar-oculto');
+                contenido.classList.remove('con-sidebar');
             }
         }
 
@@ -304,34 +262,30 @@
             });
         }
 
-        function cerrarMenuEnMovil() {
-            if (window.innerWidth <= 768) {
-                menuAbierto = false;
-                actualizarMenu();
-            }
-        }
-
-        if (contenido) {
-            contenido.addEventListener('click', () => {
-                if (window.innerWidth <= 768 && menuAbierto) {
+        document.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768 && menuAbierto) {
+                if (!sidebar.contains(e.target) && e.target !== btnMenu) {
                     menuAbierto = false;
                     actualizarMenu();
                 }
-            });
-        }
-
-        window.addEventListener('resize', () => {
-            if (window.innerWidth > 768) {
-                menuAbierto = true;
-                if (sidebar) sidebar.classList.remove('oculto', 'mostrado');
-                if (contenido) contenido.classList.remove('sidebar-oculto');
-            } else {
-                menuAbierto = false;
-                actualizarMenu();
             }
         });
 
-        window.cerrarMenuEnMovil = cerrarMenuEnMovil;
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                if (!menuAbierto) {
+                    menuAbierto = true;
+                    actualizarMenu();
+                }
+            } else {
+                if (menuAbierto) {
+                    menuAbierto = false;
+                    actualizarMenu();
+                }
+            }
+        });
+
+        window.actualizarMenu = actualizarMenu;
     </script>
 </body>
 </html>

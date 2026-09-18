@@ -17,6 +17,8 @@ let filasRecogida = [];
 let idsCreadosPorPrueba = [];
 let ultimosResultados = { movimientos: [], kilometraje: [], tanqueo: [] };
 let escuchasActivas = [];
+// ✅ Alineado con el index: declaramos menuAbierto
+let menuAbierto = window.innerWidth > 768;
 
 const usuariosFijos = [
     { usuario: "jgarnica", clave: "123456", rol: "admin", nombre: "J. Garnica" },
@@ -73,12 +75,13 @@ async function finalizarLogin() {
     }
 
     await cargarDatosGenerales();
-    
-    if (window.innerWidth > 768 && typeof menuAbierto !== 'undefined') {
+
+    // ✅ Sincronizar menú al entrar
+    if (window.innerWidth > 768) {
         menuAbierto = true;
         if (typeof actualizarMenu === 'function') actualizarMenu();
     }
-    
+
     cambiarPestaña('movimientos');
 }
 
@@ -103,8 +106,8 @@ async function cerrarSesion() {
     document.getElementById('contenido').classList.add('oculto');
     document.getElementById('usuario').value = '';
     document.getElementById('clave').value = '';
-    
-    if (typeof menuAbierto !== 'undefined') menuAbierto = false;
+
+    menuAbierto = false;
 }
 
 // =====================================================
@@ -156,22 +159,27 @@ async function cargarDatosGenerales() {
         colaboradores = [];
         snap.forEach(doc => { colaboradores.push({ id: doc.id, ...doc.data() }); });
     });
+
     db.collection('vehiculos_movimientos').onSnapshot(snap => {
         vehiculosMov = [];
         snap.forEach(doc => { vehiculosMov.push({ id: doc.id, ...doc.data() }); });
     });
+
     db.collection('vehiculos_transportadora').onSnapshot(snap => {
         vehiculosTransp = [];
         snap.forEach(doc => { vehiculosTransp.push({ id: doc.id, ...doc.data() }); });
     });
+
     db.collection('conductores_transportadora').onSnapshot(snap => {
         conductores = [];
         snap.forEach(doc => { conductores.push({ id: doc.id, ...doc.data() }); });
     });
+
     db.collection('kilometraje').orderBy('fecha', 'desc').onSnapshot(snap => {
         kilometraje = [];
         snap.forEach(doc => { kilometraje.push({ id: doc.id, ...doc.data() }); });
     });
+
     db.collection('tanqueo').orderBy('fecha', 'desc').onSnapshot(snap => {
         tanqueo = [];
         snap.forEach(doc => { tanqueo.push({ id: doc.id, ...doc.data() }); });
@@ -210,9 +218,11 @@ async function refrescarTodo() {
 // ===== 🔄 CAMBIAR PESTAÑA =====
 // =====================================================
 function cambiarPestaña(nombre) {
-    const btn = event.target;
-    document.querySelectorAll('#sidebar .btn-pestaña').forEach(b => b.classList.remove('activa'));
-    btn.classList.add('activa');
+    const btn = event?.target;
+    if (btn) {
+        document.querySelectorAll('#sidebar .btn-pestaña').forEach(b => b.classList.remove('activa'));
+        btn.classList.add('activa');
+    }
 
     const contenido = document.getElementById('contenido');
     if (!contenido) return;
@@ -220,19 +230,31 @@ function cambiarPestaña(nombre) {
 
     switch(nombre) {
         case 'movimientos':
-            if (typeof cargarModulo_movimientos === 'function') cargarModulo_movimientos();
+            if (typeof cargarModulo_movimientos === 'function') {
+                cargarModulo_movimientos();
+            } else {
+                contenido.innerHTML = '<p class="text-center mt-4">⚠️ Módulo de movimientos no cargado</p>';
+            }
             break;
         case 'transportadora':
-            if (typeof cargarModulo_transportadora === 'function') cargarModulo_transportadora();
+            if (typeof cargarModulo_transportadora === 'function') {
+                cargarModulo_transportadora();
+            }
             break;
         case 'combustible':
-            if (typeof cargarModulo_combustible === 'function') cargarModulo_combustible();
+            if (typeof cargarModulo_combustible === 'function') {
+                cargarModulo_combustible();
+            }
             break;
         case 'mantenimiento':
-            if (typeof cargarModulo_mantenimiento === 'function') cargarModulo_mantenimiento();
+            if (typeof cargarModulo_mantenimiento === 'function') {
+                cargarModulo_mantenimiento();
+            }
             break;
         case 'informes':
-            if (typeof cargarModulo_informes === 'function') cargarModulo_informes();
+            if (typeof cargarModulo_informes === 'function') {
+                cargarModulo_informes();
+            }
             break;
         case 'administracion':
             if (usuarioActivo?.rol === 'admin' && typeof cargarModulo_administracion === 'function') {
@@ -243,8 +265,10 @@ function cambiarPestaña(nombre) {
             break;
     }
 
-    if (typeof cerrarMenuEnMovil === 'function') {
-        cerrarMenuEnMovil();
+    // ✅ Cerrar menú automáticamente en móvil
+    if (window.innerWidth <= 768) {
+        menuAbierto = false;
+        if (typeof actualizarMenu === 'function') actualizarMenu();
     }
 }
 
@@ -253,4 +277,12 @@ function cambiarPestaña(nombre) {
 // =====================================================
 function formatearFechaHoy() {
     return new Date().toISOString().split('T')[0];
+}
+
+// ✅ Función auxiliar para cerrar menú desde el index
+function cerrarMenuEnMovil() {
+    if (window.innerWidth <= 768) {
+        menuAbierto = false;
+        if (typeof actualizarMenu === 'function') actualizarMenu();
+    }
 }

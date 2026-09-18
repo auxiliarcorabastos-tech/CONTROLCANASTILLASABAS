@@ -233,7 +233,6 @@ async function guardarDatosGenerales() {
     await db.collection('mantenimiento_vehiculos').doc(placaActual).set(datos, { merge: true });
     alert('✅ Datos generales guardados');
 }
-
 // =====================================================
 // ===== GUARDAR DOCUMENTOS =====
 // =====================================================

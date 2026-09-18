@@ -10,6 +10,12 @@ const firebaseConfig = {
     appId: "1:372736670308:web:14c2e2614c14ff3dc2bd71",
     measurementId: "G-N3YMQ2JKZM"
 };
+
+// Inicializar Firebase
 firebase.initializeApp(firebaseConfig);
+
+// Referencias globales
 const db = firebase.firestore();
 const auth = firebase.auth();
+
+console.log('✅ Firebase conectado correctamente');
