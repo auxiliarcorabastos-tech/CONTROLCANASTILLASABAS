@@ -1,5 +1,5 @@
 // =====================================================
-// ===== 📋 VARIABLES GLOBALES =====
+// ===== 📋 VARIABLES GLOBALES — UNA SOLA VEZ =====
 // =====================================================
 let usuarioActivo = null;
 let movimientos = [];
@@ -17,8 +17,9 @@ let filasRecogida = [];
 let idsCreadosPorPrueba = [];
 let ultimosResultados = { movimientos: [], kilometraje: [], tanqueo: [] };
 let escuchasActivas = [];
-// ✅ Alineado con el index: declaramos menuAbierto
-let menuAbierto = window.innerWidth > 768;
+let menuAbierto = window.innerWidth > 768; // ✅ Declarada UNA SOLA VEZ
+// ✅ NUEVO: Variable para transferencias de canastillas
+let transferenciasCanastillas = [];
 
 const usuariosFijos = [
     { usuario: "jgarnica", clave: "123456", rol: "admin", nombre: "J. Garnica" },
@@ -37,9 +38,9 @@ async function iniciarSesion() {
     const clave = document.getElementById('clave').value;
     const error = document.getElementById('mensajeError');
     error.textContent = '';
-
+    
     if (!usuario || !clave) return error.textContent = '⚠️ Complete usuario y contraseña';
-
+    
     const datos = usuariosFijos.find(u => u.usuario === usuario && u.clave === clave);
     if (datos) {
         usuarioActivo = { ...datos };
@@ -55,11 +56,11 @@ async function finalizarLogin() {
     document.getElementById('sidebar').classList.remove('oculto');
     document.getElementById('contenido').classList.remove('oculto');
     document.getElementById('nombreUsuario').textContent = usuarioActivo.nombre;
-
+    
     if (usuarioActivo.rol === 'admin') {
         document.getElementById('btnAdmin').classList.remove('oculto');
     }
-
+    
     if (usuarioActivo.rol === 'prueba') {
         const encabezado = document.getElementById('encabezadoApp');
         const aviso = document.createElement('div');
@@ -73,15 +74,17 @@ async function finalizarLogin() {
         aviso.textContent = '⚠️ MODO PRUEBA — Todo se BORRARÁ al cerrar sesión';
         encabezado.parentNode.insertBefore(aviso, encabezado.nextSibling);
     }
-
+    
+    // ✅ Cargar transferencias guardadas
+    const guardadas = localStorage.getItem('transferenciasCanastillas');
+    transferenciasCanastillas = guardadas ? JSON.parse(guardadas) : [];
+    
     await cargarDatosGenerales();
-
-    // ✅ Sincronizar menú al entrar
-    if (window.innerWidth > 768) {
-        menuAbierto = true;
-        if (typeof actualizarMenu === 'function') actualizarMenu();
+    
+    if (window.innerWidth > 768 && typeof actualizarMenu === 'function') {
+        actualizarMenu();
     }
-
+    
     cambiarPestaña('movimientos');
 }
 
@@ -93,25 +96,24 @@ async function cerrarSesion() {
     } else {
         if (!confirm('¿Cerrar sesión?')) return;
     }
-
+    
     usuarioActivo = null;
     detenerEscuchas();
-
+    
     const aviso = document.getElementById('avisoPrueba');
     if (aviso) aviso.remove();
-
+    
     document.getElementById('pantallaLogin').classList.remove('oculto');
     document.getElementById('encabezadoApp').classList.add('oculto');
     document.getElementById('sidebar').classList.add('oculto');
     document.getElementById('contenido').classList.add('oculto');
     document.getElementById('usuario').value = '';
     document.getElementById('clave').value = '';
-
     menuAbierto = false;
 }
 
 // =====================================================
-// ===== 🧹 BORRADO DATOS DE PRUEBA =====
+// ===== 🧹 BORRADO DE DATOS DE PRUEBA =====
 // =====================================================
 async function borrarDatosPrueba() {
     if (!idsCreadosPorPrueba.length) return;
@@ -126,10 +128,13 @@ async function borrarDatosPrueba() {
     }
     idsCreadosPorPrueba = [];
     console.log(`🧹 Se borraron ${borrados} registros de prueba`);
+    // ✅ También limpiar transferencias en modo prueba
+    transferenciasCanastillas = [];
+    localStorage.removeItem('transferenciasCanastillas');
 }
 
 // =====================================================
-// ===== 📂 CARGA DE DATOS =====
+// ===== 📂 CARGA DE DATOS EN TIEMPO REAL =====
 // =====================================================
 function detenerEscuchas() {
     escuchasActivas.forEach(desconectar => {
@@ -140,46 +145,48 @@ function detenerEscuchas() {
 
 async function cargarDatosGenerales() {
     detenerEscuchas();
-
+    
     const descMov = db.collection('movimientos').orderBy('fecha', 'desc').onSnapshot(snap => {
         movimientos = [];
         snap.forEach(doc => { movimientos.push({ id: doc.id, ...doc.data() }); });
         if (typeof dibujarMovimientosHoy === 'function') dibujarMovimientosHoy();
         if (typeof dibujarPendientes === 'function') dibujarPendientes();
+        // ✅ Refrescar Mis Canastillas automáticamente
+        if (typeof actualizarVistaMisCanastillas === 'function') actualizarVistaMisCanastillas();
     });
     escuchasActivas.push(descMov);
-
+    
     const descTransp = db.collection('movimientos_transportadora').orderBy('fecha', 'desc').onSnapshot(snap => {
         movimientosTransp = [];
         snap.forEach(doc => { movimientosTransp.push({ id: doc.id, ...doc.data() }); });
     });
     escuchasActivas.push(descTransp);
-
+    
     db.collection('colaboradores').onSnapshot(snap => {
         colaboradores = [];
         snap.forEach(doc => { colaboradores.push({ id: doc.id, ...doc.data() }); });
     });
-
+    
     db.collection('vehiculos_movimientos').onSnapshot(snap => {
         vehiculosMov = [];
         snap.forEach(doc => { vehiculosMov.push({ id: doc.id, ...doc.data() }); });
     });
-
+    
     db.collection('vehiculos_transportadora').onSnapshot(snap => {
         vehiculosTransp = [];
         snap.forEach(doc => { vehiculosTransp.push({ id: doc.id, ...doc.data() }); });
     });
-
+    
     db.collection('conductores_transportadora').onSnapshot(snap => {
         conductores = [];
         snap.forEach(doc => { conductores.push({ id: doc.id, ...doc.data() }); });
     });
-
+    
     db.collection('kilometraje').orderBy('fecha', 'desc').onSnapshot(snap => {
         kilometraje = [];
         snap.forEach(doc => { kilometraje.push({ id: doc.id, ...doc.data() }); });
     });
-
+    
     db.collection('tanqueo').orderBy('fecha', 'desc').onSnapshot(snap => {
         tanqueo = [];
         snap.forEach(doc => { tanqueo.push({ id: doc.id, ...doc.data() }); });
@@ -195,16 +202,18 @@ async function refrescarTodo() {
         btn.textContent = '🔄 Cargando...';
         btn.disabled = true;
     }
-
+    
     await cargarDatosGenerales();
-
+    
     if (typeof dibujarMovimientosHoy === 'function') dibujarMovimientosHoy();
     if (typeof dibujarPendientes === 'function') dibujarPendientes();
     if (typeof dibujarTransp === 'function') dibujarTransp();
     if (typeof dibujarKilometraje === 'function') dibujarKilometraje();
     if (typeof dibujarTanqueo === 'function') dibujarTanqueo();
     if (typeof dibujarMantenimiento === 'function') dibujarMantenimiento();
-
+    // ✅ Actualizar también Mis Canastillas
+    if (typeof actualizarVistaMisCanastillas === 'function') actualizarVistaMisCanastillas();
+    
     setTimeout(() => {
         if (btn) {
             btn.textContent = '🔄 Actualizar';
@@ -215,7 +224,7 @@ async function refrescarTodo() {
 }
 
 // =====================================================
-// ===== 🔄 CAMBIAR PESTAÑA =====
+// ===== 🔄 CAMBIAR DE PESTAÑA =====
 // =====================================================
 function cambiarPestaña(nombre) {
     const btn = event?.target;
@@ -223,11 +232,11 @@ function cambiarPestaña(nombre) {
         document.querySelectorAll('#sidebar .btn-pestaña').forEach(b => b.classList.remove('activa'));
         btn.classList.add('activa');
     }
-
+    
     const contenido = document.getElementById('contenido');
     if (!contenido) return;
     contenido.innerHTML = '';
-
+    
     switch(nombre) {
         case 'movimientos':
             if (typeof cargarModulo_movimientos === 'function') {
@@ -236,26 +245,68 @@ function cambiarPestaña(nombre) {
                 contenido.innerHTML = '<p class="text-center mt-4">⚠️ Módulo de movimientos no cargado</p>';
             }
             break;
+        
+        // ✅ NUEVO: Módulo Mis Canastillas
+        case 'misCanastillas':
+            if (typeof cargarModulo_misCanastillas === 'function') {
+                cargarModulo_misCanastillas();
+            } else {
+                contenido.innerHTML = '<p class="text-center mt-4">⚠️ Módulo Mis Canastillas no cargado</p>';
+                console.error('Función cargarModulo_misCanastillas NO encontrada — verifica que misCanastillas.js esté cargado');
+            }
+            break;
+            
         case 'transportadora':
             if (typeof cargarModulo_transportadora === 'function') {
                 cargarModulo_transportadora();
             }
             break;
+            
         case 'combustible':
             if (typeof cargarModulo_combustible === 'function') {
                 cargarModulo_combustible();
             }
             break;
+            
         case 'mantenimiento':
             if (typeof cargarModulo_mantenimiento === 'function') {
                 cargarModulo_mantenimiento();
             }
             break;
+            
         case 'informes':
             if (typeof cargarModulo_informes === 'function') {
                 cargarModulo_informes();
             }
             break;
+            
+        case 'donantes':
+            if (typeof cargarModulo_donantes === 'function') {
+                cargarModulo_donantes();
+            } else {
+                contenido.innerHTML = '<p class="text-center mt-4">⚠️ Módulo de Donantes no cargado</p>';
+                console.error('Función cargarModulo_donantes NO encontrada');
+            }
+            break;
+            
+        case 'anuncios':
+            if (typeof cargarModulo_anuncios === 'function') {
+                cargarModulo_anuncios();
+            } else {
+                contenido.innerHTML = '<p class="text-center mt-4">⚠️ Módulo de Anuncios no cargado</p>';
+                console.error('Función cargarModulo_anuncios NO encontrada');
+            }
+            break;
+            
+        case 'recoleccion':
+            if (typeof cargarModulo_recoleccion === 'function') {
+                cargarModulo_recoleccion();
+            } else {
+                contenido.innerHTML = '<p class="text-center mt-4">⚠️ Módulo de Recolección no cargado</p>';
+                console.error('Función cargarModulo_recoleccion NO encontrada');
+            }
+            break;
+            
         case 'administracion':
             if (usuarioActivo?.rol === 'admin' && typeof cargarModulo_administracion === 'function') {
                 cargarModulo_administracion();
@@ -264,8 +315,8 @@ function cambiarPestaña(nombre) {
             }
             break;
     }
-
-    // ✅ Cerrar menú automáticamente en móvil
+    
+    // Cerrar menú en móvil al cambiar de pestaña
     if (window.innerWidth <= 768) {
         menuAbierto = false;
         if (typeof actualizarMenu === 'function') actualizarMenu();
@@ -279,7 +330,6 @@ function formatearFechaHoy() {
     return new Date().toISOString().split('T')[0];
 }
 
-// ✅ Función auxiliar para cerrar menú desde el index
 function cerrarMenuEnMovil() {
     if (window.innerWidth <= 768) {
         menuAbierto = false;
