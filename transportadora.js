@@ -5,7 +5,6 @@ window.cargarModulo_transportadora = async function() {
     const hoy = new Date().toISOString().split('T')[0];
     const c = document.getElementById('contenido');
     if (!c) return;
-
     c.innerHTML = `
     <div class="flex gap-2 mb-4 flex-wrap">
         <button class="btn-subpestaña activa" onclick="cambiarSubpestañaTransp('crear', event)">📝 Registrar Llegada</button>
@@ -52,15 +51,15 @@ window.cargarModulo_transportadora = async function() {
                     <label>Canastillas que SALEN</label>
                     <input type="number" id="canastillasSalidaTransp" min="0" value="0" placeholder="Se llena al salir">
                 </div>
-                <div class="grupo">
-                    <label>Observaciones</label>
-                    <input type="text" id="observacionesTransp" placeholder="Detalles opcionales">
+                <div class="grupo" style="grid-column: 1 / -1;">
+                    <label>📝 Observaciones</label>
+                    <input type="text" id="observacionesTransp" placeholder="Detalles, novedades, estado del vehículo...">
                 </div>
             </div>
-
-            <div class="flex gap-2 mt-4">
+            <div class="flex gap-2 mt-4 flex-wrap">
                 <button class="btn btn-exito" onclick="guardarTransp()">💾 Guardar</button>
                 <button class="btn" onclick="limpiarFormularioTransp()">🔄 Limpiar</button>
+                <button id="btnEliminarTransp" class="btn" style="background:#F53F3F; color:white; display:none;" onclick="eliminarTransp()">🗑️ Eliminar</button>
             </div>
         </div>
     </div>
@@ -77,22 +76,23 @@ window.cargarModulo_transportadora = async function() {
                 <div>📦 Canast. Llegaron: <strong id="resumenCanLlegTransp">0</strong></div>
                 <div>📦 Canast. Salieron: <strong id="resumenCanSalTransp">0</strong></div>
             </div>
-
+            
             <!-- BUSCADOR -->
             <div class="grupo mb-3">
                 <label>🔍 Buscar:</label>
-                <input type="text" id="buscarTranspHoy" placeholder="Placa, conductor..." oninput="filtrarTranspHoy()">
+                <input type="text" id="buscarTranspHoy" placeholder="Placa, conductor, observación..." oninput="filtrarTranspHoy()">
             </div>
-
+            
             <table class="tabla">
                 <thead>
                     <tr>
                         <th>Hora Llegada</th>
                         <th>Placa</th>
                         <th>Conductor</th>
-                        <th>Canast. Llegaron</th>
+                        <th>Canast. Lleg.</th>
                         <th>Hora Salida</th>
-                        <th>Canast. Salieron</th>
+                        <th>Canast. Sal.</th>
+                        <th>Observaciones</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -109,9 +109,9 @@ window.cargarModulo_transportadora = async function() {
             <!-- BUSCADOR -->
             <div class="grupo mb-3">
                 <label>🔍 Buscar:</label>
-                <input type="text" id="buscarTranspPend" placeholder="Placa, conductor..." oninput="filtrarTranspPendientes()">
+                <input type="text" id="buscarTranspPend" placeholder="Placa, conductor, observación..." oninput="filtrarTranspPendientes()">
             </div>
-
+            
             <table class="tabla">
                 <thead>
                     <tr>
@@ -119,7 +119,8 @@ window.cargarModulo_transportadora = async function() {
                         <th>Placa</th>
                         <th>Conductor</th>
                         <th>Canast. Llegaron</th>
-                        <th>Acción</th>
+                        <th>Observaciones</th>
+                        <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tablaTranspPendientesCuerpo"></tbody>
@@ -137,7 +138,7 @@ window.cargarModulo_transportadora = async function() {
 // =====================================================
 function cambiarSubpestañaTransp(nombre, evento) {
     document.querySelectorAll('.btn-subpestaña').forEach(b => b.classList.remove('activa'));
-    evento.currentTarget.classList.add('activa');
+    if (evento?.currentTarget) evento.currentTarget.classList.add('activa');
     document.querySelectorAll('[id^="subtransp-"]').forEach(d => d.classList.add('oculto'));
     document.getElementById(`subtransp-${nombre}`).classList.remove('oculto');
     
@@ -163,10 +164,10 @@ function dibujarTranspHoy() {
     const hoy = new Date().toISOString().split('T')[0];
     const tb = document.getElementById('tablaTranspHoyCuerpo');
     if (!tb) return;
-
+    
     let filtro = movimientosTransp.filter(m => m.fecha === hoy);
     filtro = ordenarPorHoraLlegada(filtro);
-
+    
     // RESUMEN
     const totalLlegadas = filtro.length;
     const totalSalidas = filtro.filter(m => m.horaSalida).length;
@@ -177,17 +178,18 @@ function dibujarTranspHoy() {
     document.getElementById('resumenSalidasTransp').textContent = totalSalidas;
     document.getElementById('resumenCanLlegTransp').textContent = totalCanLleg;
     document.getElementById('resumenCanSalTransp').textContent = totalCanSal;
-
+    
     // BÚSQUEDA
     const texto = document.getElementById('buscarTranspHoy')?.value?.toLowerCase() || '';
     const res = texto 
         ? filtro.filter(m => 
             (m.placa||'').toLowerCase().includes(texto) ||
-            (m.conductor||'').toLowerCase().includes(texto))
+            (m.conductor||'').toLowerCase().includes(texto) ||
+            (m.observaciones||'').toLowerCase().includes(texto))
         : filtro;
-
+    
     tb.innerHTML = res.length === 0
-        ? '<tr><td colspan="7" class="text-center">📭 Sin movimientos hoy</td></tr>'
+        ? '<tr><td colspan="8" class="text-center">📭 Sin movimientos hoy</td></tr>'
         : res.map(m => `
         <tr>
             <td>${m.horaLlegada}</td>
@@ -196,16 +198,18 @@ function dibujarTranspHoy() {
             <td>${m.canastillasLlegada || 0}</td>
             <td>${m.horaSalida || '<span style="color:orange;">Pendiente</span>'}</td>
             <td>${m.canastillasSalida || '<span style="color:orange;">—</span>'}</td>
+            <td style="max-width:150px; font-size:12px;">${m.observaciones || '—'}</td>
             <td>
-                ${!m.horaSalida 
-                    ? `<button class="btn btn-exito btn-sm" onclick="irAEditarSalidaTransp('${m.id}')">➡️ Registrar Salida</button>` 
-                    : `<button class="btn btn-amarillo btn-sm" onclick="irAEditarTransp('${m.id}')">✏️ Editar</button>
-                       <span style="color:green;">✅ Salida registrada</span>`
-                }
+                <div class="flex gap-1">
+                    ${!m.horaSalida 
+                        ? `<button class="btn btn-exito btn-sm" onclick="irAEditarSalidaTransp('${m.id}')">➡️ Salida</button>` 
+                        : `<button class="btn btn-amarillo btn-sm" onclick="irAEditarTransp('${m.id}')">✏️ Editar</button>`
+                    }
+                    <button class="btn btn-sm" style="background:#F53F3F; color:white;" onclick="eliminarRegistroTransp('${m.id}')">🗑️</button>
+                </div>
             </td>
         </tr>`).join('');
 }
-
 function filtrarTranspHoy() { dibujarTranspHoy(); }
 
 // =====================================================
@@ -214,29 +218,35 @@ function filtrarTranspHoy() { dibujarTranspHoy(); }
 function dibujarTranspPendientes() {
     const tb = document.getElementById('tablaTranspPendientesCuerpo');
     if (!tb) return;
-
+    
     let pend = movimientosTransp.filter(m => !m.horaSalida);
     pend = ordenarPorHoraLlegada(pend);
-
+    
     const texto = document.getElementById('buscarTranspPend')?.value?.toLowerCase() || '';
     const res = texto
         ? pend.filter(m => 
             (m.placa||'').toLowerCase().includes(texto) ||
-            (m.conductor||'').toLowerCase().includes(texto))
+            (m.conductor||'').toLowerCase().includes(texto) ||
+            (m.observaciones||'').toLowerCase().includes(texto))
         : pend;
-
+    
     tb.innerHTML = res.length === 0
-        ? '<tr><td colspan="5" class="text-center">✅ Todos han salido</td></tr>'
+        ? '<tr><td colspan="6" class="text-center">✅ Todos han salido</td></tr>'
         : res.map(m => `
         <tr>
             <td>${m.horaLlegada}</td>
             <td>${m.placa}</td>
             <td>${m.conductor}</td>
             <td>${m.canastillasLlegada || 0}</td>
-            <td><button class="btn btn-exito btn-sm" onclick="irAEditarSalidaTransp('${m.id}')">➡️ Registrar Salida</button></td>
+            <td style="max-width:150px; font-size:12px;">${m.observaciones || '—'}</td>
+            <td>
+                <div class="flex gap-1">
+                    <button class="btn btn-exito btn-sm" onclick="irAEditarSalidaTransp('${m.id}')">➡️ Salida</button>
+                    <button class="btn btn-sm" style="background:#F53F3F; color:white;" onclick="eliminarRegistroTransp('${m.id}')">🗑️</button>
+                </div>
+            </td>
         </tr>`).join('');
 }
-
 function filtrarTranspPendientes() { dibujarTranspPendientes(); }
 
 // =====================================================
@@ -246,17 +256,16 @@ function irAEditarTransp(id) {
     cambiarSubpestañaTransp('crear', { currentTarget: document.querySelector('[onclick*="crear"]') });
     setTimeout(() => editarTransp(id, false), 50);
 }
-
 function irAEditarSalidaTransp(id) {
     cambiarSubpestañaTransp('crear', { currentTarget: document.querySelector('[onclick*="crear"]') });
     setTimeout(() => editarTransp(id, true), 50);
 }
-
 function editarTransp(id, modoSalida) {
     const m = movimientosTransp.find(x => x.id === id);
     if (!m) return alert('⚠️ Registro no encontrado');
     
     idEdicionTransp = id;
+    
     document.getElementById('fechaTransp').value = m.fecha;
     document.getElementById('placaTransp').value = m.placa;
     document.getElementById('conductorTransp').value = m.conductor;
@@ -265,22 +274,60 @@ function editarTransp(id, modoSalida) {
     document.getElementById('horaSalidaTransp').value = m.horaSalida || '';
     document.getElementById('canastillasSalidaTransp').value = m.canastillasSalida || 0;
     document.getElementById('observacionesTransp').value = m.observaciones || '';
-
+    
+    // Mostrar botón Eliminar
+    document.getElementById('btnEliminarTransp').style.display = 'inline-block';
+    
     // Título y bloques según modo
     if (modoSalida) {
         document.getElementById('tituloFormTransp').textContent = '➡️ Registrar Salida';
-        // Habilitar salida, bloquear llegada
         document.getElementById('horaLlegadaTransp').disabled = true;
         document.getElementById('canastillasLlegadaTransp').disabled = true;
         document.getElementById('bloqueSalidaTransp').style.opacity = '1';
         document.getElementById('bloqueCanastSalidaTransp').style.opacity = '1';
     } else {
         document.getElementById('tituloFormTransp').textContent = '✏️ Editar Completo';
-        // Todo editable
         document.getElementById('horaLlegadaTransp').disabled = false;
         document.getElementById('canastillasLlegadaTransp').disabled = false;
         document.getElementById('bloqueSalidaTransp').style.opacity = '1';
         document.getElementById('bloqueCanastSalidaTransp').style.opacity = '1';
+    }
+}
+
+// =====================================================
+// ===== ELIMINAR DESDE FORMULARIO =====
+// =====================================================
+async function eliminarTransp() {
+    if (!idEdicionTransp) return;
+    if (!confirm('⚠️ ¿Eliminar este registro?\n\nSe borrará permanentemente.')) return;
+    
+    try {
+        await db.collection('movimientos_transportadora').doc(idEdicionTransp).delete();
+        alert('✅ Registro eliminado');
+        limpiarFormularioTransp();
+        cambiarSubpestañaTransp('hoy', { currentTarget: null });
+    } catch (e) {
+        alert('❌ Error al eliminar: ' + e.message);
+    }
+}
+
+// =====================================================
+// ===== ELIMINAR DESDE TABLA =====
+// =====================================================
+async function eliminarRegistroTransp(id) {
+    if (!confirm('⚠️ ¿Eliminar este registro?\n\nSe borrará permanentemente.')) return;
+    
+    try {
+        await db.collection('movimientos_transportadora').doc(id).delete();
+        
+        // Si estamos editando justo este registro, limpiar formulario
+        if (idEdicionTransp === id) {
+            limpiarFormularioTransp();
+        }
+        
+        alert('✅ Registro eliminado');
+    } catch (e) {
+        alert('❌ Error al eliminar: ' + e.message);
     }
 }
 
@@ -296,11 +343,11 @@ async function guardarTransp() {
     const horaSalida = document.getElementById('horaSalidaTransp').value || '';
     const canastillasSalida = parseInt(document.getElementById('canastillasSalidaTransp').value) || 0;
     const observaciones = document.getElementById('observacionesTransp').value.trim();
-
+    
     if (!fecha || !placa || !conductor || !horaLlegada) {
         return alert('⚠️ Complete fecha, placa, conductor y hora de llegada');
     }
-
+    
     const datos = {
         fecha, placa, conductor,
         horaLlegada, canastillasLlegada,
@@ -308,7 +355,7 @@ async function guardarTransp() {
         observaciones,
         usuario: usuarioActivo?.nombre || 'Anónimo'
     };
-
+    
     try {
         if (idEdicionTransp) {
             await db.collection('movimientos_transportadora').doc(idEdicionTransp).update(datos);
@@ -320,15 +367,17 @@ async function guardarTransp() {
             }
             alert('✅ Llegada registrada — ahora puede registrar la salida');
         }
+        
         limpiarFormularioTransp();
         cambiarSubpestañaTransp('hoy', { currentTarget: null });
+        
     } catch (e) {
         alert('❌ Error: ' + e.message);
     }
 }
 
 // =====================================================
-// ===== LIMPIAR =====
+// ===== LIMPIAR FORMULARIO =====
 // =====================================================
 function limpiarFormularioTransp() {
     idEdicionTransp = null;
@@ -342,6 +391,9 @@ function limpiarFormularioTransp() {
     document.getElementById('horaSalidaTransp').value = '';
     document.getElementById('canastillasSalidaTransp').value = '0';
     document.getElementById('observacionesTransp').value = '';
+    
+    // Ocultar botón Eliminar
+    document.getElementById('btnEliminarTransp').style.display = 'none';
     
     // Restaurar estado
     document.getElementById('tituloFormTransp').textContent = '🚛 Registrar Llegada de Vehículo';

@@ -7,7 +7,6 @@ window.cargarModulo_mantenimiento = async function() {
         console.log('No se encontró el contenedor principal');
         return;
     }
-
     c.innerHTML = `
     <div class="tarjeta">
         <h3 class="font-bold mb-4">🔧 Control de Mantenimiento — Vehículos de Movimientos</h3>
@@ -55,7 +54,7 @@ window.cargarModulo_mantenimiento = async function() {
                     </div>
                     <div class="grupo col-span-2">
                         <label>Observaciones Generales</label>
-                        <textarea id="mantObservaciones" rows="3" placeholder="Estado general, novedades..."></textarea>
+                        <textarea id="mantObservaciones" rows="3" placeholder="Estado general, novedades, detalles del vehículo..."></textarea>
                     </div>
                 </div>
                 <button class="btn btn-primario mt-3" onclick="guardarDatosGenerales()">💾 Guardar Datos Generales</button>
@@ -79,10 +78,10 @@ window.cargarModulo_mantenimiento = async function() {
                     </div>
                     <div class="grupo">
                         <label>Tarjeta de Propiedad</label>
-                        <input type="text" id="mantTarjeta" placeholder="Número o estado">
+                        <input type="text" id="mantTarjeta" placeholder="Número o estado del documento">
                     </div>
                 </div>
-                <div id="alertasVencimientos" class="mt-3"></div>
+                <div id="alertasVencimientos" class="mt-3 p-3 bg-gray-50 rounded-lg"></div>
                 <button class="btn btn-primario mt-3" onclick="guardarDocumentos()">💾 Guardar Documentos</button>
             </div>
 
@@ -106,7 +105,7 @@ window.cargarModulo_mantenimiento = async function() {
                     </div>
                     <div class="grupo col-span-2">
                         <label>Diagnóstico / Falla Reportada</label>
-                        <textarea id="mantDiagnostico" rows="3" placeholder="Describa la falla..."></textarea>
+                        <textarea id="mantDiagnostico" rows="3" placeholder="Describa detalladamente la falla o novedad..."></textarea>
                     </div>
                     <div class="grupo">
                         <label>Fecha Estimada de Retorno</label>
@@ -132,7 +131,7 @@ window.cargarModulo_mantenimiento = async function() {
                     </div>
                     <div class="grupo col-span-2">
                         <label>Trabajo Realizado / Observaciones</label>
-                        <textarea id="mantTrabajoRealizado" rows="3" placeholder="Reparaciones, repuestos..."></textarea>
+                        <textarea id="mantTrabajoRealizado" rows="3" placeholder="Reparaciones realizadas, repuestos cambiados, detalles del servicio..."></textarea>
                     </div>
                 </div>
                 <button class="btn btn-primario mt-3" onclick="registrarIngresoTaller()">💾 Registrar</button>
@@ -158,7 +157,6 @@ function cambiarSubpestañaMant(nombre) {
     if (event && event.target) event.target.classList.add('activa');
     const seccion = document.getElementById(`submant-${nombre}`);
     if (seccion) seccion.classList.remove('oculto');
-
     if (nombre === 'historial') cargarHistorial();
     if (nombre === 'documentos') verificarVencimientos();
 }
@@ -178,9 +176,8 @@ async function cargarDatosVehiculo() {
         document.getElementById('datosVehiculo').classList.add('oculto');
         return;
     }
-
     document.getElementById('datosVehiculo').classList.remove('oculto');
-
+    
     try {
         const snap = await db.collection('mantenimiento_vehiculos').doc(placaActual).get();
         datosVehiculoGuardados = snap.exists ? snap.data() : { placa: placaActual };
@@ -188,20 +185,20 @@ async function cargarDatosVehiculo() {
         console.log('Sin datos previos, nuevo registro');
         datosVehiculoGuardados = { placa: placaActual };
     }
-
+    
     // Llenar formulario
     document.getElementById('mantPlaca').value = placaActual;
     document.getElementById('mantTipoMarca').value = datosVehiculoGuardados.tipoMarca || '';
     document.getElementById('mantColor').value = datosVehiculoGuardados.color || '';
     document.getElementById('mantKmActual').value = datosVehiculoGuardados.kmActual || '';
     document.getElementById('mantObservaciones').value = datosVehiculoGuardados.observaciones || '';
-
+    
     // Documentos
     document.getElementById('mantSoat').value = datosVehiculoGuardados.vencimientoSoat || '';
     document.getElementById('mantTecno').value = datosVehiculoGuardados.vencimientoTecno || '';
     document.getElementById('mantSeguro').value = datosVehiculoGuardados.vencimientoSeguro || '';
     document.getElementById('mantTarjeta').value = datosVehiculoGuardados.tarjeta || '';
-
+    
     // Taller
     document.getElementById('mantFechaIngresoTaller').value = datosVehiculoGuardados.fechaIngresoTaller || '';
     document.getElementById('mantQuienEntrega').value = datosVehiculoGuardados.quienEntrega || '';
@@ -211,7 +208,7 @@ async function cargarDatosVehiculo() {
     document.getElementById('mantQuienRecoge').value = datosVehiculoGuardados.quienRecoge || '';
     document.getElementById('mantCosto').value = datosVehiculoGuardados.costo || '';
     document.getElementById('mantTrabajoRealizado').value = datosVehiculoGuardados.trabajoRealizado || '';
-
+    
     verificarVencimientos();
 }
 
@@ -219,8 +216,8 @@ async function cargarDatosVehiculo() {
 // ===== GUARDAR DATOS GENERALES =====
 // =====================================================
 async function guardarDatosGenerales() {
-    if (!placaActual) return alert('Seleccione un vehículo');
-
+    if (!placaActual) return alert('⚠️ Seleccione un vehículo');
+    
     const datos = {
         placa: placaActual,
         tipoMarca: document.getElementById('mantTipoMarca').value.trim(),
@@ -229,25 +226,26 @@ async function guardarDatosGenerales() {
         observaciones: document.getElementById('mantObservaciones').value.trim(),
         ultimaActualizacion: new Date().toISOString()
     };
-
+    
     await db.collection('mantenimiento_vehiculos').doc(placaActual).set(datos, { merge: true });
-    alert('✅ Datos generales guardados');
+    alert('✅ Datos generales guardados correctamente');
 }
+
 // =====================================================
 // ===== GUARDAR DOCUMENTOS =====
 // =====================================================
 async function guardarDocumentos() {
-    if (!placaActual) return alert('Seleccione un vehículo');
-
+    if (!placaActual) return alert('⚠️ Seleccione un vehículo');
+    
     const datos = {
         vencimientoSoat: document.getElementById('mantSoat').value,
         vencimientoTecno: document.getElementById('mantTecno').value,
         vencimientoSeguro: document.getElementById('mantSeguro').value,
         tarjeta: document.getElementById('mantTarjeta').value.trim()
     };
-
+    
     await db.collection('mantenimiento_vehiculos').doc(placaActual).set(datos, { merge: true });
-    alert('✅ Documentos guardados');
+    alert('✅ Documentos guardados correctamente');
     verificarVencimientos();
 }
 
@@ -256,32 +254,38 @@ async function guardarDocumentos() {
 // =====================================================
 function verificarVencimientos() {
     const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
     const alertas = [];
+    
     const campos = [
         { nombre: 'SOAT', valor: document.getElementById('mantSoat').value },
         { nombre: 'Tecnicomecánica', valor: document.getElementById('mantTecno').value },
         { nombre: 'Seguro', valor: document.getElementById('mantSeguro').value }
     ];
-
+    
     campos.forEach(c => {
         if (!c.valor) {
-            alertas.push(`⚠️ ${c.nombre}: Sin fecha registrada`);
+            alertas.push(`<p class="text-yellow-600">⚠️ <strong>${c.nombre}:</strong> Sin fecha registrada</p>`);
             return;
         }
+        
         const fecha = new Date(c.valor);
         const dias = Math.ceil((fecha - hoy) / (1000 * 60 * 60 * 24));
+        
         if (dias < 0) {
-            alertas.push(`🔴 ${c.nombre}: VENCIDO hace ${Math.abs(dias)} días`);
+            alertas.push(`<p class="text-red-600 font-bold">🔴 <strong>${c.nombre}:</strong> VENCIDO hace ${Math.abs(dias)} días</p>`);
+        } else if (dias <= 7) {
+            alertas.push(`<p class="text-orange-500 font-bold">🟠 <strong>${c.nombre}:</strong> Vence en ${dias} días — ¡URGENTE!</p>`);
         } else if (dias <= 30) {
-            alertas.push(`🟡 ${c.nombre}: Vence en ${dias} días`);
+            alertas.push(`<p class="text-yellow-600">🟡 <strong>${c.nombre}:</strong> Vence en ${dias} días</p>`);
         } else {
-            alertas.push(`🟢 ${c.nombre}: Vigente (${dias} días restantes)`);
+            alertas.push(`<p class="text-green-600">🟢 <strong>${c.nombre}:</strong> Vigente (${dias} días restantes)</p>`);
         }
     });
-
+    
     const contenedor = document.getElementById('alertasVencimientos');
     if (contenedor) {
-        contenedor.innerHTML = alertas.map(a => `<p class="text-sm py-1">${a}</p>`).join('');
+        contenedor.innerHTML = alertas.join('');
     }
 }
 
@@ -289,11 +293,11 @@ function verificarVencimientos() {
 // ===== REGISTRAR INGRESO/SALIDA DE TALLER =====
 // =====================================================
 async function registrarIngresoTaller() {
-    if (!placaActual) return alert('Seleccione un vehículo');
-
+    if (!placaActual) return alert('⚠️ Seleccione un vehículo');
+    
     const fechaIngreso = document.getElementById('mantFechaIngresoTaller').value;
-    if (!fechaIngreso) return alert('Ingrese la fecha de ingreso al taller');
-
+    if (!fechaIngreso) return alert('⚠️ Ingrese la fecha de ingreso al taller');
+    
     const datos = {
         placa: placaActual,
         fechaIngresoTaller: fechaIngreso,
@@ -307,15 +311,19 @@ async function registrarIngresoTaller() {
         enMantenimiento: !document.getElementById('mantFechaRetornoReal').value,
         fechaRegistro: new Date().toISOString()
     };
-
+    
     await db.collection('mantenimiento_vehiculos').doc(placaActual).set(datos, { merge: true });
-
+    
+    // Agregar al historial
     await db.collection('historial_mantenimientos').add({
         ...datos,
         tipoMovimiento: datos.fechaRetornoReal ? 'salida_taller' : 'ingreso_taller'
     });
-
-    alert(datos.fechaRetornoReal ? '✅ Vehículo retirado de taller — Disponible' : '✅ Ingreso registrado — Vehículo en mantenimiento');
+    
+    alert(datos.fechaRetornoReal 
+        ? '✅ Vehículo retirado de taller — Disponible para uso' 
+        : '✅ Ingreso registrado — Vehículo en mantenimiento');
+    
     cargarHistorial();
 }
 
@@ -324,41 +332,57 @@ async function registrarIngresoTaller() {
 // =====================================================
 async function cargarHistorial() {
     if (!placaActual) return;
-
+    
     const lista = document.getElementById('listadoHistorial');
     if (!lista) return;
-
+    
     try {
         const snap = await db.collection('historial_mantenimientos')
             .where('placa', '==', placaActual)
             .orderBy('fechaRegistro', 'desc')
             .limit(20)
             .get();
-
+        
         if (snap.empty) {
-            lista.innerHTML = '<p class="text-center text-gray-500">Sin historial de mantenimiento</p>';
+            lista.innerHTML = '<p class="text-center text-gray-500 py-4">📭 Sin historial de mantenimiento para este vehículo</p>';
             return;
         }
-
+        
+        let totalCosto = 0;
+        
         lista.innerHTML = snap.docs.map(doc => {
             const h = doc.data();
             const esIngreso = h.tipoMovimiento !== 'salida_taller';
+            if (h.costo) totalCosto += h.costo;
+            
             return `
-            <div class="tarjeta p-3 mb-2 border-l-4 ${esIngreso ? 'border-yellow-500' : 'border-green-500'}">
-                <p class="font-bold ${esIngreso ? 'text-yellow-700' : 'text-green-700'}">
-                    ${esIngreso ? '🏭 EN MANTENIMIENTO' : '✅ RETIRADO'}
+            <div class="tarjeta p-3 mb-3 border-l-4 ${esIngreso ? 'border-yellow-500 bg-yellow-50' : 'border-green-500 bg-green-50'}">
+                <p class="font-bold text-lg ${esIngreso ? 'text-yellow-700' : 'text-green-700'} mb-2">
+                    ${esIngreso ? '🏭 EN MANTENIMIENTO' : '✅ RETIRADO DE TALLER'}
                 </p>
-                <p><strong>Fecha Ingreso:</strong> ${h.fechaIngresoTaller || '—'}</p>
-                ${h.fechaRetornoReal ? `<p><strong>Fecha Retorno:</strong> ${h.fechaRetornoReal}</p>` : ''}
-                <p><strong>Quién entrega:</strong> ${h.quienEntrega || '—'}</p>
-                ${h.quienRecoge ? `<p><strong>Quién recoge:</strong> ${h.quienRecoge}</p>` : ''}
-                <p><strong>Diagnóstico:</strong> ${h.diagnostico || 'Sin detalle'}</p>
-                ${h.trabajoRealizado ? `<p><strong>Trabajo realizado:</strong> ${h.trabajoRealizado}</p>` : ''}
-                ${h.costo ? `<p><strong>Costo:</strong> $${h.costo.toLocaleString()}</p>` : ''}
+                <div class="grid-2 text-sm">
+                    <p><strong>📅 Fecha Ingreso:</strong> ${h.fechaIngresoTaller || '—'}</p>
+                    ${h.fechaRetornoEstimada ? `<p><strong>⏰ Retorno Estimado:</strong> ${h.fechaRetornoEstimada}</p>` : ''}
+                    ${h.fechaRetornoReal ? `<p><strong>✅ Fecha Retorno Real:</strong> ${h.fechaRetornoReal}</p>` : ''}
+                    <p><strong>👤 Entregó:</strong> ${h.quienEntrega || '—'}</p>
+                    ${h.quienRecoge ? `<p><strong>👤 Recogió:</strong> ${h.quienRecoge}</p>` : ''}
+                    <p class="col-span-2"><strong>🔍 Diagnóstico:</strong> ${h.diagnostico || 'Sin detalle'}</p>
+                    ${h.trabajoRealizado ? `<p class="col-span-2"><strong>🔧 Trabajo realizado:</strong> ${h.trabajoRealizado}</p>` : ''}
+                    ${h.costo ? `<p class="col-span-2 font-bold text-lg"><strong>💰 Costo:</strong> $${h.costo.toLocaleString()}</p>` : ''}
+                </div>
             </div>
             `;
         }).join('');
+        
+        // Mostrar costo total del mantenimiento
+        lista.innerHTML += `
+        <div class="tarjeta p-3 mt-4 bg-blue-50 border-l-4 border-blue-500">
+            <p class="font-bold text-lg">💰 COSTO TOTAL EN MANTENIMIENTO: $${totalCosto.toLocaleString()}</p>
+        </div>
+        `;
+        
     } catch (e) {
-        lista.innerHTML = '<p class="text-red-600">Error al cargar historial</p>';
+        console.error('Error cargando historial:', e);
+        lista.innerHTML = '<p class="text-red-600">❌ Error al cargar historial</p>';
     }
 }
