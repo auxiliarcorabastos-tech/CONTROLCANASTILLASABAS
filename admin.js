@@ -1,256 +1,245 @@
 // =====================================================
-// ===== ⚙️ MÓDULO DE ADMINISTRACIÓN =====
+// ===== ⚙️ MÓDULO ADMINISTRACIÓN COMPLETO =====
 // =====================================================
+window.cargarModulo_admin = async function() {
+    const c = document.getElementById('contenido');
+    if (!c) return;
 
-// =====================================================
-// ===== CARGAR VISTA DE ADMINISTRACIÓN =====
-// =====================================================
-window.cargarModulo_administracion = async function() {
-    const c = document.getElementById('contenido'); // ✅ CORREGIDO
-    if (!c) return; // ✅ Protección
     c.innerHTML = `
-    <div class="flex gap-2 mb-4">
-        <button class="btn-subpestaña activa" onclick="cambiarSubAdmin('usuarios')">👤 Usuarios del Sistema</button>
-        <button class="btn-subpestaña" onclick="cambiarSubAdmin('colaboradores')">👥 Colaboradores</button>
-        <button class="btn-subpestaña" onclick="cambiarSubAdmin('vehiculos')">🚛 Vehículos</button>
-        <button class="btn-subpestaña" onclick="cambiarSubAdmin('configuracion')">🔧 Configuración</button>
-    </div>
-
-    <!-- USUARIOS DEL SISTEMA -->
-    <div id="subadmin-usuarios">
-        <div class="tarjeta">
-            <h3 class="font-bold mb-3">👤 Gestionar Usuarios</h3>
-            <div class="grid-2">
-                <div class="grupo">
-                    <label>Usuario (Inicio de sesión)</label>
-                    <input type="text" id="usuarioNuevo" placeholder="jgarnica">
+    <div class="tarjeta">
+        <h2 class="text-xl font-bold mb-4">⚙️ Gestión de Roles y Permisos</h2>
+        
+        <!-- Formulario Crear/Editar Rol -->
+        <div class="bg-gray-50 p-4 rounded-lg mb-6">
+            <h3 class="font-bold mb-3" id="tituloRol">➕ Crear Nuevo Rol</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                <div>
+                    <label>Clave del Rol (sin espacios)</label>
+                    <input type="text" id="rolClave" placeholder="Ej: bodeguero">
                 </div>
-                <div class="grupo">
-                    <label>Contraseña</label>
-                    <input type="text" id="claveNueva" placeholder="123456">
-                </div>
-                <div class="grupo">
-                    <label>Nombre Completo</label>
-                    <input type="text" id="nombreUsuarioNuevo" placeholder="Nombre Completo">
-                </div>
-                <div class="grupo">
-                    <label>Rol</label>
-                    <select id="rolNuevo">
-                        <option value="usuario">Usuario Normal</option>
-                        <option value="admin">Administrador</option>
-                    </select>
+                <div>
+                    <label>Nombre del Rol</label>
+                    <input type="text" id="rolNombre" placeholder="Ej: Bodeguero Principal">
                 </div>
             </div>
-            <button class="btn btn-primario mt-2" onclick="agregarUsuario()">💾 Guardar Usuario</button>
-        </div>
-        <div class="tarjeta mt-3">
-            <h4 class="font-bold mb-2">📋 Lista de Usuarios</h4>
-            <table class="tabla">
-                <thead>
-                    <tr>
-                        <th>Usuario</th>
-                        <th>Nombre</th>
-                        <th>Rol</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaUsuariosSistema"></tbody>
-            </table>
-        </div>
-    </div>
 
-    <!-- COLABORADORES -->
-    <div id="subadmin-colaboradores" class="oculto">
-        <div class="tarjeta">
-            <h3 class="font-bold mb-3">👥 Gestionar Colaboradores</h3>
-            <div class="grupo">
-                <label>Nombre del Colaborador</label>
-                <input type="text" id="nombreColaborador" placeholder="Nombre completo">
-            </div>
-            <button class="btn btn-primario mt-2" onclick="agregarColaborador()">💾 Guardar Colaborador</button>
-        </div>
-        <div class="tarjeta mt-3">
-            <h4 class="font-bold mb-2">📋 Lista de Colaboradores</h4>
-            <table class="tabla">
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaColaboradoresAdmin"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- VEHÍCULOS -->
-    <div id="subadmin-vehiculos" class="oculto">
-        <div class="tarjeta">
-            <h3 class="font-bold mb-3">🚛 Registrar Vehículos de Movimientos</h3>
-            <div class="grid-2">
-                <div class="grupo">
-                    <label>Placa</label>
-                    <input type="text" id="placaVehiculoMov" placeholder="ABC-123" style="text-transform:uppercase;">
+            <h4 class="font-semibold mb-2">🔐 Permisos por Módulo</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                ${MODULOS_SISTEMA.map(m => `
+                <div class="border p-3 rounded bg-white">
+                    <p class="font-semibold mb-2">${m.nombre}</p>
+                    <label class="inline-flex items-center gap-2 mr-3">
+                        <input type="checkbox" class="permiso-ver" data-modulo="${m.id}" checked>
+                        ✅ Ver
+                    </label>
+                    <label class="inline-flex items-center gap-2">
+                        <input type="checkbox" class="permiso-editar" data-modulo="${m.id}">
+                        ✏️ Editar / Modificar
+                    </label>
                 </div>
-                <div class="grupo">
-                    <label>Tipo de Vehículo</label>
-                    <select id="tipoVehiculoMov">
-                        <option value="Motocicleta">Motocicleta</option>
-                        <option value="Carro">Carro</option>
-                        <option value="Camión">Camión</option>
-                        <option value="Carguero">Carguero</option>
-                        <option value="Furgón">Furgón</option>
-                    </select>
+                `).join('')}
+            </div>
+
+            <div class="flex gap-2 mt-4">
+                <button class="btn-primario" onclick="guardarRol()">💾 Guardar Rol</button>
+                <button class="bg-gray-200 px-4 py-2 rounded" onclick="limpiarFormRol()">🗑️ Limpiar</button>
+            </div>
+            <p id="mensajeRol" class="mt-2 text-sm"></p>
+        </div>
+
+        <!-- Lista de Roles -->
+        <h3 class="font-bold mb-3">📋 Roles del Sistema</h3>
+        <div class="space-y-3">
+            ${listaRoles.map(r => `
+            <div class="border p-3 rounded-lg bg-white">
+                <div class="flex justify-between items-start">
+                    <div>
+                        <p class="font-bold text-lg">${r.nombre}</p>
+                        <p class="text-sm text-gray-500">Clave: <code>${r.clave}</code></p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="text-blue-600 px-2 py-1 rounded hover:bg-blue-50" onclick="editarRol('${r.clave}')">✏️ Editar</button>
+                        ${!['admin', 'usuario'].includes(r.clave) 
+                            ? `<button class="text-red-600 px-2 py-1 rounded hover:bg-red-50" onclick="eliminarRol('${r.clave}')">🗑️ Eliminar</button>` 
+                            : `<span class="text-xs text-gray-400 px-2">🔒 Sistema</span>`}
+                    </div>
+                </div>
+                <div class="mt-3 text-sm text-gray-600 flex flex-wrap gap-2">
+                    ${MODULOS_SISTEMA.map(m => {
+                        const p = r.permisos?.[m.id] || { ver: false, editar: false };
+                        const estado = [];
+                        if (p.ver) estado.push('👁️ Ver');
+                        if (p.editar) estado.push('✏️ Editar');
+                        return `<span class="bg-gray-50 px-2 py-1 rounded text-xs">${m.nombre.split(' ')[0]}: ${estado.length ? estado.join(' · ') : '❌ Sin acceso'}</span>`;
+                    }).join('')}
                 </div>
             </div>
-            <button class="btn btn-primario mt-2" onclick="agregarVehiculoMov()">💾 Guardar Vehículo</button>
-        </div>
-        <div class="tarjeta mt-3">
-            <h4 class="font-bold mb-2">📋 Lista de Vehículos</h4>
-            <table class="tabla">
-                <thead>
-                    <tr>
-                        <th>Placa</th>
-                        <th>Tipo</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaVehiculosAdmin"></tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- CONFIGURACIÓN -->
-    <div id="subadmin-configuracion" class="oculto">
-        <div class="tarjeta">
-            <h3 class="font-bold mb-3">🔧 Información del Sistema</h3>
-            <p><strong>Base de Datos:</strong> Firebase Firestore</p>
-            <p><strong>Versión:</strong> 2.0 (Módulos Separados)</p>
-            <p><strong>Usuario Conectado:</strong> ${usuarioActivo?.nombre || 'Desconocido'}</p>
-            <p><strong>Rol:</strong> ${usuarioActivo?.rol || 'Sin rol'}</p>
-            <hr class="my-3">
-            <button class="btn btn-primario" onclick="cargarDatosGenerales()">🔄 Recargar Todos los Datos</button>
+            `).join('')}
         </div>
     </div>
     `;
-
-    dibujarTablaUsuarios();
-    setTimeout(() => cambiarSubAdmin('usuarios'), 50);
 };
 
-// =====================================================
-// ===== CAMBIAR SUBPESTAÑA =====
-// =====================================================
-function cambiarSubAdmin(nombre) {
-    document.querySelectorAll('[id^="subadmin-"]').forEach(d => d.classList.add('oculto'));
-    document.querySelectorAll('#contenidoDinamico .btn-subpestaña').forEach(b => b.classList.remove('activa'));
-    event.currentTarget.classList.add('activa');
-    document.getElementById(`subadmin-${nombre}`).classList.remove('oculto');
-
-    if (nombre === 'colaboradores') dibujarTablaColaboradoresAdmin();
-    if (nombre === 'vehiculos') dibujarTablaVehiculosAdmin();
-}
+let idEdicionRol = null;
 
 // =====================================================
-// ===== USUARIOS DEL SISTEMA =====
+// ===== GUARDAR ROL =====
 // =====================================================
-function dibujarTablaUsuarios() {
-    const tb = document.getElementById('tablaUsuariosSistema');
-    if (!tb) return;
+async function guardarRol() {
+    const clave = document.getElementById('rolClave').value.trim().toLowerCase().replace(/\s+/g, '_');
+    const nombre = document.getElementById('rolNombre').value.trim();
+    const msj = document.getElementById('mensajeRol');
 
-    tb.innerHTML = usuariosFijos.map(u => `
-        <tr>
-            <td>${u.usuario}</td>
-            <td>${u.nombre}</td>
-            <td>${u.rol === 'admin' ? '👑 Admin' : '👤 Usuario'}</td>
-            <td>
-                <button class="btn btn-amarillo btn-sm" onclick="alert('Editar desde el código: ${u.usuario}')">✏️ Editar</button>
-            </td>
-        </tr>
-    `).join('');
-}
-
-async function agregarUsuario() {
-    const usuario = document.getElementById('usuarioNuevo').value.trim();
-    const clave = document.getElementById('claveNueva').value.trim();
-    const nombre = document.getElementById('nombreUsuarioNuevo').value.trim();
-    const rol = document.getElementById('rolNuevo').value;
-
-    if (!usuario || !clave || !nombre) {
-        return alert('⚠️ Complete todos los campos');
+    // Validaciones
+    if (!clave || !nombre) {
+        msj.textContent = '⚠️ Complete clave y nombre del rol';
+        msj.style.color = '#F53F3F';
+        return;
+    }
+    if (!/^[a-z0-9_]+$/.test(clave)) {
+        msj.textContent = '⚠️ Solo minúsculas, números y guion bajo (_) sin espacios';
+        msj.style.color = '#F53F3F';
+        return;
     }
 
-    usuariosFijos.push({ usuario, clave, rol, nombre });
-    alert('✅ Usuario agregado — Recargue la página para que surta efecto');
-    dibujarTablaUsuarios();
+    // Recopilar permisos
+    const permisos = {};
+    MODULOS_SISTEMA.forEach(m => {
+        permisos[m.id] = {
+            ver: document.querySelector(`.permiso-ver[data-modulo="${m.id}"]`).checked,
+            editar: document.querySelector(`.permiso-editar[data-modulo="${m.id}"]`).checked
+        };
+    });
 
-    document.getElementById('usuarioNuevo').value = '';
-    document.getElementById('claveNueva').value = '';
-    document.getElementById('nombreUsuarioNuevo').value = '';
+    const datosRol = {
+        clave,
+        nombre,
+        permisos,
+        fechaActualizacion: new Date()
+    };
+
+    try {
+        // Guardar en Firebase
+        if (typeof db !== 'undefined') {
+            await db.collection('roles').doc(clave).set(datosRol);
+        }
+
+        // Actualizar lista local
+        const indice = listaRoles.findIndex(r => r.clave === clave);
+        if (indice >= 0) {
+            listaRoles[indice] = datosRol;
+        } else {
+            listaRoles.push(datosRol);
+        }
+
+        // Éxito
+        msj.textContent = '✅ Rol guardado correctamente';
+        msj.style.color = '#00B42A';
+        
+        // Recargar la página del módulo
+        setTimeout(() => {
+            cambiarPestaña('admin');
+        }, 800);
+
+    } catch (error) {
+        msj.textContent = '❌ Error al guardar: ' + error.message;
+        msj.style.color = '#F53F3F';
+        console.error('Error guardando rol:', error);
+    }
 }
 
 // =====================================================
-// ===== COLABORADORES =====
+// ===== EDITAR ROL =====
 // =====================================================
-async function agregarColaborador() {
-    const nombre = document.getElementById('nombreColaborador').value.trim();
-    if (!nombre) return alert('⚠️ Escriba el nombre');
+function editarRol(claveRol) {
+    const rol = listaRoles.find(r => r.clave === claveRol);
+    if (!rol) {
+        alert('Rol no encontrado');
+        return;
+    }
 
-    await db.collection('colaboradores').add({ nombre, estado: 'activo', fechaCreacion: new Date() });
-    alert('✅ Colaborador agregado');
-    document.getElementById('nombreColaborador').value = '';
-}
+    idEdicionRol = claveRol;
+    
+    // Actualizar formulario
+    document.getElementById('tituloRol').textContent = `✏️ Editar Rol: ${rol.nombre}`;
+    document.getElementById('rolClave').value = rol.clave;
+    
+    // Bloquear clave si es rol protegido
+    if (['admin', 'usuario'].includes(claveRol)) {
+        document.getElementById('rolClave').disabled = true;
+        document.getElementById('rolClave').style.background = '#f3f4f6';
+    } else {
+        document.getElementById('rolClave').disabled = false;
+        document.getElementById('rolClave').style.background = '';
+    }
+    
+    document.getElementById('rolNombre').value = rol.nombre;
 
-function dibujarTablaColaboradoresAdmin() {
-    const tb = document.getElementById('tablaColaboradoresAdmin');
-    if (!tb) return;
-    tb.innerHTML = colaboradores.map(c => `
-        <tr>
-            <td>${c.nombre}</td>
-            <td>${(c.estado || 'activo') === 'activo' ? '✅ Activo' : '❌ Inactivo'}</td>
-            <td>
-                <button class="btn btn-amarillo btn-sm" onclick="cambiarEstadoColaborador('${c.id}', '${c.estado || 'activo'}')">
-                    ${(c.estado || 'activo') === 'activo' ? '❌ Inactivar' : '✅ Activar'}
-                </button>
-            </td>
-        </tr>
-    `).join('') || '<tr><td colspan="3" class="text-center">📭 Sin colaboradores</td></tr>';
-}
+    // Cargar permisos actuales
+    MODULOS_SISTEMA.forEach(m => {
+        const permiso = rol.permisos?.[m.id] || { ver: false, editar: false };
+        const checkVer = document.querySelector(`.permiso-ver[data-modulo="${m.id}"]`);
+        const checkEditar = document.querySelector(`.permiso-editar[data-modulo="${m.id}"]`);
+        
+        if (checkVer) checkVer.checked = permiso.ver;
+        if (checkEditar) checkEditar.checked = permiso.editar;
+    });
 
-async function cambiarEstadoColaborador(id, estadoActual) {
-    const nuevoEstado = estadoActual === 'activo' ? 'inactivo' : 'activo';
-    await db.collection('colaboradores').doc(id).update({ estado: nuevoEstado });
-    alert(`✅ Colaborador ${nuevoEstado === 'activo' ? 'activado' : 'inactivado'}`);
+    // Limpiar mensaje
+    const msj = document.getElementById('mensajeRol');
+    if (msj) msj.textContent = '';
 }
 
 // =====================================================
-// ===== VEHÍCULOS DE MOVIMIENTOS =====
+// ===== LIMPIAR FORMULARIO =====
 // =====================================================
-async function agregarVehiculoMov() {
-    const placa = document.getElementById('placaVehiculoMov').value.trim().toUpperCase();
-    const tipo = document.getElementById('tipoVehiculoMov').value;
-    if (!placa || !tipo) return alert('⚠️ Complete Placa y Tipo');
-
-    await db.collection('vehiculos_movimientos').add({ placa, tipo, fechaCreacion: new Date() });
-    alert('✅ Vehículo agregado');
-    document.getElementById('placaVehiculoMov').value = '';
+function limpiarFormRol() {
+    idEdicionRol = null;
+    
+    document.getElementById('tituloRol').textContent = '➕ Crear Nuevo Rol';
+    document.getElementById('rolClave').value = '';
+    document.getElementById('rolClave').disabled = false;
+    document.getElementById('rolClave').style.background = '';
+    document.getElementById('rolNombre').value = '';
+    
+    // Restablecer permisos por defecto: Ver = Sí, Editar = No
+    document.querySelectorAll('.permiso-ver').forEach(cb => cb.checked = true);
+    document.querySelectorAll('.permiso-editar').forEach(cb => cb.checked = false);
+    
+    const msj = document.getElementById('mensajeRol');
+    if (msj) msj.textContent = '';
 }
 
-function dibujarTablaVehiculosAdmin() {
-    const tb = document.getElementById('tablaVehiculosAdmin');
-    if (!tb) return;
-    tb.innerHTML = vehiculosMov.map(v => `
-        <tr>
-            <td>${v.placa}</td>
-            <td>${v.tipo}</td>
-            <td><button class="btn btn-peligro btn-sm" onclick="eliminarVehiculoMov('${v.id}')">🗑️ Eliminar</button></td>
-        </tr>
-    `).join('') || '<tr><td colspan="3" class="text-center">📭 Sin vehículos</td></tr>';
-}
+// =====================================================
+// ===== ELIMINAR ROL =====
+// =====================================================
+async function eliminarRol(claveRol) {
+    // Proteger roles del sistema
+    if (['admin', 'usuario'].includes(claveRol)) {
+        alert('🔒 Este rol es del sistema y no se puede eliminar');
+        return;
+    }
 
-async function eliminarVehiculoMov(id) {
-    if (!confirm('¿Seguro desea eliminar este vehículo?')) return;
-    await db.collection('vehiculos_movimientos').doc(id).delete();
-    alert('✅ Vehículo eliminado');
+    if (!confirm(`⚠️ ¿Eliminar el rol "${claveRol}"?\n\nLos usuarios que tengan este rol perderán todos sus permisos hasta que se les asigne uno nuevo.\n\n¿Continuar?`)) {
+        return;
+    }
+
+    try {
+        // Eliminar de Firebase
+        if (typeof db !== 'undefined') {
+            await db.collection('roles').doc(claveRol).delete();
+        }
+
+        // Eliminar de la lista local
+        listaRoles = listaRoles.filter(r => r.clave !== claveRol);
+
+        alert('✅ Rol eliminado correctamente');
+        
+        // Recargar vista
+        cambiarPestaña('admin');
+
+    } catch (error) {
+        alert('❌ Error al eliminar: ' + error.message);
+        console.error('Error eliminando rol:', error);
+    }
 }

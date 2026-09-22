@@ -3,363 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Donaciones</title>
-    <!-- ✅ ESTILOS INTEGRADOS — sin depender de cdn.tailwindcss.com -->
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
-        body { background: #f0f4f8; }
-        header { 
-            background: linear-gradient(135deg, #1e40af, #3b82f6); 
-            color: white; 
-            padding: 0.9rem 1.2rem; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            position: fixed; 
-            top: 0; 
-            left: 0; 
-            right: 0; 
-            z-index: 100; 
-            box-shadow: 0 2px 8px rgba(0,0,0,.15); 
-        }
-        header h1 { font-size: 1.1rem; font-weight: 600; }
-        .btn-menu { 
-            background: rgba(255,255,255,.2); 
-            border: none; 
-            color: white; 
-            font-size: 1.4rem; 
-            padding: 0.4rem 0.7rem; 
-            border-radius: 0.4rem; 
-            cursor: pointer; 
-        }
-        .btn-menu:hover { background: rgba(255,255,255,.35); }
-        .usuario-info { 
-            font-size: 0.9rem; 
-            display: flex; 
-            align-items: center; 
-            gap: 0.6rem; 
-            flex-wrap: wrap;
-        }
-        .btn-cerrar { 
-            background: #ef4444; 
-            color: white; 
-            border: none; 
-            padding: 0.4rem 0.7rem; 
-            border-radius: 0.4rem; 
-            cursor: pointer; 
-            font-size: 0.85rem; 
-        }
-        .btn-sm { 
-            padding: 0.4rem 0.7rem; 
-            font-size: 0.85rem; 
-            border: none; 
-            border-radius: 0.4rem; 
-            cursor: pointer; 
-            font-weight: 500; 
-        }
-        .btn-actualizar { background: #16a34a; color: white; }
-        .btn-actualizar:hover { background: #15803d; }
-        #sidebar { 
-            position: fixed; 
-            top: 60px; 
-            left: 0; 
-            bottom: 0; 
-            width: 260px; 
-            background: white; 
-            box-shadow: 2px 0 10px rgba(0,0,0,.15); 
-            z-index: 95; 
-            overflow-y: auto; 
-            transition: transform .3s ease-in-out; 
-            padding-top: 1.2rem;
-        }
-        #sidebar.oculto { transform: translateX(-100%); }
-        #sidebar.mostrado { transform: translateX(0); }
-        .btn-pestaña { 
-            display: block; 
-            width: 100%; 
-            text-align: left; 
-            padding: 0.9rem 1.2rem; 
-            border: none; 
-            background: transparent; 
-            cursor: pointer; 
-            font-size: 0.95rem; 
-            color: #374151; 
-            border-left: 4px solid transparent; 
-        }
-        .btn-pestaña:hover { background: #eff6ff; color: #1d4ed8; }
-        .btn-pestaña.activa { 
-            background: #dbeafe; 
-            color: #1d4ed8; 
-            border-left-color: #2563eb; 
-            font-weight: 600; 
-        }
-        #contenido { 
-            margin-left: 0; 
-            margin-top: 60px; 
-            padding: 1.5rem 1.2rem;
-            transition: margin-left .3s ease; 
-            min-height: calc(100vh - 60px); 
-        }
-        #contenido.con-sidebar { margin-left: 260px; }
-        .tarjeta { 
-            background: white; 
-            border-radius: 0.7rem; 
-            box-shadow: 0 2px 8px rgba(0,0,0,.06); 
-            padding: 1.2rem; 
-            margin-bottom: 1.2rem; 
-        }
-        .oculto { display: none !important; }
-        .btn { 
-            border: none; 
-            padding: 0.6rem 1.1rem; 
-            border-radius: 0.5rem; 
-            cursor: pointer; 
-            font-weight: 500; 
-            font-size: 0.95rem; 
-        }
-        .btn-primario { background: #2563eb; color: white; }
-        .btn-primario:hover { background: #1d4ed8; }
-        .btn-exito { background: #16a34a; color: white; }
-        .btn-exito:hover { background: #15803d; }
-        .btn-peligro { background: #dc2626; color: white; }
-        .btn-peligro:hover { background: #b91c1c; }
-        .btn-amarillo { background: #f59e0b; color: #1f2937; }
-        .btn-amarillo:hover { background: #d97706; }
-        .w-full { width: 100%; }
-        .grupo { margin-bottom: 1rem; }
-        label { 
-            display: block; 
-            margin-bottom: 0.35rem; 
-            font-weight: 500; 
-            color: #374151; 
-            font-size: 0.9rem; 
-        }
-        input, select, textarea { 
-            width: 100%; 
-            padding: 0.6rem 0.8rem; 
-            border: 1px solid #d1d5db; 
-            border-radius: 0.4rem; 
-            font-size: 0.95rem; 
-        }
-        input:focus, select:focus, textarea:focus { 
-            outline: none; 
-            border-color: #2563eb; 
-            box-shadow: 0 0 0 3px rgba(37,99,235,.1); 
-        }
-        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem 1.2rem; }
-        .flex { display: flex; }
-        .gap-2 { gap: 0.5rem; }
-        .gap-3 { gap: 0.8rem; }
-        .mb-2 { margin-bottom: 0.5rem; }
-        .mb-3 { margin-bottom: 0.8rem; }
-        .mb-4 { margin-bottom: 1.2rem; }
-        .mt-2 { margin-top: 0.5rem; }
-        .mt-3 { margin-top: 0.8rem; }
-        .mt-4 { margin-top: 1.2rem; }
-        .text-center { text-align: center; }
-        .font-bold { font-weight: 700; }
-        .text-sm { font-size: 0.85rem; }
-        .col-span-2 { grid-column: span 2; }
-        table { 
-            width: 100%; 
-            border-collapse: collapse; 
-            margin-top: 0.5rem; 
-        }
-        th, td { 
-            padding: 0.6rem 0.8rem; 
-            text-align: left; 
-            border-bottom: 1px solid #e5e7eb; 
-            font-size: 0.9rem; 
-        }
-        th { background: #f3f4f6; font-weight: 600; }
-        tr:hover { background: #f9fafb; }
-        .text-blue-600 { color: #2563eb; text-decoration: none; }
-        .text-blue-600:hover { text-decoration: underline; }
-        .p-5 { padding: 1.25rem; }
-        .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
-        .text-gray-400 { color: #9ca3af; }
-        .text-gray-500 { color: #6b7280; }
-        .text-lg { font-size: 1.125rem; }
-        .fixed { position: fixed; }
-        .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
-        .bg-black-50 { background: rgba(0,0,0,0.5); }
-        .items-center { align-items: center; }
-        .justify-center { justify-content: center; }
-        .z-150 { z-index: 150; }
-        .max-w-md { max-width: 400px; }
-        .max-h-80vh { max-height: 80vh; }
-        .overflow-y-auto { overflow-y: auto; }
-        .w-9-10 { width: 90%; }
-        #pantallaLogin { 
-            position: fixed; 
-            inset: 0; 
-            background: linear-gradient(135deg, #1e40af, #3b82f6); 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            z-index: 200; 
-        }
-        .caja-login { 
-            background: white; 
-            padding: 2rem; 
-            border-radius: 1rem; 
-            box-shadow: 0 10px 30px rgba(0,0,0,.2); 
-            width: 90%; 
-            max-width: 400px; 
-        }
-        .caja-login h2 { text-align: center; margin-bottom: 1.5rem; color: #1f2937; }
-        #mensajeError { 
-            color: #dc2626; 
-            margin-top: 0.8rem; 
-            text-align: center; 
-            font-size: 0.9rem; 
-            min-height: 1.2rem; 
-        }
-        /* Estilos para subpestañas */
-        .btn-subpestaña { 
-            background: #e5e7eb; 
-            border: none; 
-            padding: 0.5rem 1rem; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            margin-right: 0.5rem;
-            margin-bottom: 0.5rem;
-        }
-        .btn-subpestaña.activa { 
-            background: #2563eb; 
-            color: white; 
-        }
-        .resumen { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
-            gap: 0.75rem; 
-            margin-bottom: 1rem;
-        }
-        .resumen > div { 
-            background: #f9fafb; 
-            padding: 0.75rem; 
-            border-radius: 6px; 
-            text-align: center; 
-        }
-        @media (max-width: 768px) {
-            #contenido { 
-                margin-left: 0; 
-                padding: 1.5rem 0.8rem 0.8rem;
-            }
-            #sidebar { padding-top: 1.5rem; }
-            .grid-2 { grid-template-columns: 1fr; }
-            header h1 { font-size: 0.9rem; }
-            .usuario-info { gap: 0.3rem; font-size: 0.8rem; }
-            th, td { padding: 0.4rem 0.35rem; font-size: 0.8rem; }
-        }
-    </style>
-    <!-- ✅ Firebase y librerías externas (si fallan no afecta estilos) -->
+    <title>Control de Movimientos y Canastillas</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        :root {
+            --primario: #165DFF;
+            --exito: #00B42A;
+            --advertencia: #FF7D00;
+            --peligro: #F53F3F;
+            --gris: #86909C;
+            --fondo: #F2F3F5;
+            --celeste-claro: #E8F3FF;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
+        body { background: var(--fondo); min-height: 100vh; }
+        
+        /* Encabezado */
+        .encabezado {
+            background: white; padding: 12px 16px; display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 1px 4px rgba(0,0,0,.08); position: sticky; top: 0; z-index: 90;
+        }
+        .btn-menu { 
+            background: none; border: none; font-size: 22px; cursor: pointer; 
+            padding: 4px 10px; border-radius: 6px;
+        }
+        .btn-menu:hover { background: var(--fondo); }
+        .encabezado h1 { font-size: 16px; font-weight: 700; color: #1D2129; flex: 1; }
+        .encabezado small { color: var(--gris); font-size: 12px; }
+        .btn-actualizar { background: var(--primario); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .btn-actualizar:hover { opacity: .9; }
+
+        /* =====================================================
+           ✅ MENÚ FIJO EN ESCRITORIO / DESPLEGABLE EN MÓVIL
+           ===================================================== */
+        #sidebar {
+            position: fixed; top: 0; left: 0; width: 260px; height: 100vh; background: white;
+            box-shadow: 2px 0 8px rgba(0,0,0,.15); z-index: 100; 
+            transition: transform .25s ease; overflow-y: auto; padding-top: 60px;
+        }
+
+        /* ✅ ESCRITORIO: Menú SIEMPRE visible */
+        @media (min-width: 769px) {
+            #sidebar { transform: translateX(0); }
+            .overlay { display: none !important; }
+            body { padding-left: 260px; }
+            .btn-menu { display: none; }
+        }
+
+        /* ✅ MÓVIL: Menú oculto */
+        @media (max-width: 768px) {
+            #sidebar { transform: translateX(-100%); }
+            #sidebar.abierto { transform: translateX(0); }
+            .overlay {
+                position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 99; display: none;
+            }
+            .overlay.activo { display: block; }
+            body { padding-left: 0; }
+            .btn-menu { display: block; }
+        }
+        
+        .btn-pestaña {
+            width: 100%; text-align: left; padding: 14px 20px; border: none; background: transparent;
+            font-size: 15px; cursor: pointer; border-left: 3px solid transparent; 
+            color: #4E5969; transition: all .2s ease;
+        }
+        .btn-pestaña:hover { 
+            background: var(--celeste-claro); color: var(--primario); 
+        }
+        .btn-pestaña.activa { 
+            background: var(--celeste-claro) !important; 
+            border-left-color: var(--primario) !important; 
+            color: var(--primario) !important; 
+            font-weight: 700 !important;
+        }
+        .btn-pestaña.oculto { display: none !important; }
+        
+        /* Contenido */
+        #contenido { padding: 16px; max-width: 1200px; margin: 0 auto; }
+        .oculto { display: none !important; }
+        
+        /* Tarjetas y formularios */
+        .tarjeta { background: white; border-radius: 10px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+        .form-group { margin-bottom: 14px; }
+        label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; color: #1D2129; }
+        input, select, textarea {
+            width: 100%; padding: 10px 12px; border: 1px solid #C9CDD4; border-radius: 6px;
+            font-size: 14px; transition: border .2s;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--primario); box-shadow: 0 0 0 2px rgba(22,93,255,.15); }
+        button { cursor: pointer; border-radius: 6px; font-weight: 600; transition: all .2s; }
+        .btn-primario { background: var(--primario); color: white; border: none; padding: 10px 18px; }
+        .btn-primario:hover { opacity: .9; }
+        
+        /* Login */
+        .caja-login {
+            max-width: 400px; margin: 60px auto; background: white; padding: 30px; border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,.1);
+        }
+        .caja-login h2 { text-align: center; margin-bottom: 24px; color: #1D2129; }
+        #mensajeError { color: var(--peligro); text-align: center; margin-top: 12px; font-size: 13px; min-height: 20px; }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            #contenido { padding: 10px; }
+            .tarjeta { padding: 14px; }
+        }
+    </style>
 </head>
 <body>
-    <!-- PANTALLA DE INICIO DE SESIÓN -->
-    <div id="pantallaLogin">
-        <div class="caja-login">
-            <h2>🔐 Iniciar Sesión</h2>
-            <div class="grupo">
-                <label>Usuario</label>
-                <input type="text" id="usuario" placeholder="Escriba su usuario">
-            </div>
-            <div class="grupo">
-                <label>Contraseña</label>
-                <input type="password" id="clave" placeholder="Escriba su contraseña">
-            </div>
-            <button class="btn-primario w-full" onclick="iniciarSesion()">Ingresar</button>
-            <div id="mensajeError"></div>
+
+<!-- ===================================================== -->
+<!-- 🔐 PANTALLA DE INICIO DE SESIÓN -->
+<!-- ===================================================== -->
+<div id="pantallaLogin">
+    <div class="caja-login">
+        <h2>🔐 Iniciar Sesión</h2>
+        <div class="form-group">
+            <label>Usuario / Correo</label>
+            <input type="text" id="usuario" placeholder="Su usuario">
         </div>
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input type="password" id="clave" placeholder="Su contraseña" onkeydown="if(event.key==='Enter')iniciarSesion()">
+        </div>
+        <button class="btn-primario" style="width:100%" onclick="iniciarSesion()">Ingresar</button>
+        <p id="mensajeError"></p>
     </div>
-    <!-- ENCABEZADO PRINCIPAL -->
-    <header id="encabezadoApp" class="oculto">
-        <button class="btn-menu" id="btnMenu">☰</button>
-        <h1>📦 Control de Donaciones</h1>
-        <div class="usuario-info">
-            <button class="btn-sm btn-actualizar" onclick="refrescarTodo()">🔄 Actualizar</button>
-            <span id="nombreUsuario"></span>
-            <button class="btn-cerrar" onclick="cerrarSesion()">Salir</button>
+</div>
+
+<!-- ===================================================== -->
+<!-- ✅ APLICACIÓN -->
+<!-- ===================================================== -->
+<div id="appCompleta" class="oculto">
+
+    <!-- Encabezado -->
+    <header class="encabezado">
+        <button class="btn-menu" onclick="toggleMenu()">☰</button>
+        <div style="flex:1">
+            <h1>📦 Control de Canastillas</h1>
+            <small id="nombreModulo"></small>
         </div>
+        <button class="btn-actualizar" onclick="refrescarTodo()">🔄 Actualizar</button>
+        <small id="nombreUsuario" style="margin-left:8px;"></small>
     </header>
-    <!-- MENÚ LATERAL -->
-    <div id="sidebar" class="oculto">
-        <button class="btn-pestaña" onclick="cambiarPestaña('movimientos')">📦 Movimientos</button>
-        <!-- ✅ NUEVO: Botón Mis Canastillas -->
-        <button class="btn-pestaña" onclick="cambiarPestaña('misCanastillas')">📦 Mis Canastillas</button>
+
+    <!-- Sombra para cerrar menú (solo en móvil) -->
+    <div class="overlay" id="sombraMenu" onclick="toggleMenu()"></div>
+
+    <!-- Menú Lateral — TODOS LOS MÓDULOS INCLUIDOS ✅ -->
+    <div id="sidebar">
+        <button class="btn-pestaña activa" onclick="cambiarPestaña('movimientos')">📦 Movimientos</button>
+        <button class="btn-pestaña" onclick="cambiarPestaña('misCanastillas')">🧺 Mis Canastillas</button>
+        <button class="btn-pestaña" onclick="cambiarPestaña('recoleccion')">🚚 Recolección</button>
         <button class="btn-pestaña" onclick="cambiarPestaña('transportadora')">🚛 Transportadora</button>
         <button class="btn-pestaña" onclick="cambiarPestaña('combustible')">⛽ Combustible</button>
         <button class="btn-pestaña" onclick="cambiarPestaña('mantenimiento')">🔧 Mantenimiento</button>
         <button class="btn-pestaña" onclick="cambiarPestaña('informes')">📊 Informes</button>
-        <button class="btn-pestaña" onclick="cambiarPestaña('donantes')">🏪 Gestión de Donantes</button>
-        <button class="btn-pestaña" onclick="cambiarPestaña('anuncios')">📢 Control de Anuncios</button>
-        <button class="btn-pestaña" onclick="cambiarPestaña('recoleccion')">📦 Recolección</button>
-        <button id="btnAdmin" class="btn-pestaña oculto" onclick="cambiarPestaña('administracion')">⚙️ Administración</button>
+        <button class="btn-pestaña" onclick="cambiarPestaña('anuncios')">📢 Anuncios</button>
+        <button class="btn-pestaña" onclick="cambiarPestaña('donantes')">🤝 Donantes</button>
+        <button id="btnAdmin" class="btn-pestaña oculto" onclick="cambiarPestaña('usuarios')">👤 Gestión de Usuarios</button>
+        <button id="btnAdmin2" class="btn-pestaña oculto" onclick="cambiarPestaña('admin')">⚙️ Administración</button>
+        <div style="border-top:1px solid #eee; margin-top:12px; padding-top:12px;">
+            <button class="btn-pestaña" onclick="cerrarSesion()" style="color:var(--peligro)">🚪 Cerrar Sesión</button>
+        </div>
     </div>
-    <!-- CONTENEDOR PRINCIPAL -->
-    <div id="contenido" class="oculto"></div>
-    <!-- ✅ ORDEN DE CARGA CRÍTICO: funciones.js PRIMERO -->
-    <script src="firebase.js"></script>
-    <script src="funciones.js"></script>
-    <script src="movimientos.js"></script>
-    <!-- ✅ NUEVO: Archivo del módulo Mis Canastillas -->
-    <script src="misCanastillas.js"></script>
-    <script src="transportadora.js"></script>
-    <script src="combustible.js"></script>
-    <script src="mantenimiento.js"></script>
-    <script src="informes.js"></script>
-    <script src="donantes.js"></script>
-    <script src="anuncios.js"></script>
-    <script src="recoleccion.js"></script>
-    <script src="admin.js"></script>
-    <!-- Código del menú lateral -->
-    <script>
-        const btnMenu = document.getElementById('btnMenu');
-        const sidebar = document.getElementById('sidebar');
-        const contenido = document.getElementById('contenido');
-        
-        function actualizarMenu() {
-            if (!sidebar || !contenido || typeof menuAbierto === 'undefined') return;
-            
-            if (menuAbierto) {
-                sidebar.classList.remove('oculto');
-                sidebar.classList.add('mostrado');
-                if (window.innerWidth > 768) {
-                    contenido.classList.add('con-sidebar');
-                } else {
-                    contenido.classList.remove('con-sidebar');
-                }
-            } else {
-                sidebar.classList.remove('mostrado');
-                sidebar.classList.add('oculto');
-                contenido.classList.remove('con-sidebar');
-            }
-        }
-        
-        if (btnMenu) {
-            btnMenu.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                menuAbierto = !menuAbierto;
-                actualizarMenu();
-            });
-        }
-        
-        document.addEventListener('click', (e) => {
-            if (window.innerWidth <= 768 && menuAbierto) {
-                if (!sidebar.contains(e.target) && e.target !== btnMenu) {
-                    menuAbierto = false;
-                    actualizarMenu();
-                }
-            }
-        });
-        
-        window.addEventListener('resize', actualizarMenu);
-        window.actualizarMenu = actualizarMenu;
-    </script>
+
+    <!-- Área de contenido -->
+    <main id="contenido"></main>
+
+</div>
+
+<!-- ===================================================== -->
+<!-- ✅ TODOS LOS ARCHIVOS EN ORDEN -->
+<!-- ===================================================== -->
+<script src="firebase.js"></script>
+<script src="funciones.js"></script>
+
+<!-- Módulos -->
+<script src="movimientos.js"></script>
+<script src="misCanastillas.js"></script>
+<script src="recoleccion.js"></script>
+<script src="transportadora.js"></script>
+<script src="combustible.js"></script>
+<script src="mantenimiento.js"></script>
+<script src="informes.js"></script>
+<script src="anuncios.js"></script>
+<script src="donantes.js"></script>
+<script src="usuarios.js"></script>
+<script src="admin.js"></script>
+
 </body>
 </html>
