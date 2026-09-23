@@ -268,26 +268,30 @@ async function completarMovimientoDirecto(id) {
 // =====================================================
 function actualizarSelectoresVehiculos() {
     const sel = document.getElementById('placa');
-    if (!sel) return;
+    if (!sel) {
+        console.log('⚠️ Campo placa no encontrado en este momento');
+        return;
+    }
     
     const valorActual = sel.value;
     
-    // Obtener placas únicas de movimientos para no perder ninguna
-    const placasEnMovimientos = [...new Set(movimientos.map(m => m.placa).filter(p => p))];
+    // Obtener placas de la colección de vehículos
+    const placasRegistradas = vehiculosMov.map(v => v.placa).filter(p => p);
+    // Obtener placas que ya han aparecido en movimientos
+    const placasUsadas = [...new Set(movimientos.map(m => m.placa).filter(p => p))];
     
-    // Combinar: los de la colección + los que aparecen en movimientos
-    const todasLasPlacas = [
-        ...vehiculosMov.map(v => v.placa),
-        ...placasEnMovimientos
-    ].filter((p, i, arr) => p && arr.indexOf(p) === i).sort();
+    // Unir, quitar duplicados y ordenar
+    const todasLasPlacas = [...new Set([...placasRegistradas, ...placasUsadas])].sort();
+    
+    console.log('🚗 Placas registradas:', placasRegistradas);
+    console.log('📋 Placas usadas en movimientos:', placasUsadas);
+    console.log('✅ TOTAL A MOSTRAR:', todasLasPlacas);
     
     sel.innerHTML = `<option value="">-- Seleccione --</option>` +
         todasLasPlacas.map(p => `<option value="${p}">${p}</option>`).join('');
     
     sel.value = valorActual;
-    console.log('✅ Placas en el selector:', todasLasPlacas);
 }
-
 function actualizarSelectoresColaboradores() {
     const sel = document.getElementById('colaborador');
     if (!sel) return;
