@@ -225,13 +225,13 @@
             </main>
         </div>
     </div>
-    <!-- ✅ 1. SIEMPRE PRIMERO: Firebase Config -->
-<script src="firebase.js"></script>
+<!-- ✅ PRIMERO: configura sin declarar db -->
+<script src="firebase-config.js"></script>
 
-<!-- ✅ 2. LUEGO: Funciones Generales -->
+<!-- ✅ SEGUNDO: funciones.js donde SÍ se declara db -->
 <script src="funciones.js"></script>
 
-<!-- ✅ 3. DESPUÉS: Todos los módulos -->
+<!-- ✅ TERCERO: todos los módulos -->
 <script src="movimientos.js"></script>
 <script src="transportadora.js"></script>
 <script src="misCanastillas.js"></script>
