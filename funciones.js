@@ -1,5 +1,5 @@
 // =====================================================
-// ===== 📋 VARIABLES GLOBALES — UNA SOLA VEZ =====
+// ===== 📦 VARIABLES GLOBALES =====
 // =====================================================
 let db, auth;
 let usuarioActivo = null;
@@ -11,8 +11,6 @@ let vehiculosTransp = [];
 let conductores = [];
 let kilometraje = [];
 let tanqueo = [];
-let donantes = [];
-let anuncios = [];
 let idEdicion = null;
 let idEdicionTransp = null;
 let filtroPendientes = false;
@@ -20,268 +18,290 @@ let filasRecogida = [];
 let idsCreadosPorPrueba = [];
 let ultimosResultados = { movimientos: [], kilometraje: [], tanqueo: [] };
 let escuchasActivas = [];
-let menuAbierto = true;
+let listaRoles = [];
+let menuAbierto = window.innerWidth > 768;
 
 const usuariosFijos = [
-    { usuario: "jgarnica", clave: "123456", rol: "admin", nombre: "JAVIER GARNICA" },
-    { usuario: "jfigueroa", clave: "3134630773", rol: "admin", nombre: "DANIEL FIGUEROA" },
-    { usuario: "jlopez", clave: "123456", rol: "usuario", nombre: "JULIETH LOPEZ" },
-    { usuario: "estudiante", clave: "123456", rol: "prueba", nombre: "Estudiante Prueba" },
-    { usuario: "jnonato", clave: "123456", rol: "usuario", nombre: "J Nonato" }
+    { usuario: "jfigueroa", clave: "123456", nombre: "DANIEL FIGUEROA", rol: "admin", activo: true },
+    { usuario: "jgarnica", clave: "123456", nombre: "JAVIER GARNICA", rol: "admin", activo: true },
+    { usuario: "jlopez", clave: "123456", nombre: "JULIETH LOPEZ", rol: "usuario", activo: true },
+    { usuario: "estudiante", clave: "123456", nombre: "ESTUDIANTE PRUEBA", rol: "usuario", activo: true },
+    { usuario: "jnonato", clave: "123456", nombre: "J NONATO", rol: "usuario", activo: true }
 ];
 
 // =====================================================
-// ===== 🔑 CONEXIÓN FIREBASE =====
+// ===== 🔑 INICIALIZAR DESPUÉS DE FIREBASE =====
 // =====================================================
-const firebaseConfig = {
-    apiKey: "AIzaSyBruMDqyExColkMwy7XyqDSBsF8XcvsFoY",
-    authDomain: "control-ingresos-y-canastillas.firebaseapp.com",
-    projectId: "control-ingresos-y-canastillas",
-    storageBucket: "control-ingresos-y-canastillas.firebasestorage.app",
-    messagingSenderId: "372736670308",
-    appId: "1:372736670308:web:14c2e2614c14ff3dc2bd71",
-    measurementId: "G-N3YMQ2JKZM"
-};
-
-firebase.initializeApp(firebaseConfig);
-db = firebase.firestore();
-auth = firebase.auth();
-console.log("✅ Firebase conectado correctamente");
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof firebase !== 'undefined') {
+        db = firebase.firestore();
+        auth = firebase.auth();
+        console.log('✅ db y auth listos');
+        cargarDatosGenerales();
+    } else {
+        console.error('❌ Firebase NO cargado — revisa firebase-config.js');
+    }
+});
 
 // =====================================================
 // ===== 🔐 INICIO DE SESIÓN =====
 // =====================================================
 function iniciarSesion() {
     const usu = document.getElementById('usuario').value.trim();
-    const cla = document.getElementById('clave').value.trim();
+    const cla = document.getElementById('clave').value;
+    
+    if (!db) return alert('❌ Conexión no disponible');
 
-    const encontrado = usuariosFijos.find(u => u.usuario === usu && u.clave === cla);
-    if (encontrado) {
-        usuarioActivo = encontrado;
-        localStorage.setItem('usuarioActivo', JSON.stringify(usuarioActivo));
+    const usuarioEncontrado = usuariosFijos.find(u => 
+        u.usuario === usu && u.clave === cla && u.activo
+    );
+
+    if (usuarioEncontrado) {
+        usuarioActivo = usuarioEncontrado;
         document.getElementById('pantallaLogin').classList.add('oculto');
         document.getElementById('pantallaPrincipal').classList.remove('oculto');
-        document.getElementById('nombreUsuario').innerHTML = `${encontrado.nombre}<br><small>${encontrado.rol.toUpperCase()}</small>`;
-        cargarDatosGenerales();
+        document.getElementById('nombreUsuario').textContent = usuarioActivo.nombre;
+        actualizarVisibilidadModulos();
         return;
     }
-    alert("❌ Usuario o clave incorrectos");
+
+    db.collection('colaboradores').where('usuario', '==', usu).get()
+        .then(snap => {
+            let encontrado = null;
+            snap.forEach(doc => {
+                const d = doc.data();
+                if (d.clave === cla && d.activo !== false) {
+                    encontrado = { id: doc.id, ...d, rol: d.rol || 'usuario' };
+                }
+            });
+            if (encontrado) {
+                usuarioActivo = encontrado;
+                document.getElementById('pantallaLogin').classList.add('oculto');
+                document.getElementById('pantallaPrincipal').classList.remove('oculto');
+                document.getElementById('nombreUsuario').textContent = usuarioActivo.nombre || usuarioActivo.usuario;
+                actualizarVisibilidadModulos();
+            } else {
+                alert('❌ Usuario o contraseña incorrectos');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('❌ Error de conexión');
+        });
 }
 
 function cerrarSesion() {
-    localStorage.removeItem('usuarioActivo');
-    location.reload();
-}
-
-function verificarSesionGuardada() {
-    const guardado = localStorage.getItem('usuarioActivo');
-    if (guardado) {
-        usuarioActivo = JSON.parse(guardado);
-        document.getElementById('pantallaLogin').classList.add('oculto');
-        document.getElementById('pantallaPrincipal').classList.remove('oculto');
-        document.getElementById('nombreUsuario').innerHTML = `${usuarioActivo.nombre}<br><small>${usuarioActivo.rol.toUpperCase()}</small>`;
-        cargarDatosGenerales();
-    }
+    usuarioActivo = null;
+    document.getElementById('pantallaLogin').classList.remove('oculto');
+    document.getElementById('pantallaPrincipal').classList.add('oculto');
+    document.getElementById('usuario').value = '';
+    document.getElementById('clave').value = '';
 }
 
 // =====================================================
-// ===== 📂 CARGA DE DATOS DESDE FIREBASE =====
-// =====================================================
-async function cargarDatosGenerales() {
-    escuchasActivas.forEach(desconectar => desconectar());
-    escuchasActivas = [];
-
-    // 1. Movimientos
-    escuchasActivas.push(
-        db.collection('movimientos').orderBy('fecha', 'desc').onSnapshot(snap => {
-            movimientos = [];
-            snap.forEach(doc => { movimientos.push({ id: doc.id, ...doc.data() }); });
-            dibujarMovimientosHoy?.();
-            dibujarPendientes?.();
-        })
-    );
-
-    // 2. Movimientos Transportadora
-    escuchasActivas.push(
-        db.collection('movimientos_transportadora').orderBy('fecha', 'desc').onSnapshot(snap => {
-            movimientosTransp = [];
-            snap.forEach(doc => { movimientosTransp.push({ id: doc.id, ...doc.data() }); });
-            dibujarTranspHoy?.();
-            dibujarTranspPendientes?.();
-        })
-    );
-
-    // 3. Vehículos Transportadora
-    escuchasActivas.push(
-        db.collection('vehiculos_transportadora').onSnapshot(snap => {
-            vehiculosTransp = [];
-            snap.forEach(doc => { vehiculosTransp.push({ id: doc.id, ...doc.data() }); });
-            console.log('🚗 Vehículos Transportadora:', vehiculosTransp.length);
-        })
-    );
-
-    // 4. Conductores Transportadora
-    escuchasActivas.push(
-        db.collection('conductores_transportadora').onSnapshot(snap => {
-            conductores = [];
-            snap.forEach(doc => { conductores.push({ id: doc.id, ...doc.data() }); });
-            console.log('👤 Conductores cargados:', conductores.length);
-        })
-    );
-
-    // 5. Colaboradores (Movimientos)
-    escuchasActivas.push(
-        db.collection('colaboradores').onSnapshot(snap => {
-            colaboradores = [];
-            snap.forEach(doc => { colaboradores.push({ id: doc.id, ...doc.data() }); });
-            console.log('👥 Colaboradores:', colaboradores.length);
-        })
-    );
-
-    // 6. Vehículos Movimientos
-    escuchasActivas.push(
-        db.collection('vehiculos').onSnapshot(snap => {
-            vehiculosMov = [];
-            snap.forEach(doc => { vehiculosMov.push({ id: doc.id, ...doc.data() }); });
-            console.log('🚙 Vehículos Movimientos:', vehiculosMov.length);
-        })
-    );
-
-    // 7. Kilometraje
-    escuchasActivas.push(
-        db.collection('kilometraje').onSnapshot(snap => {
-            kilometraje = [];
-            snap.forEach(doc => { kilometraje.push({ id: doc.id, ...doc.data() }); });
-        })
-    );
-
-    // 8. Tanqueo / Combustible
-    escuchasActivas.push(
-        db.collection('tanqueo').onSnapshot(snap => {
-            tanqueo = [];
-            snap.forEach(doc => { tanqueo.push({ id: doc.id, ...doc.data() }); });
-        })
-    );
-
-    // 9. Donantes
-    escuchasActivas.push(
-        db.collection('donantes').onSnapshot(snap => {
-            donantes = [];
-            snap.forEach(doc => { donantes.push({ id: doc.id, ...doc.data() }); });
-            console.log('🤝 Donantes:', donantes.length);
-        })
-    );
-
-    // 10. Anuncios
-    escuchasActivas.push(
-        db.collection('anuncios').onSnapshot(snap => {
-            anuncios = [];
-            snap.forEach(doc => { anuncios.push({ id: doc.id, ...doc.data() }); });
-            console.log('📢 Anuncios:', anuncios.length);
-        })
-    );
-}
-
-// =====================================================
-// ===== 📱 MENÚ LATERAL =====
+// ===== 📂 MENÚ Y NAVEGACIÓN =====
 // =====================================================
 function toggleMenu() {
     menuAbierto = !menuAbierto;
-    const lateral = document.getElementById('menuLateral');
-    if (lateral) {
-        if (menuAbierto) {
-            lateral.classList.remove('oculto');
-        } else {
-            lateral.classList.add('oculto');
-        }
+    const menu = document.getElementById('menuLateral');
+    if (menuAbierto) {
+        menu.classList.remove('oculto');
+    } else {
+        if (window.innerWidth <= 768) menu.classList.add('oculto');
     }
 }
 
-// =====================================================
-// ===== 🔄 CAMBIAR DE MÓDULO — TODOS TUS ARCHIVOS =====
-// =====================================================
-async function cambiarPestaña(nombre) {
-    if (window.innerWidth < 768) {
-        const lateral = document.getElementById('menuLateral');
-        if (lateral) lateral.classList.add('oculto');
+function cambiarPestaña(nombreModulo) {
+    if (window.innerWidth <= 768) {
+        document.getElementById('menuLateral').classList.add('oculto');
         menuAbierto = false;
     }
-
+    
     document.querySelectorAll('.btn-pestaña').forEach(b => b.classList.remove('activa'));
-    if (event?.target) event.target.classList.add('activa');
-
-    const moduloActivo = document.getElementById('moduloActivo');
-    if (moduloActivo) {
-        const nombres = {
-            movimientos: 'Movimientos',
-            transportadora: 'Transportadora',
-            misCanastillas: 'Mis Canastillas',
-            recoleccion: 'Recolección',
-            anuncios: 'Anuncios',
-            donantes: 'Donantes',
-            combustible: 'Combustible',
-            mantenimiento: 'Mantenimiento',
-            informes: 'Informes',
-            usuarios: 'Gestión de Usuarios',
-            admin: 'Administración'
-        };
-        moduloActivo.textContent = nombres[nombre] || nombre;
+    event.target.classList.add('activa');
+    document.getElementById('moduloActivo').textContent = nombreModulo.toUpperCase();
+    
+    if (window[`cargarModulo_${nombreModulo}`]) {
+        window[`cargarModulo_${nombreModulo}`]();
     }
+}
 
-    const c = document.getElementById('contenido');
-    if (!c) return;
+function actualizarVisibilidadModulos() {
+    if (!usuarioActivo) return;
+    const esAdmin = usuarioActivo.rol === 'admin';
+    document.querySelectorAll('.btn-pestaña').forEach(btn => {
+        const texto = btn.textContent.toLowerCase();
+        if (texto.includes('administración') || texto.includes('usuario')) {
+            btn.style.display = esAdmin ? 'block' : 'none';
+        }
+    });
+}
 
-    switch (nombre) {
-        case 'movimientos':
-            if (window.cargarModulo_movimientos) cargarModulo_movimientos();
-            else c.innerHTML = `<div class="tarjeta">⚠️ Módulo movimientos no disponible</div>`;
-            break;
-        case 'transportadora':
-            if (window.cargarModulo_transportadora) cargarModulo_transportadora();
-            else c.innerHTML = `<div class="tarjeta">⚠️ Módulo transportadora no disponible</div>`;
-            break;
-        case 'misCanastillas':
-            if (window.cargarModulo_misCanastillas) cargarModulo_misCanastillas();
-            else c.innerHTML = `<div class="tarjeta">⚠️ Módulo Mis Canastillas no disponible</div>`;
-            break;
-        case 'recoleccion':
-            if (window.cargarModulo_recoleccion) cargarModulo_recoleccion();
-            else c.innerHTML = `<div class="tarjeta">⚠️ Módulo Recolección no disponible</div>`;
-            break;
-        case 'anuncios':
-            if (window.cargarModulo_anuncios) cargarModulo_anuncios();
-            else c.innerHTML = `<div class="tarjeta">⚠️ Módulo Anuncios no disponible</div>`;
-            break;
-        case 'donantes':
-            if (window.cargarModulo_donantes) cargarModulo_donantes();
-            else c.innerHTML = `<div class="tarjeta">⚠️ Módulo Donantes no disponible</div>`;
-            break;
-        case 'combustible':
-            if (window.cargarModulo_combustible) cargarModulo_combustible();
-            else c.innerHTML = `<div class="tarjeta">⚠️ Módulo Combustible no disponible</div>`;
-            break;
-        case 'mantenimiento':
-            if (window.cargarModulo_mantenimiento) cargarModulo_mantenimiento();
-            else c.innerHTML = `<div class="tarjeta">⚠️ Módulo Mantenimiento no disponible</div>`;
-            break;
-        case 'informes':
-            if (window.cargarModulo_informes) cargarModulo_informes();
-            else c.innerHTML = `<div class="tarjeta">⚠️ Módulo Informes no disponible</div>`;
-            break;
-        case 'usuarios':
-            if (window.cargarModulo_usuarios) cargarModulo_usuarios();
-            else c.innerHTML = `<div class="tarjeta">⚠️ Módulo Usuarios no disponible</div>`;
-            break;
-        case 'admin':
-            if (window.cargarModulo_admin) cargarModulo_admin();
-            else c.innerHTML = `<div class="tarjeta">⚠️ Módulo Administración no disponible</div>`;
-            break;
+// =====================================================
+// ===== 📥 CARGA DE DATOS DESDE FIREBASE =====
+// =====================================================
+function cargarDatosGenerales() {
+    if (!db) return;
+
+    db.collection('movimientos').orderBy('fecha', 'desc').onSnapshot(snap => {
+        movimientos = [];
+        snap.forEach(doc => { movimientos.push({ id: doc.id, ...doc.data() }); });
+        if (window.dibujarMovimientosHoy) dibujarMovimientosHoy();
+        if (window.dibujarMovimientosPendientes) dibujarMovimientosPendientes();
+    });
+
+    db.collection('movimientos_transportadora').orderBy('fecha', 'desc').onSnapshot(snap => {
+        movimientosTransp = [];
+        snap.forEach(doc => { movimientosTransp.push({ id: doc.id, ...doc.data() }); });
+    });
+
+    db.collection('colaboradores').orderBy('nombre', 'asc').onSnapshot(snap => {
+        colaboradores = [];
+        snap.forEach(doc => { colaboradores.push({ id: doc.id, ...doc.data() }); });
+        if (window.actualizarSelectoresMov) actualizarSelectoresMov();
+    });
+
+    db.collection('vehiculos').orderBy('placa', 'asc').onSnapshot(snap => {
+        vehiculosMov = [];
+        snap.forEach(doc => { vehiculosMov.push({ id: doc.id, ...doc.data() }); });
+    });
+
+    db.collection('conductores').orderBy('nombre', 'asc').onSnapshot(snap => {
+        conductores = [];
+        snap.forEach(doc => { conductores.push({ id: doc.id, ...doc.data() }); });
+    });
+
+    db.collection('kilometraje').onSnapshot(snap => {
+        kilometraje = [];
+        snap.forEach(doc => { kilometraje.push({ id: doc.id, ...doc.data() }); });
+    });
+
+    db.collection('tanqueo').onSnapshot(snap => {
+        tanqueo = [];
+        snap.forEach(doc => { tanqueo.push({ id: doc.id, ...doc.data() }); });
+    });
+}
+
+// =====================================================
+// ===== 💾 GUARDAR / EDITAR MOVIMIENTO =====
+// =====================================================
+async function guardarMovimiento(datos) {
+    if (!db) return alert('❌ Sin conexión');
+    try {
+        if (idEdicion) {
+            await db.collection('movimientos').doc(idEdicion).update(datos);
+            alert('✅ Movimiento actualizado');
+        } else {
+            await db.collection('movimientos').add(datos);
+            alert('✅ Movimiento guardado');
+        }
+        idEdicion = null;
+        filasRecogida = [];
+        if (window.cargarModulo_movimientos) cargarModulo_movimientos();
+    } catch (err) {
+        console.error(err);
+        alert('❌ Error al guardar');
+    }
+}
+
+async function editarMovimiento(id) {
+    idEdicion = id;
+    if (window.cambiarSubpestañaMov) cambiarSubpestañaMov('crear');
+    setTimeout(() => {
+        const m = movimientos.find(x => x.id === id);
+        if (!m) return;
+        if (document.getElementById('fechaMov')) document.getElementById('fechaMov').value = m.fecha || '';
+        if (document.getElementById('placa')) document.getElementById('placa').value = m.placa || '';
+        if (document.getElementById('colaborador')) document.getElementById('colaborador').value = m.colaborador || '';
+        if (document.getElementById('horaSalida')) document.getElementById('horaSalida').value = m.horaSalida || '';
+        if (document.getElementById('canastillasSalida')) document.getElementById('canastillasSalida').value = m.canastillasSalida || '';
+        if (document.getElementById('horaLlegada')) document.getElementById('horaLlegada').value = m.horaLlegada || '';
+        if (document.getElementById('canastillasLlegada')) document.getElementById('canastillasLlegada').value = m.canastillasLlegada || '';
+        if (document.getElementById('totalKilos')) document.getElementById('totalKilos').value = m.totalKilos || '';
+        if (document.getElementById('observaciones')) document.getElementById('observaciones').value = m.observaciones || '';
+        filasRecogida = m.recogidas || [];
+        if (window.dibujarTablaRecogidas) dibujarTablaRecogidas();
+    }, 100);
+}
+
+async function eliminarMovimiento(id) {
+    if (!confirm('¿Seguro de eliminar este movimiento?')) return;
+    if (!db) return;
+    try {
+        await db.collection('movimientos').doc(id).delete();
+        alert('✅ Eliminado');
+        idEdicion = null;
+        if (window.cargarModulo_movimientos) cargarModulo_movimientos();
+    } catch (err) {
+        console.error(err);
+        alert('❌ Error al eliminar');
     }
 }
 
 // =====================================================
-// ===== 📥 INICIO AUTOMÁTICO =====
+// ===== ✅ FUNCIÓN QUE FALTABA =====
 // =====================================================
-document.addEventListener('DOMContentLoaded', () => {
-    verificarSesionGuardada();
-});
+async function completarMovimientoDirecto(id) {
+    if (!db) return alert('❌ Sin conexión');
+    const ahora = new Date().toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' });
+    try {
+        await db.collection('movimientos').doc(id).update({
+            horaLlegada: ahora
+        });
+        alert('✅ Movimiento completado');
+    } catch (err) {
+        console.error(err);
+        alert('❌ Error al completar');
+    }
+}
+
+// =====================================================
+// ===== 🔄 ACTUALIZAR SELECTORES =====
+// =====================================================
+function actualizarSelectoresVehiculos() {
+    const sel = document.getElementById('placa');
+    if (!sel) return;
+    const valorActual = sel.value;
+    sel.innerHTML = `<option value="">-- Seleccionar Vehículo --</option>` +
+        vehiculosMov.map(v => `<option value="${v.placa}">${v.placa}</option>`).join('');
+    sel.value = valorActual;
+}
+
+function actualizarSelectoresColaboradores() {
+    const sel = document.getElementById('colaborador');
+    if (!sel) return;
+    const valorActual = sel.value;
+    sel.innerHTML = `<option value="">-- Seleccionar --</option>` +
+        colaboradores.map(c => `<option value="${c.nombre || c.nombreCompleto}">${c.nombre || c.nombreCompleto}</option>`).join('') +
+        conductores.map(c => `<option value="${c.nombre || c.nombreCompleto}">${c.nombre || c.nombreCompleto}</option>`).join('');
+    sel.value = valorActual;
+}
+
+function actualizarSelectoresMov() {
+    actualizarSelectoresVehiculos();
+    actualizarSelectoresColaboradores();
+}
+
+// =====================================================
+// ===== 📊 EXPORTAR EXCEL =====
+// =====================================================
+function exportarExcel() {
+    if (movimientos.length === 0) return alert('📭 Sin datos para exportar');
+    const datos = movimientos.map(m => ({
+        Fecha: m.fecha,
+        Placa: m.placa,
+        Colaborador: m.colaborador,
+        HoraSalida: m.horaSalida,
+        HoraLlegada: m.horaLlegada || '—',
+        CanastillasSalida: m.canastillasSalida || 0,
+        CanastillasLlegada: m.canastillasLlegada || 0,
+        TotalKilos: m.totalKilos || 0,
+        Observaciones: m.observaciones || ''
+    }));
+    const hoja = XLSX.utils.json_to_sheet(datos);
+    const libro = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(libro, hoja, 'Movimientos');
+    XLSX.writeFile(libro, `Movimientos_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+console.log('✅ funciones.js cargado completo');
