@@ -1,12 +1,16 @@
 // =====================================================
 // ===== 📦 VARIABLES GLOBALES — ÚNICA DECLARACIÓN =====
 // =====================================================
+// =====================================================
+// ===== 📦 VARIABLES GLOBALES — ÚNICA DECLARACIÓN =====
+// =====================================================
 let db, auth;
 let usuarioActivo = null;
 let movimientos = [];
 let movimientosTransp = [];
 let colaboradores = [];
 let vehiculosMov = [];
+let vehiculosTransp = [];  // ✅ FALTABA ESTA — la agregué
 let conductores = [];
 let kilometraje = [];
 let tanqueo = [];
@@ -18,7 +22,7 @@ let listaRoles = [];
 let menuAbierto = window.innerWidth > 768;
 
 const usuariosFijos = [
-    { usuario: "jfigueroa", clave: "123456", nombre: "DANIEL FIGUEROA", rol: "admin", activo: true },
+    { usuario: "jfigueroa", clave: "3134630773", nombre: "DANIEL FIGUEROA", rol: "admin", activo: true },
     { usuario: "jgarnica", clave: "123456", nombre: "JAVIER GARNICA", rol: "admin", activo: true },
     { usuario: "jlopez", clave: "123456", nombre: "JULIETH LOPEZ", rol: "usuario", activo: true },
     { usuario: "estudiante", clave: "123456", nombre: "ESTUDIANTE PRUEBA", rol: "usuario", activo: true },
@@ -214,6 +218,7 @@ function actualizarSelectoresVehiculos() {
     const placasRegistradas = vehiculosMov.map(v => v.placa).filter(p => p);
     const placasUsadas = [...new Set(movimientos.map(m => m.placa).filter(p => p))];
     
+    // ✅ [...new Set(...)] = ELIMINA DUPLICADOS AUTOMÁTICAMENTE
     const todasLasPlacas = [...new Set([...placasRegistradas, ...placasUsadas])].sort();
     
     console.log('🚗 Placas registradas:', placasRegistradas);
