@@ -22,7 +22,7 @@ let listaRoles = [];
 let menuAbierto = window.innerWidth > 768;
 
 const usuariosFijos = [
-    { usuario: "jfigueroa", clave: "123456", nombre: "DANIEL FIGUEROA", rol: "admin", activo: true },
+    { usuario: "jfigueroa", clave: "3134630773", nombre: "DANIEL FIGUEROA", rol: "admin", activo: true },
     { usuario: "jgarnica", clave: "123456", nombre: "JAVIER GARNICA", rol: "admin", activo: true },
     { usuario: "jlopez", clave: "123456", nombre: "JULIETH LOPEZ", rol: "usuario", activo: true },
     { usuario: "estudiante", clave: "123456", nombre: "ESTUDIANTE PRUEBA", rol: "usuario", activo: true },
