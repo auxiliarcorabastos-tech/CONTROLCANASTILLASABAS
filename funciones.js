@@ -1,7 +1,7 @@
 // =====================================================
-// ===== 📦 VARIABLES GLOBALES =====
+// ===== 📦 VARIABLES GLOBALES — UNA SOLA VEZ =====
 // =====================================================
-let db, auth;
+let db, auth;  // ✅ Declaración única — NO repetir en ningún otro archivo
 let usuarioActivo = null;
 let movimientos = [];
 let movimientosTransp = [];
@@ -34,15 +34,15 @@ const usuariosFijos = [
 // =====================================================
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof firebase !== 'undefined') {
+        // Asignamos aquí, después de que Firebase exista
         db = firebase.firestore();
         auth = firebase.auth();
         console.log('✅ db y auth listos');
         cargarDatosGenerales();
     } else {
-        console.error('❌ Firebase NO cargado — revisa firebase-config.js');
+        console.error('❌ Firebase NO cargado — revisa el orden de los archivos');
     }
 });
-
 // =====================================================
 // ===== 🔐 INICIO DE SESIÓN =====
 // =====================================================
