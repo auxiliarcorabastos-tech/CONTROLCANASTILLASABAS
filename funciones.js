@@ -167,11 +167,15 @@ function cargarDatosGenerales() {
 
     // ✅ CARGA VEHÍCULOS — Incluye placas desde movimientos también
     db.collection('vehiculos').orderBy('placa', 'asc').onSnapshot(snap => {
-        vehiculosMov = [];
-        snap.forEach(doc => { vehiculosMov.push({ id: doc.id, ...doc.data() }); });
-        console.log('✅ Vehículos cargados:', vehiculosMov.length, vehiculosMov);
-        if (window.actualizarSelectoresMov) actualizarSelectoresMov();
+    vehiculosMov = [];
+    snap.forEach(doc => { 
+        vehiculosMov.push({ id: doc.id, ...doc.data() }); 
     });
+    console.log('✅ Vehículos cargados:', vehiculosMov.length, vehiculosMov);
+    // Forzar actualización con retardo para asegurar que el HTML exista
+    setTimeout(() => actualizarSelectoresVehiculos(), 50);
+    setTimeout(() => actualizarSelectoresVehiculos(), 200);
+});
 
     // ✅ CARGA CONDUCTORES
     db.collection('conductores').orderBy('nombre', 'asc').onSnapshot(snap => {
