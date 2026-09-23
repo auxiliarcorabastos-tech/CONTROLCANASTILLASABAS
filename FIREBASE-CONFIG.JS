@@ -1,8 +1,6 @@
 // =====================================================
-// ===== 🔑 FIREBASE-CONFIG.JS — VERSIÓN FINAL =====
-// ===== NO DECLARAR db NI auth AQUÍ — SE HACE EN funciones.js =====
+// ===== FIREBASE-CONFIG.JS — SOLO INICIALIZACIÓN =====
 // =====================================================
-
 const firebaseConfig = {
     apiKey: "AIzaSyBruMDqyExColkMwy7XyqDSBsF8XcvsFoY",
     authDomain: "control-ingresos-y-canastillas.firebaseapp.com",
@@ -13,7 +11,5 @@ const firebaseConfig = {
     measurementId: "G-N3YMQ2JKZM"
 };
 
-// ✅ Solo inicializamos Firebase — db y auth se crean en funciones.js
 firebase.initializeApp(firebaseConfig);
-
 console.log('✅ Firebase conectado correctamente');
