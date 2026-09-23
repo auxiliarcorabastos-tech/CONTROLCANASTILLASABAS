@@ -225,20 +225,23 @@
             </main>
         </div>
     </div>
-    <!-- ORDEN: funciones.js PRIMERO, luego los demás -->
-    <script src="funciones.js"></script>
-    
-    <!-- TUS MÓDULOS TAL COMO LOS TIENES -->
-    <script src="movimientos.js"></script>
-    <script src="transportadora.js"></script>
-    <script src="misCanastillas.js"></script>
-    <script src="recoleccion.js"></script>
-    <script src="anuncios.js"></script>
-    <script src="donantes.js"></script>
-    <script src="combustible.js"></script>
-    <script src="mantenimiento.js"></script>
-    <script src="informes.js"></script>
-    <script src="usuarios.js"></script>
-    <script src="admin.js"></script>
+    <!-- ✅ 1. SIEMPRE PRIMERO: Firebase Config -->
+<script src="firebase.js"></script>
+
+<!-- ✅ 2. LUEGO: Funciones Generales -->
+<script src="funciones.js"></script>
+
+<!-- ✅ 3. DESPUÉS: Todos los módulos -->
+<script src="movimientos.js"></script>
+<script src="transportadora.js"></script>
+<script src="misCanastillas.js"></script>
+<script src="recoleccion.js"></script>
+<script src="anuncios.js"></script>
+<script src="donantes.js"></script>
+<script src="combustible.js"></script>
+<script src="mantenimiento.js"></script>
+<script src="informes.js"></script>
+<script src="usuarios.js"></script>
+<script src="admin.js"></script>
 </body>
 </html>
