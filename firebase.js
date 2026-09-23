@@ -1,5 +1,5 @@
 // =====================================================
-// ===== 🔧 CONFIGURACIÓN FIREBASE =====
+// ===== FIREBASE-CONFIG.JS — NO MODIFICAR NADA =====
 // =====================================================
 const firebaseConfig = {
     apiKey: "AIzaSyBruMDqyExColkMwy7XyqDSBsF8XcvsFoY",
@@ -11,12 +11,7 @@ const firebaseConfig = {
     measurementId: "G-N3YMQ2JKZM"
 };
 
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-
-// ✅ ÚNICA declaración de db y auth
+firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const auth = firebase.auth();
-
 console.log('✅ Firebase conectado correctamente');
