@@ -19,8 +19,8 @@
             --peligro: #DC2626;
             --fondo: #F1F5F9;
             --tarjeta: #FFFFFF;
-            --texto: #000000;           /* ✅ Texto NEGRO — siempre legible */
-            --texto-claro: #333333;     /* ✅ Texto secundario oscuro */
+            --texto: #000000;
+            --texto-claro: #333333;
             --borde: #CBD5E1;
             --resaltado: #EFF6FF;
         }
@@ -28,13 +28,11 @@
         body { background: var(--fondo); color: var(--texto); min-height: 100vh; }
         .oculto { display: none !important; }
         
-        /* ✅ Pestaña activa: texto NEGRO con contorno definido */
         .activa { 
             background: var(--primario); 
             color: #000000 !important; 
             font-weight: 700;
-            text-shadow: 0 1px 2px rgba(255,255,255,0.8); /* ✅ Contorno blanco sobre azul */
-            border: 1px solid #000000 !important; /* ✅ Borde negro */
+            border: 2px solid #000000 !important;
         }
         
         .pantalla-login {
@@ -85,7 +83,7 @@
         .btn-pestaña.activa {
             background: var(--primario); 
             color: #000000 !important;
-            border-left: 4px solid #000000; /* ✅ Borde negro resaltado */
+            border-left: 4px solid #000000;
             font-weight: 700;
         }
         
@@ -101,7 +99,7 @@
             width: 100%; padding: 0.75rem; border: 2px solid #94A3B8;
             border-radius: 0.5rem; font-size: 0.95rem;
             background: #FFFFFF;
-            color: #000000; /* ✅ Texto siempre negro en inputs */
+            color: #000000;
             font-weight: 500;
             transition: all 0.2s ease;
         }
@@ -114,11 +112,11 @@
         .btn {
             padding: 0.75rem 1.2rem; border: 2px solid transparent; border-radius: 0.5rem;
             font-weight: 700; cursor: pointer; font-size: 0.95rem; transition: all 0.2s ease;
-            color: #000000; /* ✅ Texto negro en todos los botones */
+            color: #000000;
         }
         .btn-sm { padding: 0.45rem 0.8rem; font-size: 0.85rem; }
-        .btn-primario { background: var(--primario); border-color: #000000; color: #FFFFFF; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
-        .btn-primario:hover { background: var(--primario-oscuro); border-color: #000000; }
+        .btn-primario { background: var(--primario); border-color: #000000; color: #FFFFFF; }
+        .btn-primario:hover { background: var(--primario-oscuro); }
         .btn-exito { background: var(--exito); border-color: #000000; color: #FFFFFF; }
         .btn-exito:hover { background: #047857; }
         .btn-amarillo { background: var(--advertencia); border-color: #000000; color: #000000; }
@@ -131,21 +129,13 @@
         .tabla th, .tabla td { 
             padding: 0.8rem 0.6rem; text-align: left; 
             border-bottom: 2px solid var(--borde);
-            color: #000000; /* ✅ Siempre negro */
+            color: #000000;
         }
         .tabla th { 
             background: #E2E8F0; font-weight: 700; font-size: 0.85rem; 
             color: #000000; border-bottom: 2px solid #000000;
         }
         .tabla tr:hover td { background: #F1F5F9; }
-        .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
-        .resumen { display: flex; gap: 1rem; flex-wrap: wrap; }
-        .resumen > div { 
-            border-radius: 0.5rem; padding: 0.8rem 1.2rem; font-weight: 700; 
-            background: white; border: 2px solid #000000; 
-            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-            color: #000000;
-        }
         
         .btn-subpestaña {
             padding: 0.75rem 1.2rem; border: 2px solid transparent; 
@@ -192,6 +182,7 @@
             <button class="btn btn-primario" style="width:100%; margin-top: 0.5rem;" onclick="iniciarSesion()">Ingresar</button>
         </div>
     </div>
+    
     <div id="pantallaPrincipal" class="oculto">
         <header class="encabezado">
             <button class="btn-menu" onclick="toggleMenu()">☰</button>
@@ -204,6 +195,7 @@
                 <button class="btn btn-sm btn-peligro" onclick="cerrarSesion()">Salir</button>
             </div>
         </header>
+        
         <div class="contenedor-principal">
             <nav id="menuLateral" class="menu-lateral">
                 <button class="btn-pestaña" onclick="cambiarPestaña('movimientos')">🚚 Movimientos</button>
@@ -218,6 +210,7 @@
                 <button class="btn-pestaña" onclick="cambiarPestaña('usuarios')">👥 Gestión Usuarios</button>
                 <button class="btn-pestaña" onclick="cambiarPestaña('admin')">⚙️ Administración</button>
             </nav>
+            
             <main id="contenido" class="area-contenido">
                 <div class="tarjeta text-center py-10" style="color: #000000; font-weight: 600;">
                     Seleccione un módulo del menú
@@ -225,23 +218,22 @@
             </main>
         </div>
     </div>
-<!-- ✅ PRIMERO: configura sin declarar db -->
-<script src="firebase-config.js"></script>
-
-<!-- ✅ SEGUNDO: funciones.js donde SÍ se declara db -->
-<script src="funciones.js"></script>
-
-<!-- ✅ TERCERO: todos los módulos -->
-<script src="movimientos.js"></script>
-<script src="transportadora.js"></script>
-<script src="misCanastillas.js"></script>
-<script src="recoleccion.js"></script>
-<script src="anuncios.js"></script>
-<script src="donantes.js"></script>
-<script src="combustible.js"></script>
-<script src="mantenimiento.js"></script>
-<script src="informes.js"></script>
-<script src="usuarios.js"></script>
-<script src="admin.js"></script>
+    
+    <!-- ✅ ORDEN CORRECTO — NO CAMBIAR -->
+    <script src="firebase-config.js"></script>
+    <script src="funciones.js"></script>
+    
+    <!-- Módulos separados -->
+    <script src="movimientos.js"></script>
+    <script src="transportadora.js"></script>
+    <script src="misCanastillas.js"></script>
+    <script src="recoleccion.js"></script>
+    <script src="anuncios.js"></script>
+    <script src="donantes.js"></script>
+    <script src="combustible.js"></script>
+    <script src="mantenimiento.js"></script>
+    <script src="informes.js"></script>
+    <script src="usuarios.js"></script>
+    <script src="admin.js"></script>
 </body>
 </html>
