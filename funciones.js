@@ -1,7 +1,7 @@
 // =====================================================
-// ===== VARIABLES GLOBALES — ÚNICA DECLARACIÓN =====
+// ===== 📦 VARIABLES GLOBALES — ÚNICA DECLARACIÓN =====
 // =====================================================
-let db, auth;  // ✅ AQUÍ SOLAMENTE — una sola vez
+let db, auth;
 let usuarioActivo = null;
 let movimientos = [];
 let movimientosTransp = [];
@@ -29,6 +29,9 @@ const usuariosFijos = [
     { usuario: "jnonato", clave: "123456", nombre: "J NONATO", rol: "usuario", activo: true }
 ];
 
+// =====================================================
+// ===== 🔑 INICIALIZAR DESPUÉS DE FIREBASE =====
+// =====================================================
 document.addEventListener('DOMContentLoaded', () => {
     if (typeof firebase !== 'undefined') {
         db = firebase.firestore();
@@ -36,9 +39,10 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('✅ db y auth listos');
         cargarDatosGenerales();
     } else {
-        console.error('❌ Firebase no cargado — revisa orden de archivos');
+        console.error('❌ Firebase NO cargado — verifica que firebase.js esté primero en index.html');
     }
 });
+
 // =====================================================
 // ===== 🔐 INICIO DE SESIÓN =====
 // =====================================================
@@ -46,7 +50,10 @@ function iniciarSesion() {
     const usu = document.getElementById('usuario').value.trim();
     const cla = document.getElementById('clave').value;
     
-    if (!db) return alert('❌ Conexión no disponible');
+    if (typeof db === 'undefined' || !db) {
+        alert('⏳ Conectando... espere y vuelva a intentar');
+        return;
+    }
 
     const usuarioEncontrado = usuariosFijos.find(u => 
         u.usuario === usu && u.clave === cla && u.activo
@@ -235,7 +242,7 @@ async function eliminarMovimiento(id) {
 }
 
 // =====================================================
-// ===== ✅ FUNCIÓN QUE FALTABA =====
+// ===== ✅ COMPLETAR MOVIMIENTO DIRECTO =====
 // =====================================================
 async function completarMovimientoDirecto(id) {
     if (!db) return alert('❌ Sin conexión');
