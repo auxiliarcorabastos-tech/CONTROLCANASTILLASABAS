@@ -1,553 +1,362 @@
 // =====================================================
-// ===== 👥 MÓDULO GESTIÓN DE USUARIOS — VERSIÓN FIJA =====
+// ===== 👥 GESTIÓN DE USUARIOS =====
 // =====================================================
 window.cargarModulo_usuarios = async function() {
     const c = document.getElementById('contenido');
     if (!c) return;
 
     c.innerHTML = `
-    <div class="tarjeta">
-        <h3 class="font-bold mb-4">👥 Gestión de Usuarios y Roles</h3>
+    <div class="flex gap-2 mb-4 flex-wrap">
+        <button class="btn-subpestaña activa" onclick="cambiarSubpestañaUsu('listar', event)">📋 Lista de Usuarios</button>
+        <button class="btn-subpestaña" onclick="cambiarSubpestañaUsu('crear', event)">➕ Crear Usuario</button>
+        <button class="btn-subpestaña" onclick="cambiarSubpestañaUsu('roles', event)">⚙️ Gestión de Roles</button>
+    </div>
 
-        <!-- ============================================== -->
-        <!-- PESTAÑAS PRINCIPALES — SIEMPRE FIJAS ARRIBA -->
-        <!-- ============================================== -->
-        <div class="flex gap-2 mb-4 flex-wrap border-b-2 border-gray-200 pb-3">
-            <button class="btn-subpestaña activa" id="pestBtn_usuarios" onclick="cambiarPestPrincipal('usuarios')">👤 Usuarios</button>
-            <button class="btn-subpestaña" id="pestBtn_roles" onclick="cambiarPestPrincipal('roles')">🔐 Roles y Permisos</button>
+    <!-- LISTA DE USUARIOS -->
+    <div id="subusu-listar" class="">
+        <div class="tarjeta">
+            <h3 class="font-bold mb-4">👥 Usuarios del Sistema</h3>
+            <div class="mb-3">
+                <input type="text" id="buscarUsuario" placeholder="🔍 Buscar por nombre o usuario..." oninput="filtrarUsuarios()">
+            </div>
+            <table class="tabla">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Nombre Completo</th>
+                        <th>Rol</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaUsuariosCuerpo"></tbody>
+            </table>
         </div>
+    </div>
 
-        <!-- ============================================== -->
-        <!-- PESTAÑA: USUARIOS — SUBPESTAÑAS SIEMPRE VISIBLES -->
-        <!-- ============================================== -->
-        <div id="pestCont_usuarios">
-            <div class="flex gap-2 mb-4 flex-wrap bg-gray-50 p-2 rounded-lg">
-                <button class="btn-subpestaña activa" id="subBtn_todos" onclick="cambiarSubUsu('todos')">📋 Todos los Usuarios</button>
-                <button class="btn-subpestaña" id="subBtn_sistema" onclick="cambiarSubUsu('sistema')">⚙️ Usuarios del Sistema</button>
-                <button class="btn-subpestaña" id="subBtn_crear" onclick="cambiarSubUsu('crear')">➕ Crear Usuario</button>
-            </div>
-
-            <!-- SUB: TODOS LOS USUARIOS -->
-            <div id="subCont_todos">
-                <div class="grupo mb-3">
-                    <label>🔍 Buscar:</label>
-                    <input type="text" id="buscarUsuario" placeholder="Nombre, usuario..." oninput="filtrarUsuarios()">
+    <!-- CREAR/EDITAR USUARIO -->
+    <div id="subusu-crear" class="oculto">
+        <div class="tarjeta">
+            <h3 class="font-bold mb-4" id="tituloFormUsu">➕ Nuevo Usuario</h3>
+            <div class="grid-2">
+                <div class="grupo">
+                    <label>👤 Usuario (login) *</label>
+                    <input type="text" id="usu_usuario" placeholder="ej: jperez">
                 </div>
-                <div style="overflow-x:auto;">
-                    <table class="tabla w-full">
-                        <thead>
-                            <tr class="bg-gray-50">
-                                <th>Nombre</th>
-                                <th>Usuario</th>
-                                <th>Rol</th>
-                                <th>Vinculado</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaTodosUsuarios"></tbody>
-                    </table>
+                <div class="grupo">
+                    <label>🔑 Contraseña *</label>
+                    <input type="password" id="usu_clave" placeholder="Mínimo 6 caracteres">
                 </div>
-            </div>
-
-            <!-- SUB: USUARIOS DEL SISTEMA -->
-            <div id="subCont_sistema" class="oculto">
-                <p class="text-sm text-gray-500 mb-3">🔒 Usuarios integrados en el sistema — datos de acceso configurados internamente</p>
-                <div style="overflow-x:auto;">
-                    <table class="tabla w-full">
-                        <thead>
-                            <tr class="bg-gray-50">
-                                <th>Nombre Completo</th>
-                                <th>Usuario (Login)</th>
-                                <th>Rol Asignado</th>
-                                <th>Tipo</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${usuariosFijos.map(u => `
-                            <tr class="border-b">
-                                <td class="font-medium">${u.nombre}</td>
-                                <td><code>${u.usuario}</code></td>
-                                <td><span class="px-2 py-1 rounded text-xs ${u.rol==='admin'?'bg-blue-100 text-blue-700':u.rol==='personalizado'?'bg-purple-100 text-purple-700':'bg-gray-100'}">${u.rolNombre || u.rol}</span></td>
-                                <td><span class="text-xs bg-blue-50 px-2 py-1 rounded">Sistema</span></td>
-                            </tr>`).join('')}
-                        </tbody>
-                    </table>
+                <div class="grupo col-span-2">
+                    <label>📝 Nombre Completo *</label>
+                    <input type="text" id="usu_nombre" placeholder="Nombre y apellidos">
+                </div>
+                <div class="grupo col-span-2">
+                    <label>🔗 Vincular a Colaborador/Conductor</label>
+                    <select id="usu_colaborador_vinculo">
+                        <option value="">-- No vincular — crear usuario independiente --</option>
+                        <optgroup label="Colaboradores">
+                            ${colaboradores.map(c => `<option value="${c.id}||colaborador">${c.nombre || c.nombreCompleto}</option>`).join('')}
+                        </optgroup>
+                        <optgroup label="Conductores">
+                            ${conductores.map(c => `<option value="${c.id}||conductor">${c.nombre || c.nombreCompleto}</option>`).join('')}
+                        </optgroup>
+                    </select>
+                    <small style="color:#666;">Selecciona para copiar el nombre y enlazar sus datos</small>
+                </div>
+                <div class="grupo">
+                    <label>🎭 Rol *</label>
+                    <select id="usu_rol">
+                        <option value="">-- Seleccionar Rol --</option>
+                        <option value="admin">🔧 Administrador</option>
+                        <option value="editor">✏️ Editor</option>
+                        <option value="usuario">👤 Usuario</option>
+                        ${listaRoles.map(r => `<option value="${r.nombre}">${r.nombre}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="grupo">
+                    <label>✅ Estado</label>
+                    <select id="usu_activo">
+                        <option value="true" selected>Activo</option>
+                        <option value="false">Inactivo</option>
+                    </select>
+                </div>
+                <div class="grupo col-span-2">
+                    <label>📋 Permisos de Módulos</label>
+                    <div id="checkModulosPermisos" class="grid-2" style="max-height:250px; overflow-y:auto; padding:0.5rem; border:1px solid #ddd; border-radius:0.5rem;">
+                        ${generarCheckModulos()}
+                    </div>
                 </div>
             </div>
-
-            <!-- SUB: CREAR / EDITAR USUARIO -->
-            <div id="subCont_crear" class="oculto">
-                <h4 id="tituloFormUsu" class="font-bold mb-3">➕ Crear Nuevo Usuario</h4>
-                <div class="grid-2">
-                    <div class="grupo">
-                        <label>Nombre Completo *</label>
-                        <input type="text" id="usuNombre" placeholder="Nombre completo">
-                    </div>
-                    <div class="grupo">
-                        <label>Usuario (Login) *</label>
-                        <input type="text" id="usuLogin" placeholder="ej: jperez">
-                    </div>
-                    <div class="grupo">
-                        <label>Contraseña ${idEdicionUsuario ? '(vacío = no cambiar)' : '*'}</label>
-                        <input type="password" id="usuClave" placeholder="Escriba contraseña">
-                    </div>
-                    <div class="grupo">
-                        <label>Rol *</label>
-                        <select id="usuRol" onchange="cambiarSeleccionRolUsuario()">
-                            ${listaRoles.map(r => `<option value="${r.codigo}">${r.nombre}</option>`).join('')}
-                        </select>
-                    </div>
-                    <div class="grupo col-span-2 oculto" id="bloquePermisosPersonalizados">
-                        <label class="font-bold text-purple-600">🎛️ Permisos Personalizados — Seleccione qué puede ver y editar:</label>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                            <div>
-                                <p class="font-semibold text-sm text-green-600 mb-1">📂 Puede VER:</p>
-                                <div id="chk-personal-ver" class="space-y-1 text-sm"></div>
-                            </div>
-                            <div>
-                                <p class="font-semibold text-sm text-blue-600 mb-1">✏️ Puede EDITAR:</p>
-                                <div id="chk-personal-editar" class="space-y-1 text-sm"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="grupo col-span-2">
-                        <label>Vincular con Colaborador / Conductor</label>
-                        <select id="usuVinculo">
-                            <option value="">-- Ninguno --</option>
-                            <optgroup label="Colaboradores">
-                                ${colaboradores.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
-                            </optgroup>
-                            <optgroup label="Conductores">
-                                ${conductores.map(c => `<option value="${c.nombre}">${c.nombre} (Conductor)</option>`).join('')}
-                            </optgroup>
-                        </select>
-                    </div>
-                </div>
-                <div class="flex gap-2 mt-3">
-                    <button class="btn btn-exito" onclick="guardarUsuario()">💾 Guardar Usuario</button>
-                    <button class="btn" onclick="limpiarFormUsuario()">Limpiar</button>
-                </div>
+            <div class="flex gap-3 mt-6">
+                <button class="btn btn-primario" onclick="guardarUsuario()">💾 Guardar</button>
+                <button class="btn btn-amarillo" onclick="limpiarFormUsuario()">🔄 Limpiar</button>
+                <button class="btn btn-peligro" onclick="cambiarSubpestañaUsu('listar')">❌ Cancelar</button>
             </div>
         </div>
+    </div>
 
-        <!-- ============================================== -->
-        <!-- PESTAÑA: ROLES — SUBPESTAÑAS SIEMPRE VISIBLES -->
-        <!-- ============================================== -->
-        <div id="pestCont_roles" class="oculto">
-            <div class="flex gap-2 mb-4 flex-wrap bg-gray-50 p-2 rounded-lg">
-                <button class="btn-subpestaña activa" id="subBtnTodos_roles" onclick="cambiarSubRoles('todos')">📋 Todos los Roles</button>
-                <button class="btn-subpestaña" id="subBtnCrear_roles" onclick="cambiarSubRoles('crear')">➕ Crear Rol Fijo</button>
+    <!-- GESTIÓN DE ROLES -->
+    <div id="subusu-roles" class="oculto">
+        <div class="tarjeta">
+            <h3 class="font-bold mb-4">⚙️ Crear y Configurar Roles</h3>
+            <div class="grupo">
+                <label>Nombre del Nuevo Rol</label>
+                <input type="text" id="nuevoRolNombre" placeholder="ej: Supervisor">
             </div>
-
-            <!-- SUB: TODOS LOS ROLES -->
-            <div id="subContTodos_roles">
-                <p class="text-sm text-gray-500 mb-3">Roles del sistema — los marcados como "Predeterminado" no se pueden eliminar</p>
-                <div class="grid-2" id="listaRolesTarjetas">
-                    ${listaRoles.map(r => `
-                    <div class="tarjeta border-2 ${r.predeterminado ? 'border-blue-200' : r.codigo==='personalizado'?'border-purple-200':'border-gray-100'}">
-                        <h4 class="font-bold flex justify-between items-center">
-                            ${r.nombre}
-                            <span class="flex gap-1">
-                                ${r.predeterminado ? '<span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Predeterminado</span>' : ''}
-                                ${r.codigo==='personalizado' ? '<span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Personalizado</span>' : ''}
-                            </span>
-                        </h4>
-                        <p class="text-sm text-gray-500 mb-2">${r.descripcion || ''}</p>
-                        <div class="text-sm space-y-2">
-                            <div>
-                                <p class="font-semibold text-green-600">Puede VER:</p>
-                                <div class="flex flex-wrap gap-1 mt-1">
-                                    ${r.modulosVer.length>0?r.modulosVer.map(m=>`<span class="bg-green-50 text-green-700 px-2 py-0.5 rounded text-xs">${nombresModulos[m]||m}</span>`).join(''):'<span class="text-gray-400 text-xs">Ninguno</span>'}
-                                </div>
-                            </div>
-                            <div>
-                                <p class="font-semibold text-blue-600">Puede EDITAR:</p>
-                                <div class="flex flex-wrap gap-1 mt-1">
-                                    ${r.modulosEditar.length>0?r.modulosEditar.map(m=>`<span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs">${nombresModulos[m]||m}</span>`).join(''):'<span class="text-gray-400 text-xs">Ninguno</span>'}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex gap-2 mt-3">
-                            <button class="btn btn-sm btn-amarillo" onclick="editarRol('${r.codigo}')">Editar</button>
-                            ${!r.predeterminado && r.codigo!=='personalizado' ? `<button class="btn btn-sm btn-peligro" onclick="eliminarRol('${r.codigo}')">Eliminar</button>` : ''}
-                        </div>
-                    </div>`).join('')}
+            <div class="grupo">
+                <label>Permisos para este Rol</label>
+                <div id="checkModulosRol" class="grid-2" style="max-height:250px; overflow-y:auto; padding:0.5rem; border:1px solid #ddd; border-radius:0.5rem;">
+                    ${generarCheckModulos()}
                 </div>
             </div>
-
-            <!-- SUB: CREAR ROL FIJO -->
-            <div id="subContCrear_roles" class="oculto">
-                <h4 id="tituloFormRol" class="font-bold mb-3">➕ Crear Nuevo Rol Fijo</h4>
-                <div class="grid-2">
-                    <div class="grupo">
-                        <label>Nombre del Rol *</label>
-                        <input type="text" id="rolNombre" placeholder="ej: Encargado de Bodega">
-                    </div>
-                    <div class="grupo">
-                        <label>Código identificador *</label>
-                        <input type="text" id="rolCodigo" placeholder="ej: encargado_bodega" ${idEdicionRol?'readonly':''}>
-                    </div>
-                    <div class="grupo col-span-2">
-                        <label>Descripción</label>
-                        <input type="text" id="rolDescripcion" placeholder="Breve descripción de este rol">
-                    </div>
-                    <div class="grupo col-span-2">
-                        <label class="font-semibold text-green-600">📂 Módulos que PUEDE VER:</label>
-                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                            ${Object.entries(nombresModulos).map(([cod, nom]) => `
-                            <label class="flex items-center gap-2 text-sm">
-                                <input type="checkbox" class="chk-ver" value="${cod}"> ${nom}
-                            </label>`).join('')}
-                        </div>
-                    </div>
-                    <div class="grupo col-span-2">
-                        <label class="font-semibold text-blue-600">✏️ Módulos que PUEDE EDITAR:</label>
-                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                            ${Object.entries(nombresModulos).map(([cod, nom]) => `
-                            <label class="flex items-center gap-2 text-sm">
-                                <input type="checkbox" class="chk-editar" value="${cod}"> ${nom}
-                            </label>`).join('')}
-                        </div>
-                    </div>
-                </div>
-                <div class="flex gap-2 mt-3">
-                    <button class="btn btn-exito" onclick="guardarRol()">💾 Guardar Rol</button>
-                    <button class="btn" onclick="limpiarFormRol()">Limpiar</button>
-                </div>
+            <button class="btn btn-exito mb-4" onclick="guardarNuevoRol()">✅ Crear Rol</button>
+            
+            <hr style="margin: 1.5rem 0; border-color:#eee;">
+            
+            <h4 class="font-bold mb-3">Roles Creados</h4>
+            <div id="listaRolesCreados">
+                ${listaRoles.length === 0 ? '<p style="color:#666;">Aún no hay roles personalizados</p>' : ''}
             </div>
         </div>
     </div>
     `;
 
-    actualizarChecksPersonalizados();
-    cargarListaUsuariosDesdeDB();
+    dibujarTablaUsuarios();
+    dibujarListaRoles();
+    
+    // Auto-copiar nombre si se selecciona colaborador
+    setTimeout(() => {
+        const sel = document.getElementById('usu_colaborador_vinculo');
+        if (sel) sel.addEventListener('change', autoCompletarNombreVinculado);
+    }, 50);
 };
 
 // =====================================================
-// ===== CONFIGURACIÓN DE MÓDULOS Y ROLES =====
+// ===== CAMBIAR SUBPESTAÑA =====
 // =====================================================
-const nombresModulos = {
-    movimientos: 'Movimientos',
-    transportadora: 'Transportadora',
-    misCanastillas: 'Mis Canastillas',
-    recoleccion: 'Recolección',
-    anuncios: 'Anuncios',
-    donantes: 'Donantes',
-    combustible: 'Combustible',
-    mantenimiento: 'Mantenimiento',
-    informes: 'Informes',
-    usuarios: 'Gestión de Usuarios',
-    admin: 'Administración'
-};
-
-let listaRoles = [
-    {
-        codigo: 'admin',
-        nombre: '👑 Administrador',
-        descripcion: 'Acceso total — ve y edita todo',
-        predeterminado: true,
-        modulosVer: Object.keys(nombresModulos),
-        modulosEditar: Object.keys(nombresModulos)
-    },
-    {
-        codigo: 'usuario',
-        nombre: 'Usuario Estándar',
-        descripcion: 'Operaciones diarias sin administración',
-        predeterminado: true,
-        modulosVer: ['movimientos','transportadora','misCanastillas','recoleccion','anuncios','donantes','combustible','mantenimiento','informes'],
-        modulosEditar: ['movimientos','transportadora','misCanastillas','recoleccion','anuncios','donantes','combustible','mantenimiento']
-    },
-    {
-        codigo: 'conductor',
-        nombre: '🚚 Conductor',
-        descripcion: 'Registro de recorridos y recogidas',
-        predeterminado: true,
-        modulosVer: ['movimientos','misCanastillas','recoleccion','anuncios'],
-        modulosEditar: ['movimientos','recoleccion']
-    },
-    {
-        codigo: 'encargado_bodega',
-        nombre: '📦 Encargado de Bodega',
-        descripcion: 'Control de existencias y donaciones',
-        predeterminado: true,
-        modulosVer: ['movimientos','misCanastillas','donantes','combustible','mantenimiento','informes'],
-        modulosEditar: ['movimientos','misCanastillas','donantes','combustible']
-    },
-    {
-        codigo: 'personalizado',
-        nombre: '🎛️ Rol Personalizado',
-        descripcion: 'Definir manualmente qué ve y edita cada usuario',
-        predeterminado: true,
-        modulosVer: [],
-        modulosEditar: []
-    }
-];
-
-let listaUsuarios = [];
-let idEdicionUsuario = null;
-let idEdicionRol = null;
-let permisosPersonalizados = { ver: [], editar: [] };
-
-// =====================================================
-// ===== NAVEGACIÓN — PESTAÑAS SIEMPRE VISIBLES =====
-// =====================================================
-function cambiarPestPrincipal(nombre) {
-    // Ocultar todo
-    document.querySelectorAll('[id^="pestCont_"]').forEach(d => d.classList.add('oculto'));
-    // Quitar activa de todos los botones
-    document.querySelectorAll('[id^="pestBtn_"]').forEach(b => b.classList.remove('activa'));
-    // Mostrar seleccionado
-    document.getElementById(`pestCont_${nombre}`).classList.remove('oculto');
-    document.getElementById(`pestBtn_${nombre}`).classList.add('activa');
-    // Cargar datos si corresponde
-    if (nombre === 'usuarios') dibujarListaUsuarios();
-}
-
-function cambiarSubUsu(nombre) {
-    // Ocultar todo
-    document.querySelectorAll('[id^="subCont_"]').forEach(d => d.classList.add('oculto'));
-    // Quitar activa
-    document.querySelectorAll('[id^="subBtn_"]').forEach(b => b.classList.remove('activa'));
-    // Mostrar
-    document.getElementById(`subCont_${nombre}`).classList.remove('oculto');
-    document.getElementById(`subBtn_${nombre}`).classList.add('activa');
-    // Acciones
-    if (nombre === 'todos') dibujarListaUsuarios();
+function cambiarSubpestañaUsu(nombre, evt) {
+    document.querySelectorAll('[id^="subusu-"]').forEach(p => p.classList.add('oculto'));
+    document.querySelectorAll('.btn-subpestaña').forEach(b => b.classList.remove('activa'));
+    if (evt) evt.target.classList.add('activa');
+    document.getElementById(`subusu-${nombre}`).classList.remove('oculto');
     if (nombre === 'crear') {
-        idEdicionUsuario = null;
-        limpiarFormUsuario();
+        document.getElementById('tituloFormUsu').textContent = idEdicion ? '✏️ Editar Usuario' : '➕ Nuevo Usuario';
     }
 }
 
-function cambiarSubRoles(nombre) {
-    // Ocultar todo
-    document.querySelectorAll('[id^="subContTodos_"], [id^="subContCrear_"]').forEach(d => d.classList.add('oculto'));
-    // Quitar activa
-    document.querySelectorAll('[id^="subBtnTodos_"], [id^="subBtnCrear_"]').forEach(b => b.classList.remove('activa'));
-    // Mostrar
-    document.getElementById(`subCont${nombre.charAt(0).toUpperCase() + nombre.slice(1)}_roles`).classList.remove('oculto');
-    document.getElementById(`subBtn${nombre.charAt(0).toUpperCase() + nombre.slice(1)}_roles`).classList.add('activa');
-    // Acciones
-    if (nombre === 'crear') limpiarFormRol();
+// =====================================================
+// ===== GENERAR CHECKBOX DE MÓDULOS =====
+// =====================================================
+function generarCheckModulos() {
+    const modulos = [
+        { id: 'movimientos', nombre: '🚚 Movimientos' },
+        { id: 'transportadora', nombre: '🚛 Transportadora' },
+        { id: 'misCanastillas', nombre: '📋 Mis Canastillas' },
+        { id: 'recoleccion', nombre: '📥 Recolección' },
+        { id: 'anuncios', nombre: '📢 Anuncios' },
+        { id: 'donantes', nombre: '🤝 Donantes' },
+        { id: 'combustible', nombre: '⛽ Combustible' },
+        { id: 'mantenimiento', nombre: '🔧 Mantenimiento' },
+        { id: 'informes', nombre: '📊 Informes' },
+        { id: 'usuarios', nombre: '👥 Gestión Usuarios' },
+        { id: 'admin', nombre: '⚙️ Administración' }
+    ];
+    
+    return modulos.map(m => `
+        <div style="display:flex; align-items:center; gap:0.5rem; padding:0.3rem 0;">
+            <input type="checkbox" id="perm_${m.id}" data-modulo="${m.id}">
+            <label for="perm_${m.id}" style="margin:0; font-size:0.9rem;">${m.nombre}</label>
+        </div>
+    `).join('');
 }
 
 // =====================================================
-// ===== ROLES — SELECCIÓN PERSONALIZADO =====
+// ===== AUTO-COMPLETAR NOMBRE AL VINCULAR =====
 // =====================================================
-function cambiarSeleccionRolUsuario() {
-    const rolSel = document.getElementById('usuRol').value;
-    const bloque = document.getElementById('bloquePermisosPersonalizados');
-    if (rolSel === 'personalizado') {
-        bloque.classList.remove('oculto');
+function autoCompletarNombreVinculado() {
+    const valor = document.getElementById('usu_colaborador_vinculo').value;
+    if (!valor) return;
+    
+    const [id, tipo] = valor.split('||');
+    let persona = null;
+    
+    if (tipo === 'colaborador') {
+        persona = colaboradores.find(c => c.id === id);
     } else {
-        bloque.classList.add('oculto');
-        permisosPersonalizados = { ver: [], editar: [] };
+        persona = conductores.find(c => c.id === id);
+    }
+    
+    if (persona) {
+        const nombre = persona.nombre || persona.nombreCompleto || '';
+        document.getElementById('usu_nombre').value = nombre;
+        document.getElementById('usu_usuario').value = nombre.toLowerCase().replace(/\s+/g, '.');
     }
 }
 
-function actualizarChecksPersonalizados() {
-    const contVer = document.getElementById('chk-personal-ver');
-    const contEditar = document.getElementById('chk-personal-editar');
-    if (!contVer || !contEditar) return;
-
-    contVer.innerHTML = Object.entries(nombresModulos).map(([cod, nom]) => `
-        <label class="flex items-center gap-2">
-            <input type="checkbox" class="chk-perm-ver" value="${cod}" onchange="actualizarPermisosPersonalizados()">
-            ${nom}
-        </label>`).join('');
-
-    contEditar.innerHTML = Object.entries(nombresModulos).map(([cod, nom]) => `
-        <label class="flex items-center gap-2">
-            <input type="checkbox" class="chk-perm-editar" value="${cod}" onchange="actualizarPermisosPersonalizados()">
-            ${nom}
-        </label>`).join('');
-}
-
-function actualizarPermisosPersonalizados() {
-    permisosPersonalizados.ver = Array.from(document.querySelectorAll('.chk-perm-ver:checked')).map(c => c.value);
-    permisosPersonalizados.editar = Array.from(document.querySelectorAll('.chk-perm-editar:checked')).map(c => c.value);
-}
-
 // =====================================================
-// ===== USUARIOS — CRUD =====
+// ===== DIBUJAR TABLA =====
 // =====================================================
-function dibujarListaUsuarios() {
-    const tb = document.getElementById('tablaTodosUsuarios');
+function dibujarTablaUsuarios() {
+    const tb = document.getElementById('tablaUsuariosCuerpo');
     if (!tb) return;
-    const texto = document.getElementById('buscarUsuario')?.value?.toLowerCase() || '';
-    const filtro = texto
-        ? listaUsuarios.filter(u => u.nombre.toLowerCase().includes(texto) || u.usuario.toLowerCase().includes(texto))
-        : listaUsuarios;
 
-    tb.innerHTML = filtro.length === 0
-        ? '<tr><td colspan="6" class="text-center py-4 text-gray-400">Sin usuarios registrados</td></tr>'
-        : filtro.map(u => `
-        <tr class="border-b">
-            <td class="font-medium">${u.nombre}</td>
-            <td><code>${u.usuario}</code></td>
-            <td><span class="px-2 py-1 rounded text-xs ${u.rol==='personalizado'?'bg-purple-100 text-purple-700':'bg-gray-100'}">${listaRoles.find(r=>r.codigo===u.rol)?.nombre||u.rol}</span></td>
-            <td>${u.vinculo||'—'}</td>
-            <td><span class="px-2 py-1 rounded text-xs ${u.activo!==false?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}">${u.activo!==false?'Activo':'Inactivo'}</span></td>
-            <td>
-                <button class="btn btn-sm btn-amarillo" onclick="editarUsuario('${u.id}')">Editar</button>
-                <button class="btn btn-sm ${u.activo!==false?'btn-peligro':'btn-exito'}" onclick="cambiarEstadoUsuario('${u.id}',${u.activo!==false})">
-                    ${u.activo!==false?'Inactivar':'Activar'}
-                </button>
-            </td>
-        </tr>`).join('');
+    // Combinar fijos + de la base
+    const todos = [...usuariosFijos.map(u => ({ ...u, esFijo: true }))];
+    // Aquí se pueden agregar usuarios desde Firestore si los guardas
+
+    tb.innerHTML = todos.map(u => `
+    <tr>
+        <td><strong>${u.usuario}</strong>${u.esFijo ? '<span style="color:green; font-size:0.7rem; margin-left:0.3rem;">✓</span>' : ''}</td>
+        <td>${u.nombre}</td>
+        <td><span style="background:${u.rol==='admin'?'#D1FAE5':'#E0E7FF'}; padding:0.2rem 0.6rem; border-radius:1rem; font-size:0.85rem; font-weight:600;">${u.rol}</span></td>
+        <td>${u.activo ? '<span style="color:green; font-weight:bold;">✅ Activo</span>' : '<span style="color:red; font-weight:bold;">❌ Inactivo</span>'}</td>
+        <td>
+            ${!u.esFijo ? `<button class="btn btn-sm btn-primario" onclick="editarUsuario('${u.usuario}')">✏️</button>` : ''}
+            <button class="btn btn-sm ${u.activo ? 'btn-amarillo' : 'btn-exito'}" onclick="cambiarEstadoUsuario('${u.usuario}', ${!u.activo})">
+                ${u.activo ? '🔇 Desactivar' : '🔊 Activar'}
+            </button>
+        </td>
+    </tr>`).join('');
 }
 
-function filtrarUsuarios() { dibujarListaUsuarios(); }
+function filtrarUsuarios() {
+    const b = (document.getElementById('buscarUsuario')?.value || '').toLowerCase();
+    const filas = document.querySelectorAll('#tablaUsuariosCuerpo tr');
+    filas.forEach(f => {
+        const t = f.textContent.toLowerCase();
+        f.style.display = !b || t.includes(b) ? '' : 'none';
+    });
+}
 
-async function guardarUsuario() {
-    const nombre = document.getElementById('usuNombre').value.trim();
-    const usuario = document.getElementById('usuLogin').value.trim();
-    const clave = document.getElementById('usuClave').value.trim();
-    const rol = document.getElementById('usuRol').value;
-    const vinculo = document.getElementById('usuVinculo').value;
+// =====================================================
+// ===== GUARDAR USUARIO =====
+// =====================================================
+function guardarUsuario() {
+    const datos = {
+        usuario: document.getElementById('usu_usuario').value.trim(),
+        clave: document.getElementById('usu_clave').value,
+        nombre: document.getElementById('usu_nombre').value.trim(),
+        rol: document.getElementById('usu_rol').value,
+        activo: document.getElementById('usu_activo').value === 'true',
+        vinculadoA: document.getElementById('usu_colaborador_vinculo').value || null,
+        permisos: obtenerPermisosSeleccionados()
+    };
 
-    if (!nombre || !usuario) return alert('⚠️ Nombre y Usuario son obligatorios');
-    if (!idEdicionUsuario && !clave) return alert('⚠️ Escriba contraseña');
-
-    const datos = { nombre, usuario, rol, vinculo, activo: true };
-    if (clave) datos.clave = clave;
-    if (rol === 'personalizado') {
-        datos.permisosVer = permisosPersonalizados.ver;
-        datos.permisosEditar = permisosPersonalizados.editar;
+    if (!datos.usuario || !datos.clave || !datos.nombre || !datos.rol) {
+        return alert('⚠️ Complete todos los campos obligatorios');
+    }
+    if (datos.clave.length < 6) {
+        return alert('⚠️ La contraseña debe tener al menos 6 caracteres');
     }
 
-    try {
-        if (idEdicionUsuario) {
-            await db.collection('usuarios').doc(idEdicionUsuario).update(datos);
-            alert('✅ Usuario actualizado');
-        } else {
-            await db.collection('usuarios').add(datos);
-            alert('✅ Usuario creado');
-        }
-        cambiarSubUsu('todos');
-        cargarListaUsuariosDesdeDB();
-    } catch (e) { alert('❌ Error: ' + e.message); }
+    // Verificar duplicado
+    const existe = usuariosFijos.find(u => u.usuario === datos.usuario);
+    if (existe && !idEdicion) {
+        return alert('⚠️ Este nombre de usuario ya existe');
+    }
+
+    if (idEdicion) {
+        const idx = usuariosFijos.findIndex(u => u.usuario === idEdicion);
+        if (idx !== -1) usuariosFijos[idx] = { ...usuariosFijos[idx], ...datos };
+        alert('✅ Usuario actualizado');
+    } else {
+        usuariosFijos.push(datos);
+        alert('✅ Usuario creado correctamente');
+    }
+
+    limpiarFormUsuario();
+    cambiarSubpestañaUsu('listar');
+    dibujarTablaUsuarios();
+}
+
+function obtenerPermisosSeleccionados() {
+    const permisos = {};
+    document.querySelectorAll('#checkModulosPermisos input[type="checkbox"]').forEach(cb => {
+        permisos[cb.dataset.modulo] = cb.checked;
+    });
+    return permisos;
 }
 
 function limpiarFormUsuario() {
-    idEdicionUsuario = null;
-    document.getElementById('tituloFormUsu').textContent = '➕ Crear Nuevo Usuario';
-    document.getElementById('usuNombre').value = '';
-    document.getElementById('usuLogin').value = '';
-    document.getElementById('usuLogin').readOnly = false;
-    document.getElementById('usuClave').value = '';
-    document.getElementById('usuRol').value = 'usuario';
-    document.getElementById('usuVinculo').value = '';
-    document.getElementById('bloquePermisosPersonalizados').classList.add('oculto');
-    permisosPersonalizados = { ver: [], editar: [] };
-    document.querySelectorAll('.chk-perm-ver, .chk-perm-editar').forEach(c => c.checked = false);
+    idEdicion = null;
+    document.getElementById('usu_usuario').value = '';
+    document.getElementById('usu_clave').value = '';
+    document.getElementById('usu_nombre').value = '';
+    document.getElementById('usu_colaborador_vinculo').value = '';
+    document.getElementById('usu_rol').value = '';
+    document.getElementById('usu_activo').value = 'true';
+    document.querySelectorAll('#checkModulosPermisos input[type="checkbox"]').forEach(cb => cb.checked = false);
 }
 
-async function editarUsuario(id) {
-    const doc = await db.collection('usuarios').doc(id).get();
-    if (!doc.exists) return;
-    const u = { id: doc.id, ...doc.data() };
-    idEdicionUsuario = id;
+function editarUsuario(usuario) {
+    const u = usuariosFijos.find(x => x.usuario === usuario);
+    if (!u) return;
+    idEdicion = usuario;
+    cambiarSubpestañaUsu('crear');
+    
+    setTimeout(() => {
+        document.getElementById('usu_usuario').value = u.usuario;
+        document.getElementById('usu_clave').value = u.clave;
+        document.getElementById('usu_nombre').value = u.nombre;
+        document.getElementById('usu_rol').value = u.rol;
+        document.getElementById('usu_activo').value = String(u.activo);
+    }, 50);
+}
 
-    cambiarSubUsu('crear');
-    document.getElementById('tituloFormUsu').textContent = '✏️ Editar Usuario';
-    document.getElementById('usuNombre').value = u.nombre;
-    document.getElementById('usuLogin').value = u.usuario;
-    document.getElementById('usuLogin').readOnly = true;
-    document.getElementById('usuClave').value = '';
-    document.getElementById('usuRol').value = u.rol || 'usuario';
-    document.getElementById('usuVinculo').value = u.vinculo || '';
-
-    if (u.rol === 'personalizado') {
-        document.getElementById('bloquePermisosPersonalizados').classList.remove('oculto');
-        permisosPersonalizados = { ver: u.permisosVer || [], editar: u.permisosEditar || [] };
-        document.querySelectorAll('.chk-perm-ver').forEach(c => c.checked = permisosPersonalizados.ver.includes(c.value));
-        document.querySelectorAll('.chk-perm-editar').forEach(c => c.checked = permisosPersonalizados.editar.includes(c.value));
-    } else {
-        document.getElementById('bloquePermisosPersonalizados').classList.add('oculto');
+function cambiarEstadoUsuario(usuario, nuevoEstado) {
+    const idx = usuariosFijos.findIndex(u => u.usuario === usuario);
+    if (idx !== -1) {
+        usuariosFijos[idx].activo = nuevoEstado;
+        dibujarTablaUsuarios();
+        alert(`✅ Usuario ${nuevoEstado ? 'activado' : 'desactivado'}`);
     }
-}
-
-async function cambiarEstadoUsuario(id, estaActivo) {
-    if (!confirm(`¿${estaActivo?'Inactivar':'Activar'} este usuario?`)) return;
-    await db.collection('usuarios').doc(id).update({ activo: !estaActivo });
-    cargarListaUsuariosDesdeDB();
-}
-
-async function cargarListaUsuariosDesdeDB() {
-    const snap = await db.collection('usuarios').get();
-    listaUsuarios = [];
-    snap.forEach(d => listaUsuarios.push({ id: d.id, ...d.data() }));
-    dibujarListaUsuarios();
 }
 
 // =====================================================
-// ===== ROLES — CRUD =====
+// ===== GESTIÓN DE ROLES =====
 // =====================================================
-function limpiarFormRol() {
-    idEdicionRol = null;
-    document.getElementById('tituloFormRol').textContent = '➕ Crear Nuevo Rol Fijo';
-    document.getElementById('rolNombre').value = '';
-    document.getElementById('rolCodigo').value = '';
-    document.getElementById('rolCodigo').readOnly = false;
-    document.getElementById('rolDescripcion').value = '';
-    document.querySelectorAll('.chk-ver, .chk-editar').forEach(c => c.checked = false);
+function guardarNuevoRol() {
+    const nombre = document.getElementById('nuevoRolNombre').value.trim();
+    if (!nombre) return alert('⚠️ Escriba un nombre para el rol');
+    
+    const existe = listaRoles.find(r => r.nombre === nombre);
+    if (existe) return alert('⚠️ Este rol ya existe');
+
+    const permisos = {};
+    document.querySelectorAll('#checkModulosRol input[type="checkbox"]').forEach(cb => {
+        permisos[cb.dataset.modulo] = cb.checked;
+    });
+
+    listaRoles.push({ nombre, permisos });
+    alert(`✅ Rol "${nombre}" creado`);
+    document.getElementById('nuevoRolNombre').value = '';
+    document.querySelectorAll('#checkModulosRol input[type="checkbox"]').forEach(cb => cb.checked = false);
+    dibujarListaRoles();
 }
 
-async function guardarRol() {
-    const nombre = document.getElementById('rolNombre').value.trim();
-    let codigo = document.getElementById('rolCodigo').value.trim().toLowerCase().replace(/\s+/g, '_');
-    const descripcion = document.getElementById('rolDescripcion').value.trim();
-    const modulosVer = Array.from(document.querySelectorAll('.chk-ver:checked')).map(c => c.value);
-    const modulosEditar = Array.from(document.querySelectorAll('.chk-editar:checked')).map(c => c.value);
-
-    if (!nombre || !codigo) return alert('⚠️ Nombre y Código son obligatorios');
-    if (['admin','personalizado','usuario','conductor','encargado_bodega'].includes(codigo) && !idEdicionRol) {
-        return alert('⚠️ Código reservado — elija otro');
-    }
-
-    const datos = { codigo, nombre, descripcion, modulosVer, modulosEditar, predeterminado: false };
-
-    if (idEdicionRol) {
-        const idx = listaRoles.findIndex(r => r.codigo === idEdicionRol);
-        if (idx !== -1) listaRoles[idx] = { ...listaRoles[idx], ...datos };
-        alert('✅ Rol actualizado');
-    } else {
-        if (listaRoles.some(r => r.codigo === codigo)) return alert('⚠️ Ya existe ese rol');
-        listaRoles.push(datos);
-        alert('✅ Rol creado');
-    }
-
-    limpiarFormRol();
-    cambiarSubRoles('todos');
-    cargarModulo_usuarios();
+function dibujarListaRoles() {
+    const cont = document.getElementById('listaRolesCreados');
+    if (!cont) return;
+    
+    cont.innerHTML = listaRoles.length === 0 
+        ? '<p style="color:#666;">Aún no hay roles personalizados</p>'
+        : listaRoles.map((r, i) => `
+        <div class="tarjeta" style="padding:1rem; margin-bottom:0.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h4 class="font-bold">${r.nombre}</h4>
+                <button class="btn btn-sm btn-peligro" onclick="eliminarRol(${i})">🗑️ Eliminar</button>
+            </div>
+            <div style="margin-top:0.5rem; font-size:0.85rem; color:#555;">
+                Módulos: ${Object.entries(r.permisos).filter(([_,v])=>v).map(([m])=>m).join(', ') || 'Ninguno seleccionado'}
+            </div>
+        </div>`).join('');
 }
 
-function editarRol(codigo) {
-    const rol = listaRoles.find(r => r.codigo === codigo);
-    if (!rol) return;
-    if (rol.predeterminado) return alert('⚠️ Rol predeterminado — no se puede modificar');
-
-    idEdicionRol = codigo;
-    cambiarSubRoles('crear');
-    document.getElementById('tituloFormRol').textContent = '✏️ Editar Rol';
-    document.getElementById('rolNombre').value = rol.nombre;
-    document.getElementById('rolCodigo').value = rol.codigo;
-    document.getElementById('rolCodigo').readOnly = true;
-    document.getElementById('rolDescripcion').value = rol.descripcion || '';
-
-    document.querySelectorAll('.chk-ver').forEach(chk => chk.checked = rol.modulosVer.includes(chk.value));
-    document.querySelectorAll('.chk-editar').forEach(chk => chk.checked = rol.modulosEditar.includes(chk.value));
+function eliminarRol(indice) {
+    if (!confirm('¿Eliminar este rol?')) return;
+    listaRoles.splice(indice, 1);
+    dibujarListaRoles();
 }
 
-function eliminarRol(codigo) {
-    const rol = listaRoles.find(r => r.codigo === codigo);
-    if (!rol) return;
-    if (rol.predeterminado || rol.codigo === 'personalizado') return alert('⚠️ No se puede eliminar este rol');
-    if (!confirm(`¿Eliminar el rol "${rol.nombre}"?`)) return;
-
-    listaRoles = listaRoles.filter(r => r.codigo !== codigo);
-    alert('✅ Rol eliminado');
-    cargarModulo_usuarios();
-}
+console.log('✅ usuarios.js cargado completo');
