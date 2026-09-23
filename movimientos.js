@@ -1,5 +1,5 @@
 // =====================================================
-// ===== 📦 MÓDULO MOVIMIENTOS — SUMA DE KILOS CORREGIDA =====
+// ===== 📦 MÓDULO MOVIMIENTOS — COMPLETO Y ACTUALIZADO =====
 // =====================================================
 window.cargarModulo_movimientos = async function() {
     const hoy = new Date().toISOString().split('T')[0];
@@ -25,14 +25,14 @@ window.cargarModulo_movimientos = async function() {
                     <label>Placa / Vehículo</label>
                     <select id="placaMov">
                         <option value="">-- Seleccione --</option>
-                        ${vehiculosMov.map(v => `<option value="${v.placa || v.nombre}">${v.placa || v.nombre}</option>`).join('')}
+                        ${vehiculosMov.filter(v => v.activa !== false).map(v => `<option value="${v.placa || v.nombre}">${v.placa || v.nombre}</option>`).join('')}
                     </select>
                 </div>
                 <div class="grupo">
                     <label>Colaborador / Conductor</label>
                     <select id="colaboradorMov">
                         <option value="">-- Seleccione --</option>
-                        ${colaboradores.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                        ${colaboradores.filter(c => c.activa !== false).map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
                     </select>
                 </div>
                 <div class="grupo">
@@ -79,10 +79,10 @@ window.cargarModulo_movimientos = async function() {
         <div class="tarjeta">
             <h3 class="font-bold mb-3">📅 Movimientos de Hoy</h3>
             
-            <div class="resumen mb-4">
-                <div>📦 Salidas: <strong id="resumenSalidas">0</strong></div>
-                <div>✅ Llegadas: <strong id="resumenLlegadas">0</strong></div>
-                <div>⚖️ Kilos: <strong id="resumenKilos">0</strong></div>
+            <div class="resumen mb-4 flex flex-wrap gap-3">
+                <div class="bg-blue-50 px-3 py-2 rounded">📦 Salidas: <strong id="resumenSalidas">0</strong></div>
+                <div class="bg-green-50 px-3 py-2 rounded">✅ Llegadas: <strong id="resumenLlegadas">0</strong></div>
+                <div class="bg-yellow-50 px-3 py-2 rounded">⚖️ Kilos: <strong id="resumenKilos">0</strong></div>
             </div>
             
             <div class="grupo mb-3">
@@ -90,30 +90,32 @@ window.cargarModulo_movimientos = async function() {
                 <input type="text" id="buscarHoy" placeholder="Placa, colaborador, observación..." oninput="filtrarMovimientosHoy()">
             </div>
             
-            <div class="mb-2">
+            <div class="mb-3 flex flex-wrap gap-2 items-center">
                 <label style="display:inline-flex;align-items:center;gap:6px;font-weight:normal;">
                     <input type="checkbox" onchange="seleccionarTodosMovimientos(this)"> Seleccionar todos
                 </label>
-                <button class="btn btn-exito btn-sm ml-2" onclick="completarSeleccionados()">✅ Completar seleccionados</button>
+                <button class="btn btn-exito btn-sm" onclick="completarSeleccionados()">✅ Completar seleccionados</button>
             </div>
             
-            <table class="tabla">
-                <thead>
-                    <tr>
-                        <th><input type="checkbox" disabled></th>
-                        <th>Hora</th>
-                        <th>Placa</th>
-                        <th>Colaborador</th>
-                        <th>Hora Llegada</th>
-                        <th>Canast. Salida</th>
-                        <th>Canast. Llegada</th>
-                        <th>Kilos</th>
-                        <th>Observaciones</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaMovimientosHoyCuerpo"></tbody>
-            </table>
+            <div style="overflow-x:auto; -webkit-overflow-scrolling:touch;">
+                <table class="tabla w-full">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="p-2 text-center w-8"><input type="checkbox" disabled></th>
+                            <th class="p-2 whitespace-nowrap">Hora</th>
+                            <th class="p-2 whitespace-nowrap">Placa</th>
+                            <th class="p-2 whitespace-nowrap">Colaborador</th>
+                            <th class="p-2 whitespace-nowrap">Hora Llegada</th>
+                            <th class="p-2 whitespace-nowrap text-center">Canast.<br>Salida</th>
+                            <th class="p-2 whitespace-nowrap text-center">Canast.<br>Llegada</th>
+                            <th class="p-2 whitespace-nowrap text-right">Kilos</th>
+                            <th class="p-2 whitespace-nowrap">Observaciones</th>
+                            <th class="p-2 whitespace-nowrap">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaMovimientosHoyCuerpo"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -127,34 +129,34 @@ window.cargarModulo_movimientos = async function() {
                 <input type="text" id="buscarPendientes" placeholder="Placa, colaborador, observación..." oninput="filtrarPendientes()">
             </div>
             
-            <div class="mb-2">
+            <div class="mb-3 flex flex-wrap gap-2 items-center">
                 <label style="display:inline-flex;align-items:center;gap:6px;font-weight:normal;">
                     <input type="checkbox" onchange="seleccionarTodosPendientes(this)"> Seleccionar todos
                 </label>
-                <button class="btn btn-exito btn-sm ml-2" onclick="completarSeleccionados()">✅ Completar seleccionados</button>
+                <button class="btn btn-exito btn-sm" onclick="completarSeleccionados()">✅ Completar seleccionados</button>
             </div>
             
-            <table class="tabla">
-                <thead>
-                    <tr>
-                        <th><input type="checkbox" disabled></th>
-                        <th>Hora Salida</th>
-                        <th>Placa</th>
-                        <th>Colaborador</th>
-                        <th>Canast. Salida</th>
-                        <th>Observaciones</th>
-                        <th>Acción</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaPendientesCuerpo"></tbody>
-            </table>
+            <div style="overflow-x:auto; -webkit-overflow-scrolling:touch;">
+                <table class="tabla w-full">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="p-2 text-center w-8"><input type="checkbox" disabled></th>
+                            <th class="p-2 whitespace-nowrap">Hora Salida</th>
+                            <th class="p-2 whitespace-nowrap">Placa</th>
+                            <th class="p-2 whitespace-nowrap">Colaborador</th>
+                            <th class="p-2 whitespace-nowrap text-center">Canast.<br>Salida</th>
+                            <th class="p-2 whitespace-nowrap">Observaciones</th>
+                            <th class="p-2 whitespace-nowrap">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaPendientesCuerpo"></tbody>
+                </table>
+            </div>
         </div>
     </div>
     `;
     
-    // ✅ Calcular apenas se carga el formulario
     setTimeout(() => calcularTotalKilos(), 50);
-    
     dibujarMovimientosHoy();
     dibujarPendientes();
 };
@@ -184,7 +186,7 @@ function ordenarPorHoraDescendente(lista, campoHora) {
 }
 
 // =====================================================
-// ===== DIBUJAR MOVIMIENTOS HOY =====
+// ===== DIBUJAR MOVIMIENTOS HOY — TABLA RESPONSIVA =====
 // =====================================================
 function dibujarMovimientosHoy() {
     const hoy = new Date().toISOString().split('T')[0];
@@ -195,7 +197,7 @@ function dibujarMovimientosHoy() {
     filtro = ordenarPorHoraDescendente(filtro, 'horaSalida');
     
     const totalSalidas = filtro.reduce((s, m) => s + (m.canastillasSalida || 0), 0);
-    const totalLlegadas = filtro.reduce((s, m) => s + (m.canastillasLlegada || 0), 0);
+    const totalLlegadas = filtro.filter(m => m.horaLlegada).reduce((s, m) => s + (m.canastillasLlegada || 0), 0);
     const totalKilos = filtro.reduce((s, m) => s + (Number(m.totalKilos) || 0), 0);
     
     const elResumenSalidas = document.getElementById('resumenSalidas');
@@ -214,21 +216,42 @@ function dibujarMovimientosHoy() {
         : filtro;
     
     tb.innerHTML = resultados.length === 0 
-        ? '<tr><td colspan="10" class="text-center">📭 Sin resultados</td></tr>'
+        ? '<tr><td colspan="10" class="text-center py-4">📭 Sin movimientos hoy</td></tr>'
         : resultados.map(m => `
-        <tr>
-            <td><input type="checkbox" class="chk-movimiento" data-id="${m.id}" ${m.horaLlegada ? 'checked disabled' : ''}></td>
-            <td>${m.horaSalida}</td>
-            <td>${m.placa}</td>
-            <td>${m.colaborador}</td>
-            <td>${m.horaLlegada || '<span style="color:orange;">Pendiente</span>'}</td>
-            <td>${m.canastillasSalida || 0}</td>
-            <td>${m.canastillasLlegada || 0}</td>
-            <td>${(Number(m.totalKilos) || 0).toFixed(2)}</td>
-            <td style="max-width:120px; font-size:11px;">${m.observaciones || '—'}</td>
-            <td>
-                <button class="btn btn-amarillo btn-sm" onclick="irAEditarMovimiento('${m.id}')">✏️ Editar</button>
-                ${!m.horaLlegada ? `<button class="btn btn-exito btn-sm" onclick="completarMovimientoDirecto('${m.id}')">✅ Completar</button>` : '<span style="color:green;">✅ Listo</span>'}
+        <tr class="border-b border-gray-100 ${m.horaLlegada ? 'bg-green-50/30' : ''} hover:bg-gray-50">
+            <td class="p-2 text-center">
+                <input type="checkbox" class="chk-movimiento" data-id="${m.id}" ${m.horaLlegada ? 'checked disabled' : ''}>
+            </td>
+            <td class="p-2 whitespace-nowrap font-medium">${m.horaSalida}</td>
+            <td class="p-2 font-bold whitespace-nowrap">${m.placa}</td>
+            <td class="p-2 whitespace-nowrap">${m.colaborador}</td>
+            <td class="p-2 whitespace-nowrap ${!m.horaLlegada ? 'text-orange-500 font-medium' : 'text-green-600'}">
+                ${m.horaLlegada || 'Pendiente'}
+            </td>
+            <td class="p-2 text-center">
+                <span class="inline-block min-w-[40px] bg-blue-50 px-2 py-1 rounded font-medium">
+                    ${m.canastillasSalida || 0}
+                </span>
+            </td>
+            <td class="p-2 text-center">
+                <span class="inline-block min-w-[40px] bg-green-50 px-2 py-1 rounded font-medium">
+                    ${m.canastillasLlegada || 0}
+                </span>
+            </td>
+            <td class="p-2 text-right font-semibold text-gray-700">
+                ${(Number(m.totalKilos) || 0).toFixed(2)}
+            </td>
+            <td class="p-2 max-w-[120px] text-sm text-gray-500 truncate">
+                ${m.observaciones || '—'}
+            </td>
+            <td class="p-2 whitespace-nowrap">
+                <div class="flex flex-col sm:flex-row gap-1">
+                    <button class="btn btn-amarillo btn-sm px-2 py-1 text-xs" onclick="irAEditarMovimiento('${m.id}')">✏️ Editar</button>
+                    ${!m.horaLlegada 
+                        ? `<button class="btn btn-exito btn-sm px-2 py-1 text-xs" onclick="completarMovimientoDirecto('${m.id}')">✅ Completar</button>` 
+                        : `<span class="text-green-600 text-xs font-medium px-2 py-1">✅ Listo</span>`
+                    }
+                </div>
             </td>
         </tr>`).join('');
 }
@@ -253,16 +276,26 @@ function dibujarPendientes() {
         : pendientes;
     
     tb.innerHTML = resultados.length === 0
-        ? '<tr><td colspan="7" class="text-center">✅ Sin pendientes</td></tr>'
+        ? '<tr><td colspan="7" class="text-center py-4">✅ Sin pendientes por llegar</td></tr>'
         : resultados.map(m => `
-        <tr>
-            <td><input type="checkbox" class="chk-pendiente" data-id="${m.id}"></td>
-            <td>${m.horaSalida}</td>
-            <td>${m.placa}</td>
-            <td>${m.colaborador}</td>
-            <td>${m.canastillasSalida || 0}</td>
-            <td style="max-width:120px; font-size:11px;">${m.observaciones || '—'}</td>
-            <td><button class="btn btn-amarillo btn-sm" onclick="irAEditarMovimiento('${m.id}')">✏️ Poner Llegada</button></td>
+        <tr class="border-b border-gray-100 hover:bg-gray-50">
+            <td class="p-2 text-center">
+                <input type="checkbox" class="chk-pendiente" data-id="${m.id}">
+            </td>
+            <td class="p-2 whitespace-nowrap">${m.horaSalida}</td>
+            <td class="p-2 font-bold whitespace-nowrap">${m.placa}</td>
+            <td class="p-2 whitespace-nowrap">${m.colaborador}</td>
+            <td class="p-2 text-center">
+                <span class="inline-block min-w-[40px] bg-blue-50 px-2 py-1 rounded font-medium">
+                    ${m.canastillasSalida || 0}
+                </span>
+            </td>
+            <td class="p-2 max-w-[120px] text-sm text-gray-500 truncate">
+                ${m.observaciones || '—'}
+            </td>
+            <td class="p-2 whitespace-nowrap">
+                <button class="btn btn-exito btn-sm px-2 py-1 text-xs" onclick="irAEditarMovimiento('${m.id}')">⏰ Poner Llegada</button>
+            </td>
         </tr>`).join('');
 }
 function filtrarPendientes() { dibujarPendientes(); }
@@ -291,14 +324,13 @@ function editarMovimiento(id) {
     
     filasRecogida = m.recogidas || [];
     dibujarFilasRecogida();
-    // ✅ Recalcular después de dibujar
     setTimeout(() => calcularTotalKilos(), 30);
     
     document.getElementById('tituloFormMov').textContent = '✏️ Editar Movimiento';
 }
 
 // =====================================================
-// ===== RECOGIDAS CON SUMA CORREGIDA =====
+// ===== RECOGIDAS =====
 // =====================================================
 function agregarFilaRecogida() {
     filasRecogida.push({ 
@@ -350,33 +382,26 @@ function dibujarFilasRecogida() {
                     oninput="filasRecogida[${i}].observaciones=this.value">
             </div>
             <button class="btn btn-peligro btn-sm" style="align-self:flex-end;" 
-                onclick="filasRecogida.splice(${i},1); dibujarFilasRecogida(); calcularTotalKilos()">🗑️</button>
+                onclick="filasRecogida.splice(${i},1); dibujarFilasRecogida(); calcularTotalKilos()">🗑️ Eliminar</button>
         </div>`).join('');
     
-    // ✅ Calcular apenas se redibujan
     calcularTotalKilos();
 }
 
 // =====================================================
-// ===== 🔑 FUNCIÓN DE SUMA CORREGIDA =====
+// ===== SUMA DE KILOS CORREGIDA =====
 // =====================================================
 function calcularTotalKilos() {
-    if (!filasRecogida || filasRecogida.length === 0) {
-        filasRecogida = [];
-    }
+    if (!filasRecogida) filasRecogida = [];
     
-    // ✅ Convertir SIEMPRE a número para evitar errores
     const total = filasRecogida.reduce((s, f) => {
         const valor = Number(f.kilos);
         return s + (isNaN(valor) ? 0 : valor);
     }, 0);
     
     const input = document.getElementById('totalKilosMov');
-    if (input) {
-        input.value = total.toFixed(2);
-    }
+    if (input) input.value = total.toFixed(2);
     
-    // ✅ Depuración en consola para verificar
     console.log('🧮 Recogidas:', filasRecogida);
     console.log('✅ Total kilos:', total.toFixed(2));
 }

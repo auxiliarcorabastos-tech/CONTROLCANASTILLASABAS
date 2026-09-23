@@ -3,202 +3,242 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control de Movimientos y Canastillas</title>
-    
+    <title>Control de Canastillas Corabastos</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     
     <style>
         :root {
             --primario: #165DFF;
-            --exito: #00B42A;
-            --advertencia: #FF7D00;
-            --peligro: #F53F3F;
-            --gris: #86909C;
-            --fondo: #F2F3F5;
-            --celeste-claro: #E8F3FF;
+            --primario-oscuro: #0F2B5B;
+            --exito: #059669;
+            --advertencia: #D97706;
+            --peligro: #DC2626;
+            --fondo: #F1F5F9;
+            --tarjeta: #FFFFFF;
+            --texto: #000000;           /* ✅ Texto NEGRO — siempre legible */
+            --texto-claro: #333333;     /* ✅ Texto secundario oscuro */
+            --borde: #CBD5E1;
+            --resaltado: #EFF6FF;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, -apple-system, sans-serif; }
-        body { background: var(--fondo); min-height: 100vh; }
-        
-        /* Encabezado */
-        .encabezado {
-            background: white; padding: 12px 16px; display: flex; align-items: center; gap: 12px;
-            box-shadow: 0 1px 4px rgba(0,0,0,.08); position: sticky; top: 0; z-index: 90;
-        }
-        .btn-menu { 
-            background: none; border: none; font-size: 22px; cursor: pointer; 
-            padding: 4px 10px; border-radius: 6px;
-        }
-        .btn-menu:hover { background: var(--fondo); }
-        .encabezado h1 { font-size: 16px; font-weight: 700; color: #1D2129; flex: 1; }
-        .encabezado small { color: var(--gris); font-size: 12px; }
-        .btn-actualizar { background: var(--primario); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; }
-        .btn-actualizar:hover { opacity: .9; }
-
-        /* =====================================================
-           ✅ MENÚ FIJO EN ESCRITORIO / DESPLEGABLE EN MÓVIL
-           ===================================================== */
-        #sidebar {
-            position: fixed; top: 0; left: 0; width: 260px; height: 100vh; background: white;
-            box-shadow: 2px 0 8px rgba(0,0,0,.15); z-index: 100; 
-            transition: transform .25s ease; overflow-y: auto; padding-top: 60px;
-        }
-
-        /* ✅ ESCRITORIO: Menú SIEMPRE visible */
-        @media (min-width: 769px) {
-            #sidebar { transform: translateX(0); }
-            .overlay { display: none !important; }
-            body { padding-left: 260px; }
-            .btn-menu { display: none; }
-        }
-
-        /* ✅ MÓVIL: Menú oculto */
-        @media (max-width: 768px) {
-            #sidebar { transform: translateX(-100%); }
-            #sidebar.abierto { transform: translateX(0); }
-            .overlay {
-                position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 99; display: none;
-            }
-            .overlay.activo { display: block; }
-            body { padding-left: 0; }
-            .btn-menu { display: block; }
-        }
-        
-        .btn-pestaña {
-            width: 100%; text-align: left; padding: 14px 20px; border: none; background: transparent;
-            font-size: 15px; cursor: pointer; border-left: 3px solid transparent; 
-            color: #4E5969; transition: all .2s ease;
-        }
-        .btn-pestaña:hover { 
-            background: var(--celeste-claro); color: var(--primario); 
-        }
-        .btn-pestaña.activa { 
-            background: var(--celeste-claro) !important; 
-            border-left-color: var(--primario) !important; 
-            color: var(--primario) !important; 
-            font-weight: 700 !important;
-        }
-        .btn-pestaña.oculto { display: none !important; }
-        
-        /* Contenido */
-        #contenido { padding: 16px; max-width: 1200px; margin: 0 auto; }
+        body { background: var(--fondo); color: var(--texto); min-height: 100vh; }
         .oculto { display: none !important; }
         
-        /* Tarjetas y formularios */
-        .tarjeta { background: white; border-radius: 10px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
-        .form-group { margin-bottom: 14px; }
-        label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; color: #1D2129; }
-        input, select, textarea {
-            width: 100%; padding: 10px 12px; border: 1px solid #C9CDD4; border-radius: 6px;
-            font-size: 14px; transition: border .2s;
+        /* ✅ Pestaña activa: texto NEGRO con contorno definido */
+        .activa { 
+            background: var(--primario); 
+            color: #000000 !important; 
+            font-weight: 700;
+            text-shadow: 0 1px 2px rgba(255,255,255,0.8); /* ✅ Contorno blanco sobre azul */
+            border: 1px solid #000000 !important; /* ✅ Borde negro */
         }
-        input:focus, select:focus { outline: none; border-color: var(--primario); box-shadow: 0 0 0 2px rgba(22,93,255,.15); }
-        button { cursor: pointer; border-radius: 6px; font-weight: 600; transition: all .2s; }
-        .btn-primario { background: var(--primario); color: white; border: none; padding: 10px 18px; }
-        .btn-primario:hover { opacity: .9; }
         
-        /* Login */
+        .pantalla-login {
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; 
+            background: linear-gradient(135deg, var(--primario-oscuro) 0%, var(--primario) 100%);
+        }
         .caja-login {
-            max-width: 400px; margin: 60px auto; background: white; padding: 30px; border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,.1);
+            background: white; padding: 2.5rem; border-radius: 1rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.25); width: 100%; max-width: 400px;
+            border-top: 4px solid var(--primario);
         }
-        .caja-login h2 { text-align: center; margin-bottom: 24px; color: #1D2129; }
-        #mensajeError { color: var(--peligro); text-align: center; margin-top: 12px; font-size: 13px; min-height: 20px; }
+        .caja-login h1 { text-align: center; margin-bottom: 2rem; color: #000000; font-size: 1.5rem; font-weight: 700; }
         
-        /* Responsive */
+        .encabezado {
+            background: var(--primario-oscuro); padding: 0.9rem 1.2rem; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex; align-items: center; gap: 0.8rem; position: sticky; top: 0; z-index: 90;
+        }
+        .btn-menu { font-size: 1.4rem; background: rgba(255,255,255,0.1); border: none; cursor: pointer; padding: 0.4rem 0.6rem; border-radius: 0.5rem; color: white; transition: background 0.2s; }
+        .btn-menu:hover { background: rgba(255,255,255,0.2); }
+        .encabezado h1 { font-size: 1rem; flex: 1; color: white; font-weight: 600; }
+        .encabezado small { color: #FFFFFF; font-size: 0.75rem; display: block; font-weight: 500; }
+        #moduloActivo { color: #FFFFFF; font-weight: 600; font-size: 0.8rem; margin-top: 0.1rem; }
+        
+        .contenedor-principal { display: flex; min-height: calc(100vh - 64px); }
+        .menu-lateral {
+            width: 260px; background: white; 
+            box-shadow: 2px 0 8px rgba(0,0,0,0.1);
+            padding: 1rem 0; transition: transform 0.3s ease;
+            border-right: 2px solid var(--borde);
+        }
+        .menu-lateral.oculto { transform: translateX(-100%); position: absolute; z-index: 80; height: 100%; }
+        
+        .btn-pestaña {
+            display: block; width: 100%; text-align: left; padding: 0.9rem 1.5rem;
+            border: none; background: none; cursor: pointer; font-size: 0.95rem;
+            color: var(--texto); border-left: 3px solid transparent;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+        .btn-pestaña:hover { 
+            background: var(--resaltado); 
+            color: #000000; 
+            border-left: 3px solid var(--primario);
+            font-weight: 600;
+        }
+        .btn-pestaña.activa {
+            background: var(--primario); 
+            color: #000000 !important;
+            border-left: 4px solid #000000; /* ✅ Borde negro resaltado */
+            font-weight: 700;
+        }
+        
+        .area-contenido { flex: 1; padding: 1.2rem; }
+        .tarjeta {
+            background: white; border-radius: 0.75rem; padding: 1.5rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 1rem;
+            border: 2px solid var(--borde);
+        }
+        .grupo { margin-bottom: 1rem; }
+        .grupo label { display: block; margin-bottom: 0.4rem; font-weight: 700; font-size: 0.9rem; color: #000000; }
+        input, select, textarea {
+            width: 100%; padding: 0.75rem; border: 2px solid #94A3B8;
+            border-radius: 0.5rem; font-size: 0.95rem;
+            background: #FFFFFF;
+            color: #000000; /* ✅ Texto siempre negro en inputs */
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        input:focus, select:focus, textarea:focus { 
+            outline: none; border-color: #000000; 
+            box-shadow: 0 0 0 3px rgba(22, 93, 255, 0.2);
+            background: #FFFFFF;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.2rem; border: 2px solid transparent; border-radius: 0.5rem;
+            font-weight: 700; cursor: pointer; font-size: 0.95rem; transition: all 0.2s ease;
+            color: #000000; /* ✅ Texto negro en todos los botones */
+        }
+        .btn-sm { padding: 0.45rem 0.8rem; font-size: 0.85rem; }
+        .btn-primario { background: var(--primario); border-color: #000000; color: #FFFFFF; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+        .btn-primario:hover { background: var(--primario-oscuro); border-color: #000000; }
+        .btn-exito { background: var(--exito); border-color: #000000; color: #FFFFFF; }
+        .btn-exito:hover { background: #047857; }
+        .btn-amarillo { background: var(--advertencia); border-color: #000000; color: #000000; }
+        .btn-amarillo:hover { background: #B45309; color: #FFFFFF; }
+        .btn-peligro { background: var(--peligro); border-color: #000000; color: #FFFFFF; }
+        .btn-peligro:hover { background: #B91C1C; }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.2); }
+        
+        .tabla { width: 100%; border-collapse: collapse; }
+        .tabla th, .tabla td { 
+            padding: 0.8rem 0.6rem; text-align: left; 
+            border-bottom: 2px solid var(--borde);
+            color: #000000; /* ✅ Siempre negro */
+        }
+        .tabla th { 
+            background: #E2E8F0; font-weight: 700; font-size: 0.85rem; 
+            color: #000000; border-bottom: 2px solid #000000;
+        }
+        .tabla tr:hover td { background: #F1F5F9; }
+        .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+        .resumen { display: flex; gap: 1rem; flex-wrap: wrap; }
+        .resumen > div { 
+            border-radius: 0.5rem; padding: 0.8rem 1.2rem; font-weight: 700; 
+            background: white; border: 2px solid #000000; 
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            color: #000000;
+        }
+        
+        .btn-subpestaña {
+            padding: 0.75rem 1.2rem; border: 2px solid transparent; 
+            background: #F1F5F9; cursor: pointer;
+            border-radius: 0.5rem 0.5rem 0 0; color: #333333;
+            font-weight: 600; transition: all 0.2s ease;
+            border-bottom: 3px solid transparent;
+        }
+        .btn-subpestaña:hover { 
+            background: #FFFFFF; color: #000000; 
+            border-color: #CBD5E1;
+        }
+        .btn-subpestaña.activa { 
+            background: #FFFFFF; color: #000000; 
+            border: 2px solid #000000;
+            border-bottom: none;
+            font-weight: 700;
+        }
+        .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+        .col-span-2 { grid-column: 1 / -1; }
+        
         @media (max-width: 768px) {
-            #contenido { padding: 10px; }
-            .tarjeta { padding: 14px; }
+            .menu-lateral { position: absolute; z-index: 80; height: calc(100vh - 64px); }
+            .area-contenido { padding: 0.8rem; }
+            .tarjeta { padding: 1.2rem; }
+            .tabla { display: block; overflow-x: auto; }
+            .btn-subpestaña { padding: 0.65rem 0.9rem; font-size: 0.85rem; }
+            .encabezado h1 { font-size: 0.9rem; }
         }
     </style>
 </head>
 <body>
-
-<!-- ===================================================== -->
-<!-- 🔐 PANTALLA DE INICIO DE SESIÓN -->
-<!-- ===================================================== -->
-<div id="pantallaLogin">
-    <div class="caja-login">
-        <h2>🔐 Iniciar Sesión</h2>
-        <div class="form-group">
-            <label>Usuario / Correo</label>
-            <input type="text" id="usuario" placeholder="Su usuario">
-        </div>
-        <div class="form-group">
-            <label>Contraseña</label>
-            <input type="password" id="clave" placeholder="Su contraseña" onkeydown="if(event.key==='Enter')iniciarSesion()">
-        </div>
-        <button class="btn-primario" style="width:100%" onclick="iniciarSesion()">Ingresar</button>
-        <p id="mensajeError"></p>
-    </div>
-</div>
-
-<!-- ===================================================== -->
-<!-- ✅ APLICACIÓN -->
-<!-- ===================================================== -->
-<div id="appCompleta" class="oculto">
-
-    <!-- Encabezado -->
-    <header class="encabezado">
-        <button class="btn-menu" onclick="toggleMenu()">☰</button>
-        <div style="flex:1">
+    <div id="pantallaLogin" class="pantalla-login">
+        <div class="caja-login">
             <h1>📦 Control de Canastillas</h1>
-            <small id="nombreModulo"></small>
-        </div>
-        <button class="btn-actualizar" onclick="refrescarTodo()">🔄 Actualizar</button>
-        <small id="nombreUsuario" style="margin-left:8px;"></small>
-    </header>
-
-    <!-- Sombra para cerrar menú (solo en móvil) -->
-    <div class="overlay" id="sombraMenu" onclick="toggleMenu()"></div>
-
-    <!-- Menú Lateral — TODOS LOS MÓDULOS INCLUIDOS ✅ -->
-    <div id="sidebar">
-        <button class="btn-pestaña activa" onclick="cambiarPestaña('movimientos')">📦 Movimientos</button>
-        <button class="btn-pestaña" onclick="cambiarPestaña('misCanastillas')">🧺 Mis Canastillas</button>
-        <button class="btn-pestaña" onclick="cambiarPestaña('recoleccion')">🚚 Recolección</button>
-        <button class="btn-pestaña" onclick="cambiarPestaña('transportadora')">🚛 Transportadora</button>
-        <button class="btn-pestaña" onclick="cambiarPestaña('combustible')">⛽ Combustible</button>
-        <button class="btn-pestaña" onclick="cambiarPestaña('mantenimiento')">🔧 Mantenimiento</button>
-        <button class="btn-pestaña" onclick="cambiarPestaña('informes')">📊 Informes</button>
-        <button class="btn-pestaña" onclick="cambiarPestaña('anuncios')">📢 Anuncios</button>
-        <button class="btn-pestaña" onclick="cambiarPestaña('donantes')">🤝 Donantes</button>
-        <button id="btnAdmin" class="btn-pestaña oculto" onclick="cambiarPestaña('usuarios')">👤 Gestión de Usuarios</button>
-        <button id="btnAdmin2" class="btn-pestaña oculto" onclick="cambiarPestaña('admin')">⚙️ Administración</button>
-        <div style="border-top:1px solid #eee; margin-top:12px; padding-top:12px;">
-            <button class="btn-pestaña" onclick="cerrarSesion()" style="color:var(--peligro)">🚪 Cerrar Sesión</button>
+            <div class="grupo">
+                <label>👤 Usuario</label>
+                <input type="text" id="usuario" placeholder="Escribe tu usuario">
+            </div>
+            <div class="grupo">
+                <label>🔑 Contraseña</label>
+                <input type="password" id="clave" placeholder="Escribe tu contraseña" onkeydown="if(event.key==='Enter')iniciarSesion()">
+            </div>
+            <button class="btn btn-primario" style="width:100%; margin-top: 0.5rem;" onclick="iniciarSesion()">Ingresar</button>
         </div>
     </div>
-
-    <!-- Área de contenido -->
-    <main id="contenido"></main>
-
-</div>
-
-<!-- ===================================================== -->
-<!-- ✅ TODOS LOS ARCHIVOS EN ORDEN -->
-<!-- ===================================================== -->
-<script src="firebase.js"></script>
-<script src="funciones.js"></script>
-
-<!-- Módulos -->
-<script src="movimientos.js"></script>
-<script src="misCanastillas.js"></script>
-<script src="recoleccion.js"></script>
-<script src="transportadora.js"></script>
-<script src="combustible.js"></script>
-<script src="mantenimiento.js"></script>
-<script src="informes.js"></script>
-<script src="anuncios.js"></script>
-<script src="donantes.js"></script>
-<script src="usuarios.js"></script>
-<script src="admin.js"></script>
-
+    <div id="pantallaPrincipal" class="oculto">
+        <header class="encabezado">
+            <button class="btn-menu" onclick="toggleMenu()">☰</button>
+            <div>
+                <h1>📦 Control de Canastillas Corabastos</h1>
+                <small id="moduloActivo">Seleccione un módulo</small>
+            </div>
+            <div style="margin-left:auto; display:flex; align-items:center; gap:0.8rem;">
+                <span id="nombreUsuario" class="text-sm text-white font-semibold"></span>
+                <button class="btn btn-sm btn-peligro" onclick="cerrarSesion()">Salir</button>
+            </div>
+        </header>
+        <div class="contenedor-principal">
+            <nav id="menuLateral" class="menu-lateral">
+                <button class="btn-pestaña" onclick="cambiarPestaña('movimientos')">🚚 Movimientos</button>
+                <button class="btn-pestaña" onclick="cambiarPestaña('transportadora')">🚛 Transportadora</button>
+                <button class="btn-pestaña" onclick="cambiarPestaña('misCanastillas')">📋 Mis Canastillas</button>
+                <button class="btn-pestaña" onclick="cambiarPestaña('recoleccion')">📥 Recolección</button>
+                <button class="btn-pestaña" onclick="cambiarPestaña('anuncios')">📢 Anuncios</button>
+                <button class="btn-pestaña" onclick="cambiarPestaña('donantes')">🤝 Donantes</button>
+                <button class="btn-pestaña" onclick="cambiarPestaña('combustible')">⛽ Combustible</button>
+                <button class="btn-pestaña" onclick="cambiarPestaña('mantenimiento')">🔧 Mantenimiento</button>
+                <button class="btn-pestaña" onclick="cambiarPestaña('informes')">📊 Informes</button>
+                <button class="btn-pestaña" onclick="cambiarPestaña('usuarios')">👥 Gestión Usuarios</button>
+                <button class="btn-pestaña" onclick="cambiarPestaña('admin')">⚙️ Administración</button>
+            </nav>
+            <main id="contenido" class="area-contenido">
+                <div class="tarjeta text-center py-10" style="color: #000000; font-weight: 600;">
+                    Seleccione un módulo del menú
+                </div>
+            </main>
+        </div>
+    </div>
+    <!-- ORDEN: funciones.js PRIMERO, luego los demás -->
+    <script src="funciones.js"></script>
+    
+    <!-- TUS MÓDULOS TAL COMO LOS TIENES -->
+    <script src="movimientos.js"></script>
+    <script src="transportadora.js"></script>
+    <script src="misCanastillas.js"></script>
+    <script src="recoleccion.js"></script>
+    <script src="anuncios.js"></script>
+    <script src="donantes.js"></script>
+    <script src="combustible.js"></script>
+    <script src="mantenimiento.js"></script>
+    <script src="informes.js"></script>
+    <script src="usuarios.js"></script>
+    <script src="admin.js"></script>
 </body>
 </html>

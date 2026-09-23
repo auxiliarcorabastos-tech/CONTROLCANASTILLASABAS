@@ -1,5 +1,5 @@
 // =====================================================
-// ===== 👤 MÓDULO GESTIÓN DE USUARIOS =====
+// ===== 👥 MÓDULO GESTIÓN DE USUARIOS — VERSIÓN FIJA =====
 // =====================================================
 window.cargarModulo_usuarios = async function() {
     const c = document.getElementById('contenido');
@@ -7,249 +7,547 @@ window.cargarModulo_usuarios = async function() {
 
     c.innerHTML = `
     <div class="tarjeta">
-        <h2 class="text-xl font-bold mb-4">👤 Gestión de Usuarios</h2>
-        
-        <!-- Formulario Crear/Editar -->
-        <div class="bg-gray-50 p-4 rounded-lg mb-6">
-            <h3 class="font-bold mb-3" id="tituloFormUsuario">➕ Crear Nuevo Usuario</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div class="form-group">
-                    <label>Origen del usuario</label>
-                    <select id="origenUsuario" onchange="cambiarOrigenUsuario()">
-                        <option value="">— Seleccionar —</option>
-                        <option value="nuevo">✏️ Crear usuario NUEVO</option>
-                        <option value="colaborador">👤 Desde COLABORADOR registrado</option>
-                        <option value="conductor">🚛 Desde CONDUCTOR registrado</option>
-                    </select>
-                </div>
-                
-                <div class="form-group" id="seleccionColaborador" style="display:none;">
-                    <label>Seleccionar Colaborador</label>
-                    <select id="usuarioColaborador" onchange="cargarDatosColaborador()">
-                        <option value="">— Elegir colaborador —</option>
-                        ${colaboradores.map(c => `<option value="${c.id}" data-nombre="${c.nombre || c.nombreCompleto || ''}">${c.nombre || c.nombreCompleto || c.id}</option>`).join('')}
-                    </select>
-                </div>
-                
-                <div class="form-group" id="seleccionConductor" style="display:none;">
-                    <label>Seleccionar Conductor</label>
-                    <select id="usuarioConductor" onchange="cargarDatosConductor()">
-                        <option value="">— Elegir conductor —</option>
-                        ${conductores.map(c => `<option value="${c.id}" data-nombre="${c.nombre || c.nombreCompleto || ''}">${c.nombre || c.nombreCompleto || c.id}</option>`).join('')}
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label>Nombre Completo</label>
-                    <input type="text" id="nombreUsuarioForm" placeholder="Nombre completo">
-                </div>
-                <div class="form-group">
-                    <label>Usuario / Identificador</label>
-                    <input type="text" id="usuarioForm" placeholder="Ej: jperez">
-                </div>
-                <div class="form-group">
-                    <label>Contraseña</label>
-                    <input type="password" id="claveForm" placeholder="Contraseña">
-                </div>
-                <div class="form-group">
-                    <label>Rol</label>
-                    <select id="rolForm">
-                        <option value="">— Seleccionar Rol —</option>
-                        ${listaRoles.map(r => `<option value="${r.clave}">${r.nombre}</option>`).join('')}
-                    </select>
-                </div>
-                <div class="form-group flex items-center gap-2">
-                    <input type="checkbox" id="activoForm" checked>
-                    <label for="activoForm" style="margin:0;">Usuario Activo</label>
-                </div>
-            </div>
-            <div class="flex gap-2 mt-4">
-                <button class="btn-primario" onclick="guardarUsuario()">💾 Guardar Usuario</button>
-                <button class="bg-gray-200 px-4 py-2 rounded" onclick="limpiarFormUsuario()">🗑️ Limpiar</button>
-            </div>
-            <p id="mensajeUsuario" class="mt-2 text-sm"></p>
+        <h3 class="font-bold mb-4">👥 Gestión de Usuarios y Roles</h3>
+
+        <!-- ============================================== -->
+        <!-- PESTAÑAS PRINCIPALES — SIEMPRE FIJAS ARRIBA -->
+        <!-- ============================================== -->
+        <div class="flex gap-2 mb-4 flex-wrap border-b-2 border-gray-200 pb-3">
+            <button class="btn-subpestaña activa" id="pestBtn_usuarios" onclick="cambiarPestPrincipal('usuarios')">👤 Usuarios</button>
+            <button class="btn-subpestaña" id="pestBtn_roles" onclick="cambiarPestPrincipal('roles')">🔐 Roles y Permisos</button>
         </div>
 
-        <!-- Lista de Usuarios -->
-        <h3 class="font-bold mb-3">📋 Usuarios del Sistema</h3>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm border">
-                <thead class="bg-gray-100">
-                    <tr>
-                        <th class="border p-2 text-left">Nombre</th>
-                        <th class="border p-2 text-left">Usuario</th>
-                        <th class="border p-2 text-left">Rol</th>
-                        <th class="border p-2 text-center">Estado</th>
-                        <th class="border p-2 text-center">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaUsuariosCuerpo">
-                    <tr><td colspan="5" class="p-4 text-center text-gray-500">Cargando usuarios...</td></tr>
-                </tbody>
-            </table>
+        <!-- ============================================== -->
+        <!-- PESTAÑA: USUARIOS — SUBPESTAÑAS SIEMPRE VISIBLES -->
+        <!-- ============================================== -->
+        <div id="pestCont_usuarios">
+            <div class="flex gap-2 mb-4 flex-wrap bg-gray-50 p-2 rounded-lg">
+                <button class="btn-subpestaña activa" id="subBtn_todos" onclick="cambiarSubUsu('todos')">📋 Todos los Usuarios</button>
+                <button class="btn-subpestaña" id="subBtn_sistema" onclick="cambiarSubUsu('sistema')">⚙️ Usuarios del Sistema</button>
+                <button class="btn-subpestaña" id="subBtn_crear" onclick="cambiarSubUsu('crear')">➕ Crear Usuario</button>
+            </div>
+
+            <!-- SUB: TODOS LOS USUARIOS -->
+            <div id="subCont_todos">
+                <div class="grupo mb-3">
+                    <label>🔍 Buscar:</label>
+                    <input type="text" id="buscarUsuario" placeholder="Nombre, usuario..." oninput="filtrarUsuarios()">
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="tabla w-full">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th>Nombre</th>
+                                <th>Usuario</th>
+                                <th>Rol</th>
+                                <th>Vinculado</th>
+                                <th>Estado</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaTodosUsuarios"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SUB: USUARIOS DEL SISTEMA -->
+            <div id="subCont_sistema" class="oculto">
+                <p class="text-sm text-gray-500 mb-3">🔒 Usuarios integrados en el sistema — datos de acceso configurados internamente</p>
+                <div style="overflow-x:auto;">
+                    <table class="tabla w-full">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th>Nombre Completo</th>
+                                <th>Usuario (Login)</th>
+                                <th>Rol Asignado</th>
+                                <th>Tipo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${usuariosFijos.map(u => `
+                            <tr class="border-b">
+                                <td class="font-medium">${u.nombre}</td>
+                                <td><code>${u.usuario}</code></td>
+                                <td><span class="px-2 py-1 rounded text-xs ${u.rol==='admin'?'bg-blue-100 text-blue-700':u.rol==='personalizado'?'bg-purple-100 text-purple-700':'bg-gray-100'}">${u.rolNombre || u.rol}</span></td>
+                                <td><span class="text-xs bg-blue-50 px-2 py-1 rounded">Sistema</span></td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SUB: CREAR / EDITAR USUARIO -->
+            <div id="subCont_crear" class="oculto">
+                <h4 id="tituloFormUsu" class="font-bold mb-3">➕ Crear Nuevo Usuario</h4>
+                <div class="grid-2">
+                    <div class="grupo">
+                        <label>Nombre Completo *</label>
+                        <input type="text" id="usuNombre" placeholder="Nombre completo">
+                    </div>
+                    <div class="grupo">
+                        <label>Usuario (Login) *</label>
+                        <input type="text" id="usuLogin" placeholder="ej: jperez">
+                    </div>
+                    <div class="grupo">
+                        <label>Contraseña ${idEdicionUsuario ? '(vacío = no cambiar)' : '*'}</label>
+                        <input type="password" id="usuClave" placeholder="Escriba contraseña">
+                    </div>
+                    <div class="grupo">
+                        <label>Rol *</label>
+                        <select id="usuRol" onchange="cambiarSeleccionRolUsuario()">
+                            ${listaRoles.map(r => `<option value="${r.codigo}">${r.nombre}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div class="grupo col-span-2 oculto" id="bloquePermisosPersonalizados">
+                        <label class="font-bold text-purple-600">🎛️ Permisos Personalizados — Seleccione qué puede ver y editar:</label>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                            <div>
+                                <p class="font-semibold text-sm text-green-600 mb-1">📂 Puede VER:</p>
+                                <div id="chk-personal-ver" class="space-y-1 text-sm"></div>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-sm text-blue-600 mb-1">✏️ Puede EDITAR:</p>
+                                <div id="chk-personal-editar" class="space-y-1 text-sm"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="grupo col-span-2">
+                        <label>Vincular con Colaborador / Conductor</label>
+                        <select id="usuVinculo">
+                            <option value="">-- Ninguno --</option>
+                            <optgroup label="Colaboradores">
+                                ${colaboradores.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('')}
+                            </optgroup>
+                            <optgroup label="Conductores">
+                                ${conductores.map(c => `<option value="${c.nombre}">${c.nombre} (Conductor)</option>`).join('')}
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button class="btn btn-exito" onclick="guardarUsuario()">💾 Guardar Usuario</button>
+                    <button class="btn" onclick="limpiarFormUsuario()">Limpiar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================== -->
+        <!-- PESTAÑA: ROLES — SUBPESTAÑAS SIEMPRE VISIBLES -->
+        <!-- ============================================== -->
+        <div id="pestCont_roles" class="oculto">
+            <div class="flex gap-2 mb-4 flex-wrap bg-gray-50 p-2 rounded-lg">
+                <button class="btn-subpestaña activa" id="subBtnTodos_roles" onclick="cambiarSubRoles('todos')">📋 Todos los Roles</button>
+                <button class="btn-subpestaña" id="subBtnCrear_roles" onclick="cambiarSubRoles('crear')">➕ Crear Rol Fijo</button>
+            </div>
+
+            <!-- SUB: TODOS LOS ROLES -->
+            <div id="subContTodos_roles">
+                <p class="text-sm text-gray-500 mb-3">Roles del sistema — los marcados como "Predeterminado" no se pueden eliminar</p>
+                <div class="grid-2" id="listaRolesTarjetas">
+                    ${listaRoles.map(r => `
+                    <div class="tarjeta border-2 ${r.predeterminado ? 'border-blue-200' : r.codigo==='personalizado'?'border-purple-200':'border-gray-100'}">
+                        <h4 class="font-bold flex justify-between items-center">
+                            ${r.nombre}
+                            <span class="flex gap-1">
+                                ${r.predeterminado ? '<span class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Predeterminado</span>' : ''}
+                                ${r.codigo==='personalizado' ? '<span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Personalizado</span>' : ''}
+                            </span>
+                        </h4>
+                        <p class="text-sm text-gray-500 mb-2">${r.descripcion || ''}</p>
+                        <div class="text-sm space-y-2">
+                            <div>
+                                <p class="font-semibold text-green-600">Puede VER:</p>
+                                <div class="flex flex-wrap gap-1 mt-1">
+                                    ${r.modulosVer.length>0?r.modulosVer.map(m=>`<span class="bg-green-50 text-green-700 px-2 py-0.5 rounded text-xs">${nombresModulos[m]||m}</span>`).join(''):'<span class="text-gray-400 text-xs">Ninguno</span>'}
+                                </div>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-blue-600">Puede EDITAR:</p>
+                                <div class="flex flex-wrap gap-1 mt-1">
+                                    ${r.modulosEditar.length>0?r.modulosEditar.map(m=>`<span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs">${nombresModulos[m]||m}</span>`).join(''):'<span class="text-gray-400 text-xs">Ninguno</span>'}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 mt-3">
+                            <button class="btn btn-sm btn-amarillo" onclick="editarRol('${r.codigo}')">Editar</button>
+                            ${!r.predeterminado && r.codigo!=='personalizado' ? `<button class="btn btn-sm btn-peligro" onclick="eliminarRol('${r.codigo}')">Eliminar</button>` : ''}
+                        </div>
+                    </div>`).join('')}
+                </div>
+            </div>
+
+            <!-- SUB: CREAR ROL FIJO -->
+            <div id="subContCrear_roles" class="oculto">
+                <h4 id="tituloFormRol" class="font-bold mb-3">➕ Crear Nuevo Rol Fijo</h4>
+                <div class="grid-2">
+                    <div class="grupo">
+                        <label>Nombre del Rol *</label>
+                        <input type="text" id="rolNombre" placeholder="ej: Encargado de Bodega">
+                    </div>
+                    <div class="grupo">
+                        <label>Código identificador *</label>
+                        <input type="text" id="rolCodigo" placeholder="ej: encargado_bodega" ${idEdicionRol?'readonly':''}>
+                    </div>
+                    <div class="grupo col-span-2">
+                        <label>Descripción</label>
+                        <input type="text" id="rolDescripcion" placeholder="Breve descripción de este rol">
+                    </div>
+                    <div class="grupo col-span-2">
+                        <label class="font-semibold text-green-600">📂 Módulos que PUEDE VER:</label>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                            ${Object.entries(nombresModulos).map(([cod, nom]) => `
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="checkbox" class="chk-ver" value="${cod}"> ${nom}
+                            </label>`).join('')}
+                        </div>
+                    </div>
+                    <div class="grupo col-span-2">
+                        <label class="font-semibold text-blue-600">✏️ Módulos que PUEDE EDITAR:</label>
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                            ${Object.entries(nombresModulos).map(([cod, nom]) => `
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="checkbox" class="chk-editar" value="${cod}"> ${nom}
+                            </label>`).join('')}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex gap-2 mt-3">
+                    <button class="btn btn-exito" onclick="guardarRol()">💾 Guardar Rol</button>
+                    <button class="btn" onclick="limpiarFormRol()">Limpiar</button>
+                </div>
+            </div>
         </div>
     </div>
     `;
 
-    await dibujarTablaUsuarios();
+    actualizarChecksPersonalizados();
+    cargarListaUsuariosDesdeDB();
 };
 
+// =====================================================
+// ===== CONFIGURACIÓN DE MÓDULOS Y ROLES =====
+// =====================================================
+const nombresModulos = {
+    movimientos: 'Movimientos',
+    transportadora: 'Transportadora',
+    misCanastillas: 'Mis Canastillas',
+    recoleccion: 'Recolección',
+    anuncios: 'Anuncios',
+    donantes: 'Donantes',
+    combustible: 'Combustible',
+    mantenimiento: 'Mantenimiento',
+    informes: 'Informes',
+    usuarios: 'Gestión de Usuarios',
+    admin: 'Administración'
+};
+
+let listaRoles = [
+    {
+        codigo: 'admin',
+        nombre: '👑 Administrador',
+        descripcion: 'Acceso total — ve y edita todo',
+        predeterminado: true,
+        modulosVer: Object.keys(nombresModulos),
+        modulosEditar: Object.keys(nombresModulos)
+    },
+    {
+        codigo: 'usuario',
+        nombre: 'Usuario Estándar',
+        descripcion: 'Operaciones diarias sin administración',
+        predeterminado: true,
+        modulosVer: ['movimientos','transportadora','misCanastillas','recoleccion','anuncios','donantes','combustible','mantenimiento','informes'],
+        modulosEditar: ['movimientos','transportadora','misCanastillas','recoleccion','anuncios','donantes','combustible','mantenimiento']
+    },
+    {
+        codigo: 'conductor',
+        nombre: '🚚 Conductor',
+        descripcion: 'Registro de recorridos y recogidas',
+        predeterminado: true,
+        modulosVer: ['movimientos','misCanastillas','recoleccion','anuncios'],
+        modulosEditar: ['movimientos','recoleccion']
+    },
+    {
+        codigo: 'encargado_bodega',
+        nombre: '📦 Encargado de Bodega',
+        descripcion: 'Control de existencias y donaciones',
+        predeterminado: true,
+        modulosVer: ['movimientos','misCanastillas','donantes','combustible','mantenimiento','informes'],
+        modulosEditar: ['movimientos','misCanastillas','donantes','combustible']
+    },
+    {
+        codigo: 'personalizado',
+        nombre: '🎛️ Rol Personalizado',
+        descripcion: 'Definir manualmente qué ve y edita cada usuario',
+        predeterminado: true,
+        modulosVer: [],
+        modulosEditar: []
+    }
+];
+
+let listaUsuarios = [];
 let idEdicionUsuario = null;
+let idEdicionRol = null;
+let permisosPersonalizados = { ver: [], editar: [] };
 
-function cambiarOrigenUsuario() {
-    const origen = document.getElementById('origenUsuario').value;
-    document.getElementById('seleccionColaborador').style.display = origen === 'colaborador' ? 'block' : 'none';
-    document.getElementById('seleccionConductor').style.display = origen === 'conductor' ? 'block' : 'none';
-    
-    if (origen !== 'colaborador') document.getElementById('usuarioColaborador').value = '';
-    if (origen !== 'conductor') document.getElementById('usuarioConductor').value = '';
-    if (origen === 'nuevo') {
-        document.getElementById('nombreUsuarioForm').value = '';
-        document.getElementById('usuarioForm').value = '';
+// =====================================================
+// ===== NAVEGACIÓN — PESTAÑAS SIEMPRE VISIBLES =====
+// =====================================================
+function cambiarPestPrincipal(nombre) {
+    // Ocultar todo
+    document.querySelectorAll('[id^="pestCont_"]').forEach(d => d.classList.add('oculto'));
+    // Quitar activa de todos los botones
+    document.querySelectorAll('[id^="pestBtn_"]').forEach(b => b.classList.remove('activa'));
+    // Mostrar seleccionado
+    document.getElementById(`pestCont_${nombre}`).classList.remove('oculto');
+    document.getElementById(`pestBtn_${nombre}`).classList.add('activa');
+    // Cargar datos si corresponde
+    if (nombre === 'usuarios') dibujarListaUsuarios();
+}
+
+function cambiarSubUsu(nombre) {
+    // Ocultar todo
+    document.querySelectorAll('[id^="subCont_"]').forEach(d => d.classList.add('oculto'));
+    // Quitar activa
+    document.querySelectorAll('[id^="subBtn_"]').forEach(b => b.classList.remove('activa'));
+    // Mostrar
+    document.getElementById(`subCont_${nombre}`).classList.remove('oculto');
+    document.getElementById(`subBtn_${nombre}`).classList.add('activa');
+    // Acciones
+    if (nombre === 'todos') dibujarListaUsuarios();
+    if (nombre === 'crear') {
+        idEdicionUsuario = null;
+        limpiarFormUsuario();
     }
 }
 
-function cargarDatosColaborador() {
-    const sel = document.getElementById('usuarioColaborador');
-    const opt = sel.selectedOptions[0];
-    if (opt && opt.dataset.nombre) {
-        document.getElementById('nombreUsuarioForm').value = opt.dataset.nombre;
-        document.getElementById('usuarioForm').value = sel.value;
+function cambiarSubRoles(nombre) {
+    // Ocultar todo
+    document.querySelectorAll('[id^="subContTodos_"], [id^="subContCrear_"]').forEach(d => d.classList.add('oculto'));
+    // Quitar activa
+    document.querySelectorAll('[id^="subBtnTodos_"], [id^="subBtnCrear_"]').forEach(b => b.classList.remove('activa'));
+    // Mostrar
+    document.getElementById(`subCont${nombre.charAt(0).toUpperCase() + nombre.slice(1)}_roles`).classList.remove('oculto');
+    document.getElementById(`subBtn${nombre.charAt(0).toUpperCase() + nombre.slice(1)}_roles`).classList.add('activa');
+    // Acciones
+    if (nombre === 'crear') limpiarFormRol();
+}
+
+// =====================================================
+// ===== ROLES — SELECCIÓN PERSONALIZADO =====
+// =====================================================
+function cambiarSeleccionRolUsuario() {
+    const rolSel = document.getElementById('usuRol').value;
+    const bloque = document.getElementById('bloquePermisosPersonalizados');
+    if (rolSel === 'personalizado') {
+        bloque.classList.remove('oculto');
+    } else {
+        bloque.classList.add('oculto');
+        permisosPersonalizados = { ver: [], editar: [] };
     }
 }
 
-function cargarDatosConductor() {
-    const sel = document.getElementById('usuarioConductor');
-    const opt = sel.selectedOptions[0];
-    if (opt && opt.dataset.nombre) {
-        document.getElementById('nombreUsuarioForm').value = opt.dataset.nombre;
-        document.getElementById('usuarioForm').value = sel.value;
-    }
+function actualizarChecksPersonalizados() {
+    const contVer = document.getElementById('chk-personal-ver');
+    const contEditar = document.getElementById('chk-personal-editar');
+    if (!contVer || !contEditar) return;
+
+    contVer.innerHTML = Object.entries(nombresModulos).map(([cod, nom]) => `
+        <label class="flex items-center gap-2">
+            <input type="checkbox" class="chk-perm-ver" value="${cod}" onchange="actualizarPermisosPersonalizados()">
+            ${nom}
+        </label>`).join('');
+
+    contEditar.innerHTML = Object.entries(nombresModulos).map(([cod, nom]) => `
+        <label class="flex items-center gap-2">
+            <input type="checkbox" class="chk-perm-editar" value="${cod}" onchange="actualizarPermisosPersonalizados()">
+            ${nom}
+        </label>`).join('');
 }
 
-async function dibujarTablaUsuarios() {
-    const cuerpo = document.getElementById('tablaUsuariosCuerpo');
-    if (!cuerpo) return;
-
-    let todos = [...usuariosFijos];
-    if (typeof db !== 'undefined') {
-        try {
-            const snap = await db.collection('usuarios').get();
-            snap.forEach(d => { todos.push({ id: d.id, ...d.data(), desdeFirebase: true }); });
-        } catch (e) { console.log('Sin usuarios en Firebase'); }
-    }
-
-    cuerpo.innerHTML = todos.map(u => `
-    <tr class="${u.activo === false ? 'bg-red-50' : ''}">
-        <td class="border p-2">${u.nombre || '—'}</td>
-        <td class="border p-2 font-mono text-xs">${u.usuario || u.id}</td>
-        <td class="border p-2">${u.rol || 'usuario'}</td>
-        <td class="border p-2 text-center">
-            ${u.activo === false 
-                ? '<span class="text-red-600 font-bold">❌ INACTIVO</span>' 
-                : '<span class="text-green-600">✅ Activo</span>'}
-        </td>
-        <td class="border p-2 text-center">
-            <button class="text-blue-600 text-xs px-1" onclick="editarUsuario('${u.usuario || u.id}', ${u.desdeFirebase || false})">✏️</button>
-            <button class="text-red-600 text-xs px-1" onclick="cambiarEstadoUsuario('${u.usuario || u.id}', ${u.activo !== false}, ${u.desdeFirebase || false})">
-                ${u.activo === false ? '✅ Activar' : '❌ Desactivar'}
-            </button>
-        </td>
-    </tr>
-    `).join('');
+function actualizarPermisosPersonalizados() {
+    permisosPersonalizados.ver = Array.from(document.querySelectorAll('.chk-perm-ver:checked')).map(c => c.value);
+    permisosPersonalizados.editar = Array.from(document.querySelectorAll('.chk-perm-editar:checked')).map(c => c.value);
 }
+
+// =====================================================
+// ===== USUARIOS — CRUD =====
+// =====================================================
+function dibujarListaUsuarios() {
+    const tb = document.getElementById('tablaTodosUsuarios');
+    if (!tb) return;
+    const texto = document.getElementById('buscarUsuario')?.value?.toLowerCase() || '';
+    const filtro = texto
+        ? listaUsuarios.filter(u => u.nombre.toLowerCase().includes(texto) || u.usuario.toLowerCase().includes(texto))
+        : listaUsuarios;
+
+    tb.innerHTML = filtro.length === 0
+        ? '<tr><td colspan="6" class="text-center py-4 text-gray-400">Sin usuarios registrados</td></tr>'
+        : filtro.map(u => `
+        <tr class="border-b">
+            <td class="font-medium">${u.nombre}</td>
+            <td><code>${u.usuario}</code></td>
+            <td><span class="px-2 py-1 rounded text-xs ${u.rol==='personalizado'?'bg-purple-100 text-purple-700':'bg-gray-100'}">${listaRoles.find(r=>r.codigo===u.rol)?.nombre||u.rol}</span></td>
+            <td>${u.vinculo||'—'}</td>
+            <td><span class="px-2 py-1 rounded text-xs ${u.activo!==false?'bg-green-100 text-green-700':'bg-red-100 text-red-700'}">${u.activo!==false?'Activo':'Inactivo'}</span></td>
+            <td>
+                <button class="btn btn-sm btn-amarillo" onclick="editarUsuario('${u.id}')">Editar</button>
+                <button class="btn btn-sm ${u.activo!==false?'btn-peligro':'btn-exito'}" onclick="cambiarEstadoUsuario('${u.id}',${u.activo!==false})">
+                    ${u.activo!==false?'Inactivar':'Activar'}
+                </button>
+            </td>
+        </tr>`).join('');
+}
+
+function filtrarUsuarios() { dibujarListaUsuarios(); }
 
 async function guardarUsuario() {
-    const nombre = document.getElementById('nombreUsuarioForm').value.trim();
-    const usuario = document.getElementById('usuarioForm').value.trim().toLowerCase();
-    const clave = document.getElementById('claveForm').value;
-    const rol = document.getElementById('rolForm').value || 'usuario';
-    const activo = document.getElementById('activoForm').checked;
-    const msj = document.getElementById('mensajeUsuario');
+    const nombre = document.getElementById('usuNombre').value.trim();
+    const usuario = document.getElementById('usuLogin').value.trim();
+    const clave = document.getElementById('usuClave').value.trim();
+    const rol = document.getElementById('usuRol').value;
+    const vinculo = document.getElementById('usuVinculo').value;
 
-    if (!nombre || !usuario) return msj.textContent = '⚠️ Nombre y Usuario son obligatorios';
-    if (!idEdicionUsuario && !clave) return msj.textContent = '⚠️ Ingrese contraseña';
+    if (!nombre || !usuario) return alert('⚠️ Nombre y Usuario son obligatorios');
+    if (!idEdicionUsuario && !clave) return alert('⚠️ Escriba contraseña');
 
-    msj.textContent = 'Guardando...';
-
-    const datos = { nombre, usuario, rol, activo };
+    const datos = { nombre, usuario, rol, vinculo, activo: true };
     if (clave) datos.clave = clave;
+    if (rol === 'personalizado') {
+        datos.permisosVer = permisosPersonalizados.ver;
+        datos.permisosEditar = permisosPersonalizados.editar;
+    }
 
     try {
-        if (typeof db !== 'undefined') {
-            await db.collection('usuarios').doc(usuario).set(datos);
-        }
         if (idEdicionUsuario) {
-            const idx = usuariosFijos.findIndex(u => u.usuario === idEdicionUsuario);
-            if (idx >= 0) {
-                if (clave) usuariosFijos[idx].clave = clave;
-                usuariosFijos[idx].nombre = nombre;
-                usuariosFijos[idx].rol = rol;
-                usuariosFijos[idx].activo = activo;
-            }
+            await db.collection('usuarios').doc(idEdicionUsuario).update(datos);
+            alert('✅ Usuario actualizado');
         } else {
-            const existe = usuariosFijos.find(u => u.usuario === usuario);
-            if (!existe) usuariosFijos.push({ ...datos });
+            await db.collection('usuarios').add(datos);
+            alert('✅ Usuario creado');
         }
-        msj.textContent = '✅ Usuario guardado';
-        limpiarFormUsuario();
-        await dibujarTablaUsuarios();
-    } catch (e) {
-        msj.textContent = '❌ Error: ' + e.message;
-    }
-}
-
-function editarUsuario(usuarioId, desdeFirebase = false) {
-    idEdicionUsuario = usuarioId;
-    const msj = document.getElementById('mensajeUsuario');
-    
-    if (desdeFirebase && typeof db !== 'undefined') {
-        db.collection('usuarios').doc(usuarioId).get().then(d => {
-            if (d.exists) llenarFormUsuario(d.data());
-        });
-    } else {
-        const u = usuariosFijos.find(x => x.usuario === usuarioId);
-        if (u) llenarFormUsuario(u);
-    }
-    document.getElementById('tituloFormUsuario').textContent = '✏️ Editar Usuario';
-    msj.textContent = '🔄 Puede cambiar contraseña si lo desea';
-}
-
-function llenarFormUsuario(u) {
-    document.getElementById('origenUsuario').value = 'nuevo';
-    cambiarOrigenUsuario();
-    document.getElementById('nombreUsuarioForm').value = u.nombre || '';
-    document.getElementById('usuarioForm').value = u.usuario || '';
-    document.getElementById('claveForm').value = '';
-    document.getElementById('rolForm').value = u.rol || 'usuario';
-    document.getElementById('activoForm').checked = u.activo !== false;
+        cambiarSubUsu('todos');
+        cargarListaUsuariosDesdeDB();
+    } catch (e) { alert('❌ Error: ' + e.message); }
 }
 
 function limpiarFormUsuario() {
     idEdicionUsuario = null;
-    document.getElementById('tituloFormUsuario').textContent = '➕ Crear Nuevo Usuario';
-    document.getElementById('origenUsuario').value = '';
-    cambiarOrigenUsuario();
-    document.getElementById('nombreUsuarioForm').value = '';
-    document.getElementById('usuarioForm').value = '';
-    document.getElementById('claveForm').value = '';
-    document.getElementById('rolForm').value = '';
-    document.getElementById('activoForm').checked = true;
-    document.getElementById('mensajeUsuario').textContent = '';
+    document.getElementById('tituloFormUsu').textContent = '➕ Crear Nuevo Usuario';
+    document.getElementById('usuNombre').value = '';
+    document.getElementById('usuLogin').value = '';
+    document.getElementById('usuLogin').readOnly = false;
+    document.getElementById('usuClave').value = '';
+    document.getElementById('usuRol').value = 'usuario';
+    document.getElementById('usuVinculo').value = '';
+    document.getElementById('bloquePermisosPersonalizados').classList.add('oculto');
+    permisosPersonalizados = { ver: [], editar: [] };
+    document.querySelectorAll('.chk-perm-ver, .chk-perm-editar').forEach(c => c.checked = false);
 }
 
-async function cambiarEstadoUsuario(usuarioId, activoActual, desdeFirebase = false) {
-    if (!confirm(`¿${activoActual ? 'DESACTIVAR' : 'ACTIVAR'} este usuario?`)) return;
-    
-    try {
-        if (desdeFirebase && typeof db !== 'undefined') {
-            await db.collection('usuarios').doc(usuarioId).update({ activo: !activoActual });
-        } else {
-            const idx = usuariosFijos.findIndex(u => u.usuario === usuarioId);
-            if (idx >= 0) usuariosFijos[idx].activo = !activoActual;
-        }
-        await dibujarTablaUsuarios();
-    } catch (e) {
-        alert('Error: ' + e.message);
+async function editarUsuario(id) {
+    const doc = await db.collection('usuarios').doc(id).get();
+    if (!doc.exists) return;
+    const u = { id: doc.id, ...doc.data() };
+    idEdicionUsuario = id;
+
+    cambiarSubUsu('crear');
+    document.getElementById('tituloFormUsu').textContent = '✏️ Editar Usuario';
+    document.getElementById('usuNombre').value = u.nombre;
+    document.getElementById('usuLogin').value = u.usuario;
+    document.getElementById('usuLogin').readOnly = true;
+    document.getElementById('usuClave').value = '';
+    document.getElementById('usuRol').value = u.rol || 'usuario';
+    document.getElementById('usuVinculo').value = u.vinculo || '';
+
+    if (u.rol === 'personalizado') {
+        document.getElementById('bloquePermisosPersonalizados').classList.remove('oculto');
+        permisosPersonalizados = { ver: u.permisosVer || [], editar: u.permisosEditar || [] };
+        document.querySelectorAll('.chk-perm-ver').forEach(c => c.checked = permisosPersonalizados.ver.includes(c.value));
+        document.querySelectorAll('.chk-perm-editar').forEach(c => c.checked = permisosPersonalizados.editar.includes(c.value));
+    } else {
+        document.getElementById('bloquePermisosPersonalizados').classList.add('oculto');
     }
+}
+
+async function cambiarEstadoUsuario(id, estaActivo) {
+    if (!confirm(`¿${estaActivo?'Inactivar':'Activar'} este usuario?`)) return;
+    await db.collection('usuarios').doc(id).update({ activo: !estaActivo });
+    cargarListaUsuariosDesdeDB();
+}
+
+async function cargarListaUsuariosDesdeDB() {
+    const snap = await db.collection('usuarios').get();
+    listaUsuarios = [];
+    snap.forEach(d => listaUsuarios.push({ id: d.id, ...d.data() }));
+    dibujarListaUsuarios();
+}
+
+// =====================================================
+// ===== ROLES — CRUD =====
+// =====================================================
+function limpiarFormRol() {
+    idEdicionRol = null;
+    document.getElementById('tituloFormRol').textContent = '➕ Crear Nuevo Rol Fijo';
+    document.getElementById('rolNombre').value = '';
+    document.getElementById('rolCodigo').value = '';
+    document.getElementById('rolCodigo').readOnly = false;
+    document.getElementById('rolDescripcion').value = '';
+    document.querySelectorAll('.chk-ver, .chk-editar').forEach(c => c.checked = false);
+}
+
+async function guardarRol() {
+    const nombre = document.getElementById('rolNombre').value.trim();
+    let codigo = document.getElementById('rolCodigo').value.trim().toLowerCase().replace(/\s+/g, '_');
+    const descripcion = document.getElementById('rolDescripcion').value.trim();
+    const modulosVer = Array.from(document.querySelectorAll('.chk-ver:checked')).map(c => c.value);
+    const modulosEditar = Array.from(document.querySelectorAll('.chk-editar:checked')).map(c => c.value);
+
+    if (!nombre || !codigo) return alert('⚠️ Nombre y Código son obligatorios');
+    if (['admin','personalizado','usuario','conductor','encargado_bodega'].includes(codigo) && !idEdicionRol) {
+        return alert('⚠️ Código reservado — elija otro');
+    }
+
+    const datos = { codigo, nombre, descripcion, modulosVer, modulosEditar, predeterminado: false };
+
+    if (idEdicionRol) {
+        const idx = listaRoles.findIndex(r => r.codigo === idEdicionRol);
+        if (idx !== -1) listaRoles[idx] = { ...listaRoles[idx], ...datos };
+        alert('✅ Rol actualizado');
+    } else {
+        if (listaRoles.some(r => r.codigo === codigo)) return alert('⚠️ Ya existe ese rol');
+        listaRoles.push(datos);
+        alert('✅ Rol creado');
+    }
+
+    limpiarFormRol();
+    cambiarSubRoles('todos');
+    cargarModulo_usuarios();
+}
+
+function editarRol(codigo) {
+    const rol = listaRoles.find(r => r.codigo === codigo);
+    if (!rol) return;
+    if (rol.predeterminado) return alert('⚠️ Rol predeterminado — no se puede modificar');
+
+    idEdicionRol = codigo;
+    cambiarSubRoles('crear');
+    document.getElementById('tituloFormRol').textContent = '✏️ Editar Rol';
+    document.getElementById('rolNombre').value = rol.nombre;
+    document.getElementById('rolCodigo').value = rol.codigo;
+    document.getElementById('rolCodigo').readOnly = true;
+    document.getElementById('rolDescripcion').value = rol.descripcion || '';
+
+    document.querySelectorAll('.chk-ver').forEach(chk => chk.checked = rol.modulosVer.includes(chk.value));
+    document.querySelectorAll('.chk-editar').forEach(chk => chk.checked = rol.modulosEditar.includes(chk.value));
+}
+
+function eliminarRol(codigo) {
+    const rol = listaRoles.find(r => r.codigo === codigo);
+    if (!rol) return;
+    if (rol.predeterminado || rol.codigo === 'personalizado') return alert('⚠️ No se puede eliminar este rol');
+    if (!confirm(`¿Eliminar el rol "${rol.nombre}"?`)) return;
+
+    listaRoles = listaRoles.filter(r => r.codigo !== codigo);
+    alert('✅ Rol eliminado');
+    cargarModulo_usuarios();
 }

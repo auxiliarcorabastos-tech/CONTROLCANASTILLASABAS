@@ -1,245 +1,103 @@
 // =====================================================
-// ===== ⚙️ MÓDULO ADMINISTRACIÓN COMPLETO =====
+// ===== ⚙️ MÓDULO ADMINISTRACIÓN =====
 // =====================================================
 window.cargarModulo_admin = async function() {
     const c = document.getElementById('contenido');
     if (!c) return;
 
+    // Solo admin
+    if (usuarioActivo?.rol !== 'admin') {
+        c.innerHTML = `<div class="tarjeta text-center py-8 text-red-500">🔒 Solo administradores pueden acceder</div>`;
+        return;
+    }
+
     c.innerHTML = `
     <div class="tarjeta">
-        <h2 class="text-xl font-bold mb-4">⚙️ Gestión de Roles y Permisos</h2>
+        <h3 class="font-bold mb-4">⚙️ Panel de Administración</h3>
         
-        <!-- Formulario Crear/Editar Rol -->
-        <div class="bg-gray-50 p-4 rounded-lg mb-6">
-            <h3 class="font-bold mb-3" id="tituloRol">➕ Crear Nuevo Rol</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                <div>
-                    <label>Clave del Rol (sin espacios)</label>
-                    <input type="text" id="rolClave" placeholder="Ej: bodeguero">
-                </div>
-                <div>
-                    <label>Nombre del Rol</label>
-                    <input type="text" id="rolNombre" placeholder="Ej: Bodeguero Principal">
-                </div>
+        <div class="grid-2 mb-6">
+            <div class="tarjeta border-2 border-blue-100">
+                <h4 class="font-bold mb-3">👤 Datos del Sistema</h4>
+                <p class="mb-1"><strong>Colaboradores:</strong> ${colaboradores.length}</p>
+                <p class="mb-1"><strong>Conductores:</strong> ${conductores.length}</p>
+                <p class="mb-1"><strong>Vehículos (Mov):</strong> ${vehiculosMov.length}</p>
+                <p class="mb-1"><strong>Vehículos (Transp):</strong> ${vehiculosTransp.length}</p>
+                <p class="mb-1"><strong>Movimientos:</strong> ${movimientos.length}</p>
+                <p><strong>Donantes:</strong> ${donantes.length}</p>
             </div>
-
-            <h4 class="font-semibold mb-2">🔐 Permisos por Módulo</h4>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                ${MODULOS_SISTEMA.map(m => `
-                <div class="border p-3 rounded bg-white">
-                    <p class="font-semibold mb-2">${m.nombre}</p>
-                    <label class="inline-flex items-center gap-2 mr-3">
-                        <input type="checkbox" class="permiso-ver" data-modulo="${m.id}" checked>
-                        ✅ Ver
-                    </label>
-                    <label class="inline-flex items-center gap-2">
-                        <input type="checkbox" class="permiso-editar" data-modulo="${m.id}">
-                        ✏️ Editar / Modificar
-                    </label>
-                </div>
-                `).join('')}
+            
+            <div class="tarjeta border-2 border-green-100">
+                <h4 class="font-bold mb-3">🔧 Acciones Rápidas</h4>
+                <button class="btn btn-primario w-full mb-2" style="width:100%;" onclick="limpiarCache()">🔄 Actualizar Datos</button>
+                <button class="btn btn-amarillo w-full mb-2" style="width:100%;" onclick="respaldoDatos()">📤 Respaldo</button>
+                <button class="btn btn-peligro w-full" style="width:100%;" onclick="confirmarLimpiezaPrueba()">🗑️ Borrar Datos de Prueba</button>
             </div>
-
-            <div class="flex gap-2 mt-4">
-                <button class="btn-primario" onclick="guardarRol()">💾 Guardar Rol</button>
-                <button class="bg-gray-200 px-4 py-2 rounded" onclick="limpiarFormRol()">🗑️ Limpiar</button>
-            </div>
-            <p id="mensajeRol" class="mt-2 text-sm"></p>
         </div>
 
-        <!-- Lista de Roles -->
-        <h3 class="font-bold mb-3">📋 Roles del Sistema</h3>
-        <div class="space-y-3">
-            ${listaRoles.map(r => `
-            <div class="border p-3 rounded-lg bg-white">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="font-bold text-lg">${r.nombre}</p>
-                        <p class="text-sm text-gray-500">Clave: <code>${r.clave}</code></p>
-                    </div>
-                    <div class="flex gap-2">
-                        <button class="text-blue-600 px-2 py-1 rounded hover:bg-blue-50" onclick="editarRol('${r.clave}')">✏️ Editar</button>
-                        ${!['admin', 'usuario'].includes(r.clave) 
-                            ? `<button class="text-red-600 px-2 py-1 rounded hover:bg-red-50" onclick="eliminarRol('${r.clave}')">🗑️ Eliminar</button>` 
-                            : `<span class="text-xs text-gray-400 px-2">🔒 Sistema</span>`}
-                    </div>
-                </div>
-                <div class="mt-3 text-sm text-gray-600 flex flex-wrap gap-2">
-                    ${MODULOS_SISTEMA.map(m => {
-                        const p = r.permisos?.[m.id] || { ver: false, editar: false };
-                        const estado = [];
-                        if (p.ver) estado.push('👁️ Ver');
-                        if (p.editar) estado.push('✏️ Editar');
-                        return `<span class="bg-gray-50 px-2 py-1 rounded text-xs">${m.nombre.split(' ')[0]}: ${estado.length ? estado.join(' · ') : '❌ Sin acceso'}</span>`;
-                    }).join('')}
-                </div>
-            </div>
-            `).join('')}
+        <h4 class="font-bold mb-3">📋 Usuarios Fijos del Sistema</h4>
+        <div class="overflow-x-auto">
+            <table class="tabla w-full">
+                <thead>
+                    <tr class="bg-gray-50">
+                        <th>Nombre</th>
+                        <th>Usuario</th>
+                        <th>Rol</th>
+                        <th>Acceso</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${usuariosFijos.map(u => `
+                    <tr class="border-b">
+                        <td class="font-medium">${u.nombre}</td>
+                        <td><code>${u.usuario}</code></td>
+                        <td><span class="px-2 py-1 rounded text-xs ${u.rol==='admin'?'bg-blue-100 text-blue-700':u.rol==='prueba'?'bg-yellow-100':'bg-gray-100'}">${u.rol}</span></td>
+                        <td>✅ Acceso directo</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
         </div>
     </div>
     `;
 };
 
-let idEdicionRol = null;
+function limpiarCache() {
+    localStorage.removeItem('usuarioActivo');
+    alert('✅ Cache limpiado — recargando...');
+    location.reload();
+}
 
-// =====================================================
-// ===== GUARDAR ROL =====
-// =====================================================
-async function guardarRol() {
-    const clave = document.getElementById('rolClave').value.trim().toLowerCase().replace(/\s+/g, '_');
-    const nombre = document.getElementById('rolNombre').value.trim();
-    const msj = document.getElementById('mensajeRol');
-
-    // Validaciones
-    if (!clave || !nombre) {
-        msj.textContent = '⚠️ Complete clave y nombre del rol';
-        msj.style.color = '#F53F3F';
-        return;
-    }
-    if (!/^[a-z0-9_]+$/.test(clave)) {
-        msj.textContent = '⚠️ Solo minúsculas, números y guion bajo (_) sin espacios';
-        msj.style.color = '#F53F3F';
-        return;
-    }
-
-    // Recopilar permisos
-    const permisos = {};
-    MODULOS_SISTEMA.forEach(m => {
-        permisos[m.id] = {
-            ver: document.querySelector(`.permiso-ver[data-modulo="${m.id}"]`).checked,
-            editar: document.querySelector(`.permiso-editar[data-modulo="${m.id}"]`).checked
-        };
-    });
-
-    const datosRol = {
-        clave,
-        nombre,
-        permisos,
-        fechaActualizacion: new Date()
+function respaldoDatos() {
+    const datos = {
+        fecha: new Date().toLocaleString('es-CO'),
+        colaboradores,
+        conductores,
+        vehiculosMov,
+        vehiculosTransp,
+        movimientos,
+        donantes,
+        anuncios
     };
-
-    try {
-        // Guardar en Firebase
-        if (typeof db !== 'undefined') {
-            await db.collection('roles').doc(clave).set(datosRol);
-        }
-
-        // Actualizar lista local
-        const indice = listaRoles.findIndex(r => r.clave === clave);
-        if (indice >= 0) {
-            listaRoles[indice] = datosRol;
-        } else {
-            listaRoles.push(datosRol);
-        }
-
-        // Éxito
-        msj.textContent = '✅ Rol guardado correctamente';
-        msj.style.color = '#00B42A';
-        
-        // Recargar la página del módulo
-        setTimeout(() => {
-            cambiarPestaña('admin');
-        }, 800);
-
-    } catch (error) {
-        msj.textContent = '❌ Error al guardar: ' + error.message;
-        msj.style.color = '#F53F3F';
-        console.error('Error guardando rol:', error);
-    }
+    const blob = new Blob([JSON.stringify(datos, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `respaldo_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    alert('✅ Respaldo descargado');
 }
 
-// =====================================================
-// ===== EDITAR ROL =====
-// =====================================================
-function editarRol(claveRol) {
-    const rol = listaRoles.find(r => r.clave === claveRol);
-    if (!rol) {
-        alert('Rol no encontrado');
-        return;
-    }
-
-    idEdicionRol = claveRol;
+async function confirmarLimpiezaPrueba() {
+    if (!confirm('⚠️ ¿Borrar TODOS los datos creados por usuarios de prueba? Esta acción no se puede deshacer.')) return;
     
-    // Actualizar formulario
-    document.getElementById('tituloRol').textContent = `✏️ Editar Rol: ${rol.nombre}`;
-    document.getElementById('rolClave').value = rol.clave;
-    
-    // Bloquear clave si es rol protegido
-    if (['admin', 'usuario'].includes(claveRol)) {
-        document.getElementById('rolClave').disabled = true;
-        document.getElementById('rolClave').style.background = '#f3f4f6';
-    } else {
-        document.getElementById('rolClave').disabled = false;
-        document.getElementById('rolClave').style.background = '';
+    let borrados = 0;
+    for (const ref of idsCreadosPorPrueba) {
+        try {
+            await db.collection(ref.coleccion).doc(ref.id).delete();
+            borrados++;
+        } catch (e) { console.log('No se pudo borrar:', ref.id); }
     }
     
-    document.getElementById('rolNombre').value = rol.nombre;
-
-    // Cargar permisos actuales
-    MODULOS_SISTEMA.forEach(m => {
-        const permiso = rol.permisos?.[m.id] || { ver: false, editar: false };
-        const checkVer = document.querySelector(`.permiso-ver[data-modulo="${m.id}"]`);
-        const checkEditar = document.querySelector(`.permiso-editar[data-modulo="${m.id}"]`);
-        
-        if (checkVer) checkVer.checked = permiso.ver;
-        if (checkEditar) checkEditar.checked = permiso.editar;
-    });
-
-    // Limpiar mensaje
-    const msj = document.getElementById('mensajeRol');
-    if (msj) msj.textContent = '';
-}
-
-// =====================================================
-// ===== LIMPIAR FORMULARIO =====
-// =====================================================
-function limpiarFormRol() {
-    idEdicionRol = null;
-    
-    document.getElementById('tituloRol').textContent = '➕ Crear Nuevo Rol';
-    document.getElementById('rolClave').value = '';
-    document.getElementById('rolClave').disabled = false;
-    document.getElementById('rolClave').style.background = '';
-    document.getElementById('rolNombre').value = '';
-    
-    // Restablecer permisos por defecto: Ver = Sí, Editar = No
-    document.querySelectorAll('.permiso-ver').forEach(cb => cb.checked = true);
-    document.querySelectorAll('.permiso-editar').forEach(cb => cb.checked = false);
-    
-    const msj = document.getElementById('mensajeRol');
-    if (msj) msj.textContent = '';
-}
-
-// =====================================================
-// ===== ELIMINAR ROL =====
-// =====================================================
-async function eliminarRol(claveRol) {
-    // Proteger roles del sistema
-    if (['admin', 'usuario'].includes(claveRol)) {
-        alert('🔒 Este rol es del sistema y no se puede eliminar');
-        return;
-    }
-
-    if (!confirm(`⚠️ ¿Eliminar el rol "${claveRol}"?\n\nLos usuarios que tengan este rol perderán todos sus permisos hasta que se les asigne uno nuevo.\n\n¿Continuar?`)) {
-        return;
-    }
-
-    try {
-        // Eliminar de Firebase
-        if (typeof db !== 'undefined') {
-            await db.collection('roles').doc(claveRol).delete();
-        }
-
-        // Eliminar de la lista local
-        listaRoles = listaRoles.filter(r => r.clave !== claveRol);
-
-        alert('✅ Rol eliminado correctamente');
-        
-        // Recargar vista
-        cambiarPestaña('admin');
-
-    } catch (error) {
-        alert('❌ Error al eliminar: ' + error.message);
-        console.error('Error eliminando rol:', error);
-    }
+    idsCreadosPorPrueba = [];
+    alert(`✅ ${borrados} registro(s) borrado(s)`);
 }
