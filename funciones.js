@@ -7,7 +7,6 @@ let movimientos = [];
 let movimientosTransp = [];
 let colaboradores = [];
 let vehiculosMov = [];
-let vehiculosTransp = [];
 let conductores = [];
 let kilometraje = [];
 let tanqueo = [];
@@ -15,14 +14,11 @@ let idEdicion = null;
 let idEdicionTransp = null;
 let filtroPendientes = false;
 let filasRecogida = [];
-let idsCreadosPorPrueba = [];
-let ultimosResultados = { movimientos: [], kilometraje: [], tanqueo: [] };
-let escuchasActivas = [];
 let listaRoles = [];
 let menuAbierto = window.innerWidth > 768;
 
 const usuariosFijos = [
-    { usuario: "jfigueroa", clave: "3134630773", nombre: "DANIEL FIGUEROA", rol: "admin", activo: true },
+    { usuario: "jfigueroa", clave: "123456", nombre: "DANIEL FIGUEROA", rol: "admin", activo: true },
     { usuario: "jgarnica", clave: "123456", nombre: "JAVIER GARNICA", rol: "admin", activo: true },
     { usuario: "jlopez", clave: "123456", nombre: "JULIETH LOPEZ", rol: "usuario", activo: true },
     { usuario: "estudiante", clave: "123456", nombre: "ESTUDIANTE PRUEBA", rol: "usuario", activo: true },
@@ -39,7 +35,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('✅ db y auth listos');
         cargarDatosGenerales();
     } else {
-        console.error('❌ Firebase NO cargado — verifica que firebase.js esté primero en index.html');
+        console.error('❌ Firebase NO cargado — verifica que firebase.js esté primero');
     }
 });
 
@@ -131,10 +127,16 @@ function cambiarPestaña(nombreModulo) {
 
 function actualizarVisibilidadModulos() {
     if (!usuarioActivo) return;
-    const esAdmin = usuarioActivo.rol === 'admin';
+    
+    const esAdmin = usuarioActivo.rol === 'admin' || 
+                    usuarioActivo.usuario === 'jfigueroa' || 
+                    usuarioActivo.usuario === 'jgarnica';
+    
+    console.log('👤 Usuario:', usuarioActivo.usuario, '| Es Admin:', esAdmin);
+    
     document.querySelectorAll('.btn-pestaña').forEach(btn => {
         const texto = btn.textContent.toLowerCase();
-        if (texto.includes('administración') || texto.includes('usuario')) {
+        if (texto.includes('administración') || texto.includes('gestión usuario')) {
             btn.style.display = esAdmin ? 'block' : 'none';
         }
     });
@@ -144,13 +146,18 @@ function actualizarVisibilidadModulos() {
 // ===== 📥 CARGA DE DATOS DESDE FIREBASE =====
 // =====================================================
 function cargarDatosGenerales() {
-    if (!db) return;
+    if (!db) {
+        console.log('❌ db no disponible');
+        return;
+    }
 
     db.collection('movimientos').orderBy('fecha', 'desc').onSnapshot(snap => {
         movimientos = [];
         snap.forEach(doc => { movimientos.push({ id: doc.id, ...doc.data() }); });
+        console.log('📋 Movimientos totales:', movimientos.length);
         if (window.dibujarMovimientosHoy) dibujarMovimientosHoy();
         if (window.dibujarMovimientosPendientes) dibujarMovimientosPendientes();
+        setTimeout(() => actualizarSelectoresVehiculos(), 100);
     });
 
     db.collection('movimientos_transportadora').orderBy('fecha', 'desc').onSnapshot(snap => {
@@ -158,29 +165,27 @@ function cargarDatosGenerales() {
         snap.forEach(doc => { movimientosTransp.push({ id: doc.id, ...doc.data() }); });
     });
 
-    // ✅ CARGA COLABORADORES
     db.collection('colaboradores').orderBy('nombre', 'asc').onSnapshot(snap => {
         colaboradores = [];
         snap.forEach(doc => { colaboradores.push({ id: doc.id, ...doc.data() }); });
+        console.log('👤 Colaboradores:', colaboradores.length);
         if (window.actualizarSelectoresMov) actualizarSelectoresMov();
     });
 
-    // ✅ CARGA VEHÍCULOS — Incluye placas desde movimientos también
     db.collection('vehiculos').orderBy('placa', 'asc').onSnapshot(snap => {
-    vehiculosMov = [];
-    snap.forEach(doc => { 
-        vehiculosMov.push({ id: doc.id, ...doc.data() }); 
+        vehiculosMov = [];
+        snap.forEach(doc => { 
+            vehiculosMov.push({ id: doc.id, ...doc.data() }); 
+        });
+        console.log('✅ Vehículos cargados:', vehiculosMov.length, vehiculosMov);
+        setTimeout(() => actualizarSelectoresVehiculos(), 50);
+        setTimeout(() => actualizarSelectoresVehiculos(), 200);
     });
-    console.log('✅ Vehículos cargados:', vehiculosMov.length, vehiculosMov);
-    // Forzar actualización con retardo para asegurar que el HTML exista
-    setTimeout(() => actualizarSelectoresVehiculos(), 50);
-    setTimeout(() => actualizarSelectoresVehiculos(), 200);
-});
 
-    // ✅ CARGA CONDUCTORES
     db.collection('conductores').orderBy('nombre', 'asc').onSnapshot(snap => {
         conductores = [];
         snap.forEach(doc => { conductores.push({ id: doc.id, ...doc.data() }); });
+        console.log('🚛 Conductores:', conductores.length);
     });
 
     db.collection('kilometraje').onSnapshot(snap => {
@@ -192,6 +197,48 @@ function cargarDatosGenerales() {
         tanqueo = [];
         snap.forEach(doc => { tanqueo.push({ id: doc.id, ...doc.data() }); });
     });
+}
+
+// =====================================================
+// ===== 🔄 ACTUALIZAR SELECTORES =====
+// =====================================================
+function actualizarSelectoresVehiculos() {
+    const sel = document.getElementById('placa');
+    if (!sel) {
+        console.log('⚠️ Campo placa no encontrado en este momento');
+        return;
+    }
+    
+    const valorActual = sel.value;
+    
+    const placasRegistradas = vehiculosMov.map(v => v.placa).filter(p => p);
+    const placasUsadas = [...new Set(movimientos.map(m => m.placa).filter(p => p))];
+    
+    const todasLasPlacas = [...new Set([...placasRegistradas, ...placasUsadas])].sort();
+    
+    console.log('🚗 Placas registradas:', placasRegistradas);
+    console.log('📋 Placas usadas en movimientos:', placasUsadas);
+    console.log('✅ TOTAL A MOSTRAR:', todasLasPlacas);
+    
+    sel.innerHTML = `<option value="">-- Seleccione --</option>` +
+        todasLasPlacas.map(p => `<option value="${p}">${p}</option>`).join('');
+    
+    sel.value = valorActual;
+}
+
+function actualizarSelectoresColaboradores() {
+    const sel = document.getElementById('colaborador');
+    if (!sel) return;
+    const valorActual = sel.value;
+    sel.innerHTML = `<option value="">-- Seleccionar --</option>` +
+        colaboradores.map(c => `<option value="${c.nombre || c.nombreCompleto}">${c.nombre || c.nombreCompleto}</option>`).join('') +
+        conductores.map(c => `<option value="${c.nombre || c.nombreCompleto}">${c.nombre || c.nombreCompleto}</option>`).join('');
+    sel.value = valorActual;
+}
+
+function actualizarSelectoresMov() {
+    actualizarSelectoresVehiculos();
+    actualizarSelectoresColaboradores();
 }
 
 // =====================================================
@@ -250,9 +297,6 @@ async function eliminarMovimiento(id) {
     }
 }
 
-// =====================================================
-// ===== ✅ COMPLETAR MOVIMIENTO DIRECTO =====
-// =====================================================
 async function completarMovimientoDirecto(id) {
     if (!db) return alert('❌ Sin conexión');
     const ahora = new Date().toLocaleTimeString('es-CO', { hour:'2-digit', minute:'2-digit' });
@@ -265,50 +309,6 @@ async function completarMovimientoDirecto(id) {
         console.error(err);
         alert('❌ Error al completar');
     }
-}
-
-// =====================================================
-// ===== 🔄 ACTUALIZAR SELECTORES =====
-// =====================================================
-function actualizarSelectoresVehiculos() {
-    const sel = document.getElementById('placa');
-    if (!sel) {
-        console.log('⚠️ Campo placa no encontrado en este momento');
-        return;
-    }
-    
-    const valorActual = sel.value;
-    
-    // Obtener placas de la colección de vehículos
-    const placasRegistradas = vehiculosMov.map(v => v.placa).filter(p => p);
-    // Obtener placas que ya han aparecido en movimientos
-    const placasUsadas = [...new Set(movimientos.map(m => m.placa).filter(p => p))];
-    
-    // Unir, quitar duplicados y ordenar
-    const todasLasPlacas = [...new Set([...placasRegistradas, ...placasUsadas])].sort();
-    
-    console.log('🚗 Placas registradas:', placasRegistradas);
-    console.log('📋 Placas usadas en movimientos:', placasUsadas);
-    console.log('✅ TOTAL A MOSTRAR:', todasLasPlacas);
-    
-    sel.innerHTML = `<option value="">-- Seleccione --</option>` +
-        todasLasPlacas.map(p => `<option value="${p}">${p}</option>`).join('');
-    
-    sel.value = valorActual;
-}
-function actualizarSelectoresColaboradores() {
-    const sel = document.getElementById('colaborador');
-    if (!sel) return;
-    const valorActual = sel.value;
-    sel.innerHTML = `<option value="">-- Seleccionar --</option>` +
-        colaboradores.map(c => `<option value="${c.nombre || c.nombreCompleto}">${c.nombre || c.nombreCompleto}</option>`).join('') +
-        conductores.map(c => `<option value="${c.nombre || c.nombreCompleto}">${c.nombre || c.nombreCompleto}</option>`).join('');
-    sel.value = valorActual;
-}
-
-function actualizarSelectoresMov() {
-    actualizarSelectoresVehiculos();
-    actualizarSelectoresColaboradores();
 }
 
 // =====================================================
