@@ -158,17 +158,22 @@ function cargarDatosGenerales() {
         snap.forEach(doc => { movimientosTransp.push({ id: doc.id, ...doc.data() }); });
     });
 
+    // ✅ CARGA COLABORADORES
     db.collection('colaboradores').orderBy('nombre', 'asc').onSnapshot(snap => {
         colaboradores = [];
         snap.forEach(doc => { colaboradores.push({ id: doc.id, ...doc.data() }); });
         if (window.actualizarSelectoresMov) actualizarSelectoresMov();
     });
 
+    // ✅ CARGA VEHÍCULOS — Incluye placas desde movimientos también
     db.collection('vehiculos').orderBy('placa', 'asc').onSnapshot(snap => {
         vehiculosMov = [];
         snap.forEach(doc => { vehiculosMov.push({ id: doc.id, ...doc.data() }); });
+        console.log('✅ Vehículos cargados:', vehiculosMov.length, vehiculosMov);
+        if (window.actualizarSelectoresMov) actualizarSelectoresMov();
     });
 
+    // ✅ CARGA CONDUCTORES
     db.collection('conductores').orderBy('nombre', 'asc').onSnapshot(snap => {
         conductores = [];
         snap.forEach(doc => { conductores.push({ id: doc.id, ...doc.data() }); });
@@ -264,10 +269,23 @@ async function completarMovimientoDirecto(id) {
 function actualizarSelectoresVehiculos() {
     const sel = document.getElementById('placa');
     if (!sel) return;
+    
     const valorActual = sel.value;
-    sel.innerHTML = `<option value="">-- Seleccionar Vehículo --</option>` +
-        vehiculosMov.map(v => `<option value="${v.placa}">${v.placa}</option>`).join('');
+    
+    // Obtener placas únicas de movimientos para no perder ninguna
+    const placasEnMovimientos = [...new Set(movimientos.map(m => m.placa).filter(p => p))];
+    
+    // Combinar: los de la colección + los que aparecen en movimientos
+    const todasLasPlacas = [
+        ...vehiculosMov.map(v => v.placa),
+        ...placasEnMovimientos
+    ].filter((p, i, arr) => p && arr.indexOf(p) === i).sort();
+    
+    sel.innerHTML = `<option value="">-- Seleccione --</option>` +
+        todasLasPlacas.map(p => `<option value="${p}">${p}</option>`).join('');
+    
     sel.value = valorActual;
+    console.log('✅ Placas en el selector:', todasLasPlacas);
 }
 
 function actualizarSelectoresColaboradores() {
